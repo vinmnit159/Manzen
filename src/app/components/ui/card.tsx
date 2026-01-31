@@ -3,11 +3,14 @@ import * as React from "react";
 import { cn } from "./utils";
 
 function Card({ className, ...props }: React.ComponentProps<"div">) {
+  const isClickable = props.onClick !== undefined;
+  
   return (
     <div
       data-slot="card"
       className={cn(
         "bg-card text-card-foreground flex flex-col gap-6 rounded-xl border",
+        isClickable && "cursor-pointer transition-all hover:shadow-md hover:scale-[1.02] active:scale-[0.98]",
         className,
       )}
       {...props}

@@ -1,6 +1,7 @@
 import { PageTemplate } from "@/app/components/PageTemplate";
 import { Card } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
+import { useNavigate } from "react-router";
 import { 
   Shield, 
   AlertTriangle, 
@@ -13,11 +14,13 @@ import {
 } from "lucide-react";
 
 export function HomePage() {
+  const navigate = useNavigate();
+  
   const stats = [
-    { label: "Active Controls", value: "156", change: "+12", icon: Shield, color: "text-blue-600" },
-    { label: "Open Risks", value: "8", change: "-3", icon: AlertTriangle, color: "text-red-600" },
-    { label: "Compliance Score", value: "94%", change: "+2%", icon: CheckCircle, color: "text-green-600" },
-    { label: "Pending Tasks", value: "23", change: "-5", icon: Clock, color: "text-orange-600" },
+    { label: "Active Controls", value: "156", change: "+12", icon: Shield, color: "text-blue-600", route: "/compliance/controls" },
+    { label: "Open Risks", value: "8", change: "-3", icon: AlertTriangle, color: "text-red-600", route: "/risk/risks" },
+    { label: "Compliance Score", value: "94%", change: "+2%", icon: CheckCircle, color: "text-green-600", route: "/compliance/frameworks" },
+    { label: "Pending Tasks", value: "23", change: "-5", icon: Clock, color: "text-orange-600", route: "/tests" },
   ];
 
   const recentActivity = [
@@ -38,7 +41,11 @@ export function HomePage() {
           {stats.map((stat) => {
             const Icon = stat.icon;
             return (
-              <Card key={stat.label} className="p-6">
+              <Card 
+                key={stat.label} 
+                className="p-6"
+                onClick={() => navigate(stat.route)}
+              >
                 <div className="flex items-center justify-between mb-2">
                   <Icon className={`w-8 h-8 ${stat.color}`} />
                   <span className="text-sm text-green-600 font-medium">{stat.change}</span>
