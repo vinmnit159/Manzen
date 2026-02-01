@@ -15,7 +15,8 @@ import {
   CheckSquare,
   FileWarning,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  Rocket
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/app/components/ui/utils";
@@ -102,6 +103,7 @@ const navigation: NavItem[] = [
       { title: "Settings", href: "/personnel/settings" },
     ],
   },
+  { title: "Registration", href: "/setup", icon: Rocket },
   { title: "Integrations", href: "/integrations", icon: Settings },
   { title: "My Security Tasks", href: "/my-security-tasks", icon: CheckSquare },
   { title: "My Access Requests", href: "/my-access-requests", icon: FileWarning },

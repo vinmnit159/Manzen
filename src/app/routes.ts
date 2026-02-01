@@ -54,6 +54,7 @@ import { PersonnelSettingsPage } from "@/app/pages/personnel/SettingsPage";
 import { IntegrationsPage } from "@/app/pages/IntegrationsPage";
 import { MySecurityTasksPage } from "@/app/pages/MySecurityTasksPage";
 import { MyAccessRequestsPage } from "@/app/pages/MyAccessRequestsPage";
+import { SetupFormPage } from "@/app/pages/SetupFormPage";
 
 export const router = createBrowserRouter([
   {
@@ -61,6 +62,7 @@ export const router = createBrowserRouter([
     Component: Layout,
     children: [
       { index: true, Component: HomePage },
+      { path: "setup", Component: SetupFormPage },
       { path: "my-work", Component: MyWorkPage },
       { path: "tests", Component: TestsPage },
       { path: "reports", Component: ReportsPage },
