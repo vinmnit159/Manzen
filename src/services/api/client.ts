@@ -130,7 +130,7 @@ class ApiError extends Error {
     public details?: any
   ) {
     super(message);
-    }
+  }
 }
 
 export const apiClient = new ApiClient();
