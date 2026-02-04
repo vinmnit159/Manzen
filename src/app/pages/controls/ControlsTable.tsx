@@ -98,48 +98,56 @@ export function ControlsTable({
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            {visibleColumns.map((column) => (
-              <th
-                key={column.id}
-                onClick={() => handleSort(column.id)}
-                className={`px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${
-                  column.sortable ? 'cursor-pointer hover:bg-gray-100' : ''
-                }`}
-                style={{ minWidth: column.minWidth }}
-              >
-                <div className="flex items-center gap-2">
-                  {column.label}
-                  {column.sortable && sortColumn === column.id && (
-                    <svg
-                      className={`w-4 h-4 transition-transform ${sortDirection === 'desc' ? 'rotate-180' : ''}`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                    </svg>
-                  )}
-                </div>
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {controls.map((control) => (
-            <tr key={control.id} className="hover:bg-gray-50">
+    <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="min-w-full">
+          <thead className="bg-gray-50 border-b border-gray-200">
+            <tr>
               {visibleColumns.map((column) => (
-                <td key={column.id} className="px-6 py-4 whitespace-nowrap">
-                  {renderCell(control, column)}
-                </td>
+                <th
+                  key={column.id}
+                  onClick={() => handleSort(column.id)}
+                  className={`px-6 py-4 text-left text-xs font-medium text-gray-700 uppercase tracking-wider ${
+                    column.sortable ? 'cursor-pointer hover:bg-gray-100' : ''
+                  }`}
+                  style={{ minWidth: column.minWidth }}
+                >
+                  <div className="flex items-center gap-2">
+                    {column.label}
+                    {column.sortable && sortColumn === column.id && (
+                      <svg
+                        className={`w-4 h-4 transition-transform ${sortDirection === 'desc' ? 'rotate-180' : ''}`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                      </svg>
+                    )}
+                  </div>
+                </th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-gray-200">
+            {controls.map((control, index) => (
+              <tr 
+                key={control.id} 
+                className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors`}
+              >
+                {visibleColumns.map((column) => (
+                  <td 
+                    key={column.id} 
+                    className="px-6 py-4 whitespace-nowrap align-top"
+                  >
+                    {renderCell(control, column)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

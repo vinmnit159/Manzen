@@ -140,9 +140,31 @@ export function ControlsPage() {
         </div>
       </div>
 
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Controls</h1>
+        
+        <div className="flex items-center gap-4">
+          <ColumnSelector 
+            columns={columns}
+            onColumnToggle={handleColumnToggle}
+          />
+          
+          {hasActiveFilters && (
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 11-1 1H3a1 1 0 01-1-1V4z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 11-1 1H3a1 1 0 01-1-1v-2z" />
+              </svg>
+              Filters Active
+            </span>
+          )}
+        </div>
+      </div>
+
       {/* Filters and Table */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <div className="lg:col-span-1">
+      <div className="flex flex-col lg:flex-row gap-6">
+        <div className="w-full lg:w-80 flex-shrink-0">
           <ControlsFilter
             filter={filter}
             onFilterChange={handleFilterChange}
@@ -150,7 +172,7 @@ export function ControlsPage() {
           />
         </div>
         
-        <div className="lg:col-span-3">
+        <div className="flex-1 min-w-0">
           {loading ? (
             <div className="flex justify-center items-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -167,7 +189,7 @@ export function ControlsPage() {
               </button>
             </div>
           ) : (
-            <div className="bg-white rounded-lg shadow overflow-hidden">
+            <div>
               <ControlsTable
                 controls={controls}
                 columns={columns}
@@ -177,10 +199,16 @@ export function ControlsPage() {
               />
               
               {controls.length > 0 && (
-                <div className="px-6 py-3 bg-gray-50 border-t border-gray-200">
-                  <div className="text-sm text-gray-600">
-                    Showing {controls.length} control{controls.length !== 1 ? 's' : ''}
-                    {hasActiveFilters && ' (filtered)'}
+                <div className="mt-4 px-6 py-4 bg-gray-50 border border-gray-200 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm text-gray-600">
+                      Showing <span className="font-medium text-gray-900">{controls.length}</span> control{controls.length !== 1 ? 's' : ''}
+                      {hasActiveFilters && <span> (filtered)</span>}
+        </div>
+      </div>
+    </div>
+  );
+}
                   </div>
                 </div>
               )}
