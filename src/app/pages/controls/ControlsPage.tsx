@@ -204,18 +204,10 @@ export function ControlsPage() {
                     <div className="text-sm text-gray-600">
                       Showing <span className="font-medium text-gray-900">{controls.length}</span> control{controls.length !== 1 ? 's' : ''}
                       {hasActiveFilters && <span> (filtered)</span>}
-        </div>
-      </div>
-    </div>
-  );
-}
+                    </div>
                   </div>
                 </div>
               )}
             </div>
           )}
-        </div>
-      </div>
-    </div>
-  );
 }
