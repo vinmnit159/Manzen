@@ -19,41 +19,20 @@ class UnauthenticatedClient {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
-    const url = `${this.baseURL}${endpoint}`;
+    // For POC development, always return mock data
+    console.log('🚀 POC Mode: Using mock data for', endpoint);
     
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      ...options.headers,
-    };
-
-    try {
-      // First try to fetch from Railway (might fail due to CORS)
-      const response = await fetch(url, {
-        ...options,
-        headers,
-        mode: 'cors',
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      console.warn('Direct Railway fetch failed, trying fallback:', error);
-      
-      // Fallback: Return mock data for development
-      if (endpoint === '/api/controls') {
-        return {
-          success: true,
-          data: this.getMockControls(),
-        } as T;
-      }
-      
-      throw error;
+    if (endpoint === '/api/controls') {
+      return {
+        success: true,
+        data: this.getMockControls(),
+      } as T;
     }
+    
+    return {
+      success: true,
+      data: [],
+    } as T;
   }
 
   async get<T>(endpoint: string, params?: Record<string, string>): Promise<T> {
