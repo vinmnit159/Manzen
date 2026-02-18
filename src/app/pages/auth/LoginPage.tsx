@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useNavigate, Link } from "react-router";
+import { Link } from "react-router";
 import { Card } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
@@ -26,7 +26,6 @@ const loginSchema = z.object({
 type LoginFormData = z.infer<typeof loginSchema>;
 
 export function LoginPage() {
-  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -47,7 +46,9 @@ export function LoginPage() {
         authService.setToken(response.data.token);
         authService.cacheUser(response.data.user);
         toast.success(`Welcome back, ${response.data.user.name || response.data.user.email}!`);
-        navigate("/");
+        // Use window.location so the router re-evaluates the auth loader
+        // only after localStorage is fully committed in this tick.
+        window.location.href = "/";
       } else {
         toast.error(response.error || "Login failed. Please check your credentials.");
       }
