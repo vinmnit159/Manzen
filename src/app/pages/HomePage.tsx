@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { PageTemplate } from "@/app/components/PageTemplate";
 import { Card } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
@@ -10,18 +11,32 @@ import {
   TrendingUp,
   FileText,
   Users,
-  Activity
+  Activity,
+  Loader2,
 } from "lucide-react";
+import { controlsService } from "@/services/api/controls";
+
+interface ComplianceStats {
+  total: number;
+  implemented: number;
+  partiallyImplemented: number;
+  notImplemented: number;
+  compliancePercentage: number;
+}
 
 export function HomePage() {
   const navigate = useNavigate();
-  
-  const stats = [
-    { label: "Active Controls", value: "156", change: "+12", icon: Shield, color: "text-blue-600", path: "/compliance/controls" },
-    { label: "Open Risks", value: "8", change: "-3", icon: AlertTriangle, color: "text-red-600", path: "/risk/risks" },
-    { label: "Compliance Score", value: "94%", change: "+2%", icon: CheckCircle, color: "text-green-600", path: "/compliance/frameworks" },
-    { label: "Pending Tasks", value: "23", change: "-5", icon: Clock, color: "text-orange-600", path: "/tests" },
-  ];
+  const [compliance, setCompliance] = useState<ComplianceStats | null>(null);
+  const [loadingCompliance, setLoadingCompliance] = useState(true);
+
+  useEffect(() => {
+    controlsService.getControlCompliance().then((res: any) => {
+      const data = res?.data ?? res;
+      setCompliance(data);
+    }).catch((err: any) => {
+      if (err?.statusCode === 401) window.location.href = "/login";
+    }).finally(() => setLoadingCompliance(false));
+  }, []);
 
   const recentActivity = [
     { action: "SOC 2 Type II audit completed", time: "2 hours ago", status: "success" },
@@ -29,6 +44,62 @@ export function HomePage() {
     { action: "Policy updated: Data Retention Policy", time: "1 day ago", status: "info" },
     { action: "Risk assessment approved by CFO", time: "2 days ago", status: "success" },
   ];
+
+  // Derived display values — fall back to skeleton dashes while loading
+  const complianceScore = loadingCompliance
+    ? null
+    : compliance
+    ? `${compliance.compliancePercentage.toFixed(1)}%`
+    : "—";
+
+  const activeControls = loadingCompliance
+    ? null
+    : compliance
+    ? String(compliance.total)
+    : "—";
+
+  const stats = [
+    {
+      label: "Active Controls",
+      value: activeControls,
+      change: null,           // live — no static delta
+      icon: Shield,
+      color: "text-blue-600",
+      path: "/compliance/controls",
+    },
+    {
+      label: "Open Risks",
+      value: "8",
+      change: "-3",
+      icon: AlertTriangle,
+      color: "text-red-600",
+      path: "/risk/risks",
+    },
+    {
+      label: "Compliance Score",
+      value: complianceScore,
+      change: null,           // live — no static delta
+      icon: CheckCircle,
+      color: "text-green-600",
+      path: "/compliance/frameworks",
+    },
+    {
+      label: "Pending Tasks",
+      value: "23",
+      change: "-5",
+      icon: Clock,
+      color: "text-orange-600",
+      path: "/tests",
+    },
+  ];
+
+  const pct = compliance?.compliancePercentage ?? 0;
+  const partialPct = compliance
+    ? Math.round((compliance.partiallyImplemented / compliance.total) * 100)
+    : 0;
+  const notPct = compliance
+    ? Math.round((compliance.notImplemented / compliance.total) * 100)
+    : 0;
 
   return (
     <PageTemplate
@@ -40,17 +111,26 @@ export function HomePage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {stats.map((stat) => {
             const Icon = stat.icon;
+            const isLive = stat.value === null; // still loading
             return (
-              <Card 
-                key={stat.label} 
+              <Card
+                key={stat.label}
                 className="p-6 cursor-pointer hover:shadow-md transition-shadow duration-200"
                 onClick={() => navigate(stat.path)}
               >
                 <div className="flex items-center justify-between mb-2">
                   <Icon className={`w-8 h-8 ${stat.color}`} />
-                  <span className="text-sm text-green-600 font-medium">{stat.change}</span>
+                  {stat.change !== null && (
+                    <span className="text-sm text-green-600 font-medium">{stat.change}</span>
+                  )}
                 </div>
-                <div className="text-3xl font-bold text-gray-900 mb-1">{stat.value}</div>
+                {isLive ? (
+                  <div className="flex items-center gap-2 h-9 mb-1">
+                    <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                  </div>
+                ) : (
+                  <div className="text-3xl font-bold text-gray-900 mb-1">{stat.value}</div>
+                )}
                 <div className="text-sm text-gray-600">{stat.label}</div>
               </Card>
             );
@@ -63,38 +143,78 @@ export function HomePage() {
           <Card className="p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-900">Compliance Overview</h2>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="sm"
                 onClick={() => navigate("/compliance/frameworks")}
               >
                 View All
               </Button>
             </div>
-            <div className="space-y-4">
-              {[
-                { framework: "SOC 2 Type II", progress: 94, status: "In Progress" },
-                { framework: "ISO 27001", progress: 100, status: "Certified" },
-                { framework: "GDPR", progress: 88, status: "In Progress" },
-                { framework: "HIPAA", progress: 72, status: "In Progress" },
-              ].map((item) => (
-                <div key={item.framework}>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-700">{item.framework}</span>
-                    <span className="text-xs text-gray-500">{item.progress}%</span>
+
+            {loadingCompliance ? (
+              <div className="flex items-center gap-3 py-6 text-sm text-gray-400">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Loading compliance data…
+              </div>
+            ) : !compliance ? (
+              <p className="text-sm text-gray-400 py-6">Could not load compliance data.</p>
+            ) : (
+              <div className="space-y-4">
+                {/* ISO 27001 — fully implemented */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-sm font-medium text-gray-700">ISO 27001:2022 — Implemented</span>
+                    <span className="text-xs text-gray-500">{pct.toFixed(1)}%</span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div className="w-full bg-gray-100 rounded-full h-2">
                     <div
                       className="bg-blue-600 h-2 rounded-full transition-all"
-                      style={{ width: `${item.progress}%` }}
+                      style={{ width: `${pct}%` }}
                     />
                   </div>
                 </div>
-              ))}
-            </div>
+
+                {/* Partially implemented */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-sm font-medium text-gray-700">ISO 27001:2022 — Partial</span>
+                    <span className="text-xs text-gray-500">{partialPct}%</span>
+                  </div>
+                  <div className="w-full bg-gray-100 rounded-full h-2">
+                    <div
+                      className="bg-amber-400 h-2 rounded-full transition-all"
+                      style={{ width: `${partialPct}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Not implemented */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-sm font-medium text-gray-700">ISO 27001:2022 — Not implemented</span>
+                    <span className="text-xs text-gray-500">{notPct}%</span>
+                  </div>
+                  <div className="w-full bg-gray-100 rounded-full h-2">
+                    <div
+                      className="bg-red-400 h-2 rounded-full transition-all"
+                      style={{ width: `${notPct}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Summary counts */}
+                <div className="flex justify-between text-xs text-gray-500 pt-1 border-t">
+                  <span>{compliance.implemented} implemented</span>
+                  <span>{compliance.partiallyImplemented} partial</span>
+                  <span>{compliance.notImplemented} not implemented</span>
+                  <span className="font-medium text-gray-700">{compliance.total} total</span>
+                </div>
+              </div>
+            )}
           </Card>
 
-          {/* Recent Activity */}
+          {/* Recent Activity — static, unchanged */}
           <Card className="p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-900">Recent Activity</h2>
@@ -117,7 +237,7 @@ export function HomePage() {
             </div>
           </Card>
 
-          {/* Risk Overview */}
+          {/* Risk Distribution — static, unchanged */}
           <Card className="p-6 cursor-pointer hover:shadow-md transition-shadow duration-200" onClick={() => navigate("/risk/risks")}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-900">Risk Distribution</h2>
@@ -139,36 +259,36 @@ export function HomePage() {
             </div>
           </Card>
 
-          {/* Quick Actions */}
+          {/* Quick Actions — static, unchanged */}
           <Card className="p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
             <div className="grid grid-cols-2 gap-3">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="h-auto py-4 flex flex-col gap-2"
                 onClick={() => navigate("/compliance/policies")}
               >
                 <FileText className="w-5 h-5" />
                 <span className="text-sm">New Policy</span>
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="h-auto py-4 flex flex-col gap-2"
                 onClick={() => navigate("/tests")}
               >
                 <Shield className="w-5 h-5" />
                 <span className="text-sm">Run Test</span>
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="h-auto py-4 flex flex-col gap-2"
                 onClick={() => navigate("/reports")}
               >
                 <AlertTriangle className="w-5 h-5" />
                 <span className="text-sm">Report Risk</span>
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="h-auto py-4 flex flex-col gap-2"
                 onClick={() => navigate("/vendors")}
               >
