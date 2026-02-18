@@ -1,80 +1,218 @@
+import { useEffect, useState } from "react";
 import { PageTemplate } from "@/app/components/PageTemplate";
-import { Button } from "@/app/components/ui/button";
-import { Card } from "@/app/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
-import { Plus } from "lucide-react";
+import { Progress } from "@/app/components/ui/progress";
+import { Separator } from "@/app/components/ui/separator";
+import { controlsService } from "@/services/api/controls";
+import {
+  ShieldCheck,
+  CheckCircle2,
+  AlertCircle,
+  XCircle,
+  Loader2,
+} from "lucide-react";
+
+interface ComplianceStats {
+  total: number;
+  implemented: number;
+  partiallyImplemented: number;
+  notImplemented: number;
+  compliancePercentage: number;
+}
+
+function StatChip({
+  icon: Icon,
+  label,
+  value,
+  color,
+}: {
+  icon: any;
+  label: string;
+  value: number;
+  color: string;
+}) {
+  return (
+    <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50">
+      <Icon className={`w-5 h-5 flex-shrink-0 ${color}`} />
+      <div>
+        <p className="text-xl font-bold text-gray-900">{value}</p>
+        <p className="text-xs text-gray-500">{label}</p>
+      </div>
+    </div>
+  );
+}
 
 export function FrameworksPage() {
-  const frameworks = [
-    { id: 1, name: "SOC 2 Type II", status: "Active", progress: 94, controls: 156, lastReview: "2026-01-25" },
-    { id: 2, name: "ISO 27001:2022", status: "Certified", progress: 100, controls: 114, lastReview: "2026-01-20" },
-    { id: 3, name: "GDPR", status: "Active", progress: 88, controls: 67, lastReview: "2026-01-28" },
-    { id: 4, name: "HIPAA", status: "In Progress", progress: 72, controls: 89, lastReview: "2026-01-15" },
-  ];
+  const [stats, setStats] = useState<ComplianceStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await controlsService.getControlCompliance() as any;
+        const data = response?.data ?? response;
+        setStats(data);
+      } catch (err: any) {
+        if (err?.statusCode === 401) {
+          window.location.href = "/login";
+          return;
+        }
+        setError(err?.message || "Failed to load compliance data.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStats();
+  }, []);
+
+  const pct = stats?.compliancePercentage ?? 0;
+  const partialPct = stats ? Math.round((stats.partiallyImplemented / stats.total) * 100) : 0;
+
+  // Derive a status label from the compliance percentage
+  const statusLabel =
+    pct === 100 ? "Certified" : pct >= 70 ? "Active" : "In Progress";
+  const statusVariant: "default" | "secondary" | "outline" =
+    pct === 100 ? "default" : pct >= 70 ? "secondary" : "outline";
 
   return (
     <PageTemplate
       title="Compliance Frameworks"
-      description="Manage and track compliance with various security and regulatory frameworks."
-      actions={<Button><Plus className="w-4 h-4 mr-2" />Add Framework</Button>}
+      description="Track compliance against active security and regulatory frameworks."
     >
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {frameworks.map((framework) => (
-          <Card key={framework.id} className="p-6">
-            <div className="flex items-center justify-between mb-3">
-              <Badge variant={framework.status === 'Certified' ? 'default' : 'outline'}>
-                {framework.status}
-              </Badge>
-              <span className="text-xs text-gray-500">{framework.progress}%</span>
+      {/* ── ISO 27001:2022 hero card ── */}
+      <Card className="mb-6">
+        <CardHeader className="pb-2">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center flex-shrink-0">
+                <ShieldCheck className="w-7 h-7 text-white" />
+              </div>
+              <div>
+                <CardTitle className="text-lg">ISO 27001:2022</CardTitle>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  Information security management system standard
+                </p>
+              </div>
             </div>
-            <h3 className="font-semibold text-gray-900 mb-2">{framework.name}</h3>
-            <div className="w-full bg-gray-200 rounded-full h-2 mb-3">
-              <div
-                className="bg-blue-600 h-2 rounded-full transition-all"
-                style={{ width: `${framework.progress}%` }}
-              />
-            </div>
-            <p className="text-sm text-gray-600">{framework.controls} Controls</p>
-            <p className="text-xs text-gray-500 mt-1">Last review: {framework.lastReview}</p>
-          </Card>
-        ))}
-      </div>
+            <Badge variant={statusVariant} className="mt-1">
+              {statusLabel}
+            </Badge>
+          </div>
+        </CardHeader>
 
-      <Card className="p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Framework Details</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Framework</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Progress</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Controls</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Review</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {frameworks.map((framework) => (
-                <tr key={framework.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900">{framework.name}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <Badge variant={framework.status === 'Certified' ? 'default' : 'outline'}>
-                      {framework.status}
-                    </Badge>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{framework.progress}%</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{framework.controls}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{framework.lastReview}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 space-x-3">
-                    <button className="hover:underline">View</button>
-                    <button className="hover:underline">Edit</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <CardContent className="space-y-5">
+          <Separator />
+
+          {/* Progress bar */}
+          {loading ? (
+            <div className="flex items-center gap-3 py-4 text-sm text-gray-500">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Loading compliance data…
+            </div>
+          ) : error ? (
+            <div className="flex items-center gap-2 py-4 text-sm text-red-600">
+              <AlertCircle className="w-4 h-4" />
+              {error}
+            </div>
+          ) : (
+            <>
+              {/* Main progress */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-sm font-medium text-gray-700">
+                    Overall compliance (fully implemented)
+                  </span>
+                  <span className="text-sm font-semibold text-gray-900">
+                    {pct.toFixed(1)}%
+                  </span>
+                </div>
+                <Progress value={pct} className="h-3" />
+              </div>
+
+              {/* Partial progress */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-sm text-gray-500">
+                    Partially implemented
+                  </span>
+                  <span className="text-sm text-gray-600">
+                    {partialPct}%
+                  </span>
+                </div>
+                <div className="w-full bg-gray-100 rounded-full h-2">
+                  <div
+                    className="bg-amber-400 h-2 rounded-full transition-all"
+                    style={{ width: `${partialPct}%` }}
+                  />
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Stat chips */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <StatChip
+                  icon={ShieldCheck}
+                  label="Total controls"
+                  value={stats!.total}
+                  color="text-blue-600"
+                />
+                <StatChip
+                  icon={CheckCircle2}
+                  label="Implemented"
+                  value={stats!.implemented}
+                  color="text-green-600"
+                />
+                <StatChip
+                  icon={AlertCircle}
+                  label="Partial"
+                  value={stats!.partiallyImplemented}
+                  color="text-amber-500"
+                />
+                <StatChip
+                  icon={XCircle}
+                  label="Not implemented"
+                  value={stats!.notImplemented}
+                  color="text-red-500"
+                />
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ── Annex A clause breakdown ── */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Annex A — Control clauses</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="divide-y">
+            {[
+              { clause: "A.5", title: "Organisational controls", count: 37 },
+              { clause: "A.6", title: "People controls", count: 8 },
+              { clause: "A.7", title: "Physical controls", count: 14 },
+              { clause: "A.8", title: "Technological controls", count: 34 },
+            ].map((row) => (
+              <div
+                key={row.clause}
+                className="flex items-center justify-between py-3 text-sm"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="font-mono text-xs text-gray-400 w-8">
+                    {row.clause}
+                  </span>
+                  <span className="text-gray-800">{row.title}</span>
+                </div>
+                <span className="text-gray-500">{row.count} controls</span>
+              </div>
+            ))}
+          </div>
+        </CardContent>
       </Card>
     </PageTemplate>
   );
