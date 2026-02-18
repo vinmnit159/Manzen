@@ -24,7 +24,8 @@ interface PolicyFilter {
 
 type SortKey = 'name' | 'version' | 'status' | 'createdAt';
 
-const POLICY_STATUSES = ['Published', 'Draft', 'Review', 'Archived'] as const;
+// DB stores statuses in uppercase: DRAFT, PUBLISHED, REVIEW, ARCHIVED
+const POLICY_STATUSES = ['PUBLISHED', 'DRAFT', 'REVIEW', 'ARCHIVED'] as const;
 
 // ── Status config ──────────────────────────────────────────────────────────
 
@@ -32,28 +33,28 @@ const STATUS_CONFIG: Record<
   string,
   { label: string; bg: string; text: string; dot: string; icon: React.ElementType }
 > = {
-  Published: {
+  PUBLISHED: {
     label: 'Published',
     bg: 'bg-green-50',
     text: 'text-green-700',
     dot: 'bg-green-500',
     icon: CheckCircle2,
   },
-  Draft: {
+  DRAFT: {
     label: 'Draft',
     bg: 'bg-gray-50',
     text: 'text-gray-600',
     dot: 'bg-gray-400',
     icon: Edit3,
   },
-  Review: {
+  REVIEW: {
     label: 'In Review',
     bg: 'bg-amber-50',
     text: 'text-amber-700',
     dot: 'bg-amber-500',
     icon: Clock,
   },
-  Archived: {
+  ARCHIVED: {
     label: 'Archived',
     bg: 'bg-red-50',
     text: 'text-red-600',
@@ -129,11 +130,11 @@ export function PoliciesPage() {
 
   const hasActiveFilters = !!(filter.search || filter.status);
 
-  // Summary counts
-  const published  = policies.filter(p => p.status === 'Published').length;
-  const draft      = policies.filter(p => p.status === 'Draft').length;
-  const inReview   = policies.filter(p => p.status === 'Review').length;
-  const archived   = policies.filter(p => p.status === 'Archived').length;
+  // Summary counts — DB stores uppercase values
+  const published  = policies.filter(p => p.status === 'PUBLISHED').length;
+  const draft      = policies.filter(p => p.status === 'DRAFT').length;
+  const inReview   = policies.filter(p => p.status === 'REVIEW').length;
+  const archived   = policies.filter(p => p.status === 'ARCHIVED').length;
 
   return (
     <div className="flex flex-col h-full bg-gray-50">
@@ -292,7 +293,7 @@ function FilterPanel({
           >
             <option value="">All statuses</option>
             {POLICY_STATUSES.map(s => (
-              <option key={s} value={s}>{s}</option>
+              <option key={s} value={s}>{STATUS_CONFIG[s]?.label ?? s}</option>
             ))}
           </select>
         </div>
