@@ -40,17 +40,20 @@ export function LoginPage() {
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
     try {
-      const response = await authService.login(data);
+      // Backend returns { user, token } directly (no success/data wrapper)
+      const response = await authService.login(data) as any;
+      const token = response.token ?? response.data?.token;
+      const user = response.user ?? response.data?.user;
 
-      if (response.success && response.data) {
-        authService.setToken(response.data.token);
-        authService.cacheUser(response.data.user);
-        toast.success(`Welcome back, ${response.data.user.name || response.data.user.email}!`);
+      if (token && user) {
+        authService.setToken(token);
+        authService.cacheUser(user);
+        toast.success(`Welcome back, ${user.name || user.email}!`);
         // Use window.location so the router re-evaluates the auth loader
         // only after localStorage is fully committed in this tick.
         window.location.href = "/";
       } else {
-        toast.error(response.error || "Login failed. Please check your credentials.");
+        toast.error(response.error || response.message || "Login failed. Please check your credentials.");
       }
     } catch (error: any) {
       toast.error(error.message || "An error occurred. Please try again.");
