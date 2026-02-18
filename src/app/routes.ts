@@ -8,6 +8,7 @@ import { ReportsPage } from "@/app/pages/ReportsPage";
 // Auth
 import { LoginPage } from "@/app/pages/auth/LoginPage";
 import { RegisterPage } from "@/app/pages/auth/RegisterPage";
+import { AuthCallbackPage } from "@/app/pages/auth/AuthCallbackPage";
 
 // Compliance
 import { FrameworksPage } from "@/app/pages/compliance/FrameworksPage";
@@ -80,6 +81,11 @@ export const router = createBrowserRouter([
   {
     path: "/register",
     Component: RegisterPage,
+  },
+  {
+    // OAuth callback — stores JWT then redirects to "/"
+    path: "/auth/callback",
+    Component: AuthCallbackPage,
   },
 
   // Protected app routes (with layout)
