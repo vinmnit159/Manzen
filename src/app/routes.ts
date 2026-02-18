@@ -59,6 +59,9 @@ import { IntegrationsPage } from "@/app/pages/IntegrationsPage";
 import { MySecurityTasksPage } from "@/app/pages/MySecurityTasksPage";
 import { MyAccessRequestsPage } from "@/app/pages/MyAccessRequestsPage";
 
+// Account
+import { AccountSettingsPage } from "@/app/pages/account/AccountSettingsPage";
+
 // Auth guard: redirect to /login if no token
 function requireAuth() {
   const token = localStorage.getItem("isms_token");
@@ -139,6 +142,9 @@ export const router = createBrowserRouter([
       { path: "integrations", Component: IntegrationsPage },
       { path: "my-security-tasks", Component: MySecurityTasksPage },
       { path: "my-access-requests", Component: MyAccessRequestsPage },
+
+      // Account
+      { path: "account-settings", Component: AccountSettingsPage },
     ],
   },
 ]);

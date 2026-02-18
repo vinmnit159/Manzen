@@ -16,10 +16,11 @@ import {
   FileWarning,
   ChevronDown,
   ChevronRight,
-  Rocket
+  UserCog,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/app/components/ui/utils";
+import { authService } from "@/services/api/auth";
 
 interface NavItem {
   title: string;
@@ -103,15 +104,37 @@ const navigation: NavItem[] = [
       { title: "Settings", href: "/personnel/settings" },
     ],
   },
-  { title: "Registration", href: "/setup", icon: Rocket },
   { title: "Integrations", href: "/integrations", icon: Settings },
   { title: "My Security Tasks", href: "/my-security-tasks", icon: CheckSquare },
   { title: "My Access Requests", href: "/my-access-requests", icon: FileWarning },
 ];
 
+function getInitials(name?: string | null, email?: string): string {
+  if (name && name.trim()) {
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+    return parts[0].slice(0, 2).toUpperCase();
+  }
+  if (email) return email.slice(0, 2).toUpperCase();
+  return "??";
+}
+
+function formatRole(role?: string): string {
+  if (!role) return "";
+  return role
+    .split("_")
+    .map((w) => w.charAt(0) + w.slice(1).toLowerCase())
+    .join(" ");
+}
+
 export function Sidebar() {
   const location = useLocation();
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
+
+  const user = authService.getCachedUser();
+  const displayName = user?.name || user?.email || "User";
+  const initials = getInitials(user?.name, user?.email);
+  const roleLabel = formatRole(user?.role);
 
   const toggleExpanded = (title: string) => {
     setExpandedItems((prev) =>
@@ -139,7 +162,7 @@ export function Sidebar() {
           const Icon = item.icon;
           const hasChildren = item.children && item.children.length > 0;
           const isExpanded = expandedItems.includes(item.title);
-          const parentActive = hasChildren && isParentActive(item.children);
+          const parentActive = hasChildren && isParentActive(item.children!);
 
           if (hasChildren) {
             return (
@@ -163,7 +186,7 @@ export function Sidebar() {
                 </button>
                 {isExpanded && (
                   <div className="ml-6 mt-1 space-y-1">
-                    {item.children.map((child) => (
+                    {item.children!.map((child) => (
                       <Link
                         key={child.href}
                         to={child.href}
@@ -201,16 +224,28 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className="p-3 border-t border-slate-800">
-        <div className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-slate-800 cursor-pointer">
-          <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-sm font-semibold">
-            JD
+      {/* User footer */}
+      <div className="p-3 border-t border-slate-800 space-y-1">
+        <Link
+          to="/account-settings"
+          className={cn(
+            "flex items-center gap-2 px-3 py-2 rounded-md transition-colors",
+            isActive("/account-settings")
+              ? "bg-blue-600 text-white"
+              : "hover:bg-slate-800"
+          )}
+        >
+          <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-sm font-semibold flex-shrink-0">
+            {initials}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">John Doe</p>
-            <p className="text-xs text-slate-400 truncate">Security Admin</p>
+            <p className="text-sm font-medium truncate">{displayName}</p>
+            {roleLabel && (
+              <p className="text-xs text-slate-400 truncate">{roleLabel}</p>
+            )}
           </div>
-        </div>
+          <UserCog className="w-4 h-4 text-slate-400 flex-shrink-0" />
+        </Link>
       </div>
     </aside>
   );
