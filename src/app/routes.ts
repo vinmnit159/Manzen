@@ -1,9 +1,13 @@
-import { createBrowserRouter } from "react-router";
+import { createBrowserRouter, redirect } from "react-router";
 import { Layout } from "@/app/components/Layout";
 import { HomePage } from "@/app/pages/HomePage";
 import { MyWorkPage } from "@/app/pages/MyWorkPage";
 import { TestsPage } from "@/app/pages/TestsPage";
 import { ReportsPage } from "@/app/pages/ReportsPage";
+
+// Auth
+import { LoginPage } from "@/app/pages/auth/LoginPage";
+import { RegisterPage } from "@/app/pages/auth/RegisterPage";
 
 // Compliance
 import { FrameworksPage } from "@/app/pages/compliance/FrameworksPage";
@@ -54,19 +58,38 @@ import { PersonnelSettingsPage } from "@/app/pages/personnel/SettingsPage";
 import { IntegrationsPage } from "@/app/pages/IntegrationsPage";
 import { MySecurityTasksPage } from "@/app/pages/MySecurityTasksPage";
 import { MyAccessRequestsPage } from "@/app/pages/MyAccessRequestsPage";
-import { SetupFormPage } from "@/app/pages/SetupFormPage";
+
+// Auth guard: redirect to /login if no token
+function requireAuth() {
+  const token = localStorage.getItem("isms_token");
+  if (!token) {
+    return redirect("/login");
+  }
+  return null;
+}
 
 export const router = createBrowserRouter([
+  // Public auth routes (no layout)
+  {
+    path: "/login",
+    Component: LoginPage,
+  },
+  {
+    path: "/register",
+    Component: RegisterPage,
+  },
+
+  // Protected app routes (with layout)
   {
     path: "/",
     Component: Layout,
+    loader: requireAuth,
     children: [
       { index: true, Component: HomePage },
-      { path: "setup", Component: SetupFormPage },
       { path: "my-work", Component: MyWorkPage },
       { path: "tests", Component: TestsPage },
       { path: "reports", Component: ReportsPage },
-      
+
       // Compliance routes
       { path: "compliance/frameworks", Component: FrameworksPage },
       { path: "compliance/controls", Component: ControlsPage },
@@ -74,7 +97,7 @@ export const router = createBrowserRouter([
       { path: "compliance/documents", Component: DocumentsPage },
       { path: "compliance/audits", Component: AuditsPage },
       { path: "compliance/settings", Component: ComplianceSettingsPage },
-      
+
       // Customer Trust routes
       { path: "customer-trust/overview", Component: CustomerTrustOverviewPage },
       { path: "customer-trust/accounts", Component: AccountsPage },
@@ -83,7 +106,7 @@ export const router = createBrowserRouter([
       { path: "customer-trust/knowledge-base", Component: KnowledgeBasePage },
       { path: "customer-trust/activity", Component: ActivityPage },
       { path: "customer-trust/settings", Component: CustomerTrustSettingsPage },
-      
+
       // Risk routes
       { path: "risk/overview", Component: RiskOverviewPage },
       { path: "risk/risks", Component: RisksPage },
@@ -91,27 +114,27 @@ export const router = createBrowserRouter([
       { path: "risk/action-tracker", Component: ActionTrackerPage },
       { path: "risk/snapshot", Component: SnapshotPage },
       { path: "risk/settings", Component: RiskSettingsPage },
-      
+
       // Vendors
       { path: "vendors", Component: VendorsPage },
-      
+
       // Privacy routes
       { path: "privacy/data-inventory", Component: DataInventoryPage },
       { path: "privacy/settings", Component: PrivacySettingsPage },
-      
+
       // Assets routes
       { path: "assets/inventory", Component: InventoryPage },
       { path: "assets/code-changes", Component: CodeChangesPage },
       { path: "assets/vulnerabilities", Component: VulnerabilitiesPage },
       { path: "assets/security-alerts", Component: SecurityAlertsPage },
       { path: "assets/settings", Component: AssetsSettingsPage },
-      
+
       // Personnel routes
       { path: "personnel/people", Component: PeoplePage },
       { path: "personnel/computers", Component: ComputersPage },
       { path: "personnel/access", Component: AccessPage },
       { path: "personnel/settings", Component: PersonnelSettingsPage },
-      
+
       // Other routes
       { path: "integrations", Component: IntegrationsPage },
       { path: "my-security-tasks", Component: MySecurityTasksPage },

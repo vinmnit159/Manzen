@@ -27,8 +27,8 @@ export interface ApiError {
 
 // HTTP client wrapper
 class ApiClient {
-  private baseURL: string;
-  private token: string | null = null;
+  public baseURL: string;
+  public token: string | null = null;
 
   constructor(baseURL: string = API_BASE_URL) {
     this.baseURL = baseURL;

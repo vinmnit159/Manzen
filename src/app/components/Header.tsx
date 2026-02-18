@@ -1,8 +1,9 @@
-import { Bell, Search, Settings, HelpCircle } from "lucide-react";
+import { Bell, Search, Settings, HelpCircle, LogOut, User } from "lucide-react";
 import { Badge } from "@/app/components/ui/badge";
 import { Input } from "@/app/components/ui/input";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router";
+import { authService } from "@/services/api/auth";
 
 interface SearchResult {
   title: string;
@@ -54,6 +55,14 @@ export function Header() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const navigate = useNavigate();
   const searchRef = useRef<HTMLDivElement>(null);
+
+  const handleLogout = () => {
+    authService.logout();
+    authService.clearCachedUser();
+    navigate("/login");
+  };
+
+  const cachedUser = authService.getCachedUser();
 
   useEffect(() => {
     if (searchQuery.length >= 2) {
@@ -135,21 +144,42 @@ export function Header() {
           </div>
         </div>
 
-        <div className="flex items-center gap-4 ml-6">
-          <button className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-md">
+        <div className="flex items-center gap-2 ml-6">
+          <button className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-md" title="Help">
             <HelpCircle className="w-5 h-5" />
           </button>
-          
-          <button className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-md">
+
+          <button className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-md" title="Notifications">
             <Bell className="w-5 h-5" />
             <Badge className="absolute -top-1 -right-1 w-5 h-5 p-0 flex items-center justify-center bg-red-500 text-white text-xs">
               3
             </Badge>
           </button>
-          
-          <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-md">
+
+          <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-md" title="Settings">
             <Settings className="w-5 h-5" />
           </button>
+
+          {/* User info + logout */}
+          <div className="flex items-center gap-2 ml-2 pl-2 border-l border-gray-200">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                <User className="w-4 h-4 text-blue-600" />
+              </div>
+              {cachedUser && (
+                <span className="text-sm font-medium text-gray-700 hidden sm:block max-w-[120px] truncate">
+                  {cachedUser.name || cachedUser.email}
+                </span>
+              )}
+            </div>
+            <button
+              onClick={handleLogout}
+              title="Sign out"
+              className="p-2 text-gray-500 hover:bg-red-50 hover:text-red-600 rounded-md transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
     </header>

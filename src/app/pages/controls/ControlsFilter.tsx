@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { ControlFilter, ControlStatus } from './types';
 
 interface ControlsFilterProps {
@@ -8,104 +8,147 @@ interface ControlsFilterProps {
 }
 
 export function ControlsFilter({ filter, onFilterChange, onClearFilters }: ControlsFilterProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
-
-  const handleFilterChange = (field: keyof ControlFilter, value: any) => {
-    onFilterChange({
-      ...filter,
-      [field]: value,
-    });
+  const handleChange = (field: keyof ControlFilter, value: string) => {
+    onFilterChange({ ...filter, [field]: value });
   };
 
-  const clearFilters = () => {
-    onClearFilters();
-  };
-
-  const hasActiveFilters = filter.search || filter.status || filter.isoReference;
+  const hasActiveFilters = !!(filter.search || filter.status || filter.isoReference);
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-      {/* Header */}
-      <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-gray-900">Filters</h2>
-        <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="p-2 rounded-md hover:bg-gray-100 transition-colors"
-          aria-label={isExpanded ? 'Collapse filters' : 'Expand filters'}
-        >
-          <svg
-            className={`w-5 h-5 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      {/* Panel header */}
+      <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">Filters</h2>
+        {hasActiveFilters && (
+          <button
+            onClick={onClearFilters}
+            className="text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors"
           >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
+            Clear all
+          </button>
+        )}
       </div>
 
-      {/* Filter Content */}
-      {isExpanded && (
-        <div className="px-6 pb-6 space-y-6">
-          {/* Search */}
-          <div>
-            <label htmlFor="search-control" className="block text-sm font-medium text-gray-700 mb-2">
-              Search
-            </label>
+      {/* Filter fields — always visible (Material standard) */}
+      <div className="px-5 py-4 space-y-5">
+        {/* Search */}
+        <div>
+          <label
+            htmlFor="ctrl-search"
+            className="block text-xs font-medium text-gray-600 mb-1.5 uppercase tracking-wide"
+          >
+            Search
+          </label>
+          <div className="relative">
+            <svg
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"
+              />
+            </svg>
             <input
-              id="search-control"
+              id="ctrl-search"
               type="text"
               value={filter.search}
-              onChange={(e) => handleFilterChange('search', e.target.value)}
-              placeholder="Search by title or description..."
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              onChange={(e) => handleChange('search', e.target.value)}
+              placeholder="Search title or description…"
+              className="w-full pl-9 pr-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-400 transition-colors"
             />
+            {filter.search && (
+              <button
+                onClick={() => handleChange('search', '')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                aria-label="Clear search"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
           </div>
+        </div>
 
-          {/* Status Filter */}
-          <div>
-            <label htmlFor="status-filter" className="block text-sm font-medium text-gray-700 mb-2">
-              Status
-            </label>
-            <select
-              id="status-filter"
-              value={filter.status}
-              onChange={(e) => handleFilterChange('status', e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-            >
-              <option value="">All Statuses</option>
-              <option value={ControlStatus.NOT_IMPLEMENTED}>Not Implemented</option>
-              <option value={ControlStatus.PARTIALLY_IMPLEMENTED}>Partially Implemented</option>
-              <option value={ControlStatus.IMPLEMENTED}>Implemented</option>
-            </select>
-          </div>
+        {/* Status */}
+        <div>
+          <label
+            htmlFor="ctrl-status"
+            className="block text-xs font-medium text-gray-600 mb-1.5 uppercase tracking-wide"
+          >
+            Status
+          </label>
+          <select
+            id="ctrl-status"
+            value={filter.status}
+            onChange={(e) => handleChange('status', e.target.value)}
+            className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-colors"
+          >
+            <option value="">All statuses</option>
+            <option value={ControlStatus.IMPLEMENTED}>Implemented</option>
+            <option value={ControlStatus.PARTIALLY_IMPLEMENTED}>Partially Implemented</option>
+            <option value={ControlStatus.NOT_IMPLEMENTED}>Not Implemented</option>
+          </select>
+        </div>
 
-          {/* ISO Reference Filter */}
-          <div>
-            <label htmlFor="iso-filter" className="block text-sm font-medium text-gray-700 mb-2">
-              ISO Reference
-            </label>
-            <input
-              id="iso-filter"
-              type="text"
-              value={filter.isoReference}
-              onChange={(e) => handleFilterChange('isoReference', e.target.value)}
-              placeholder="e.g., A.5.1, A.8.1"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+        {/* ISO Reference */}
+        <div>
+          <label
+            htmlFor="ctrl-iso"
+            className="block text-xs font-medium text-gray-600 mb-1.5 uppercase tracking-wide"
+          >
+            ISO Reference
+          </label>
+          <input
+            id="ctrl-iso"
+            type="text"
+            value={filter.isoReference}
+            onChange={(e) => handleChange('isoReference', e.target.value)}
+            placeholder="e.g. A.5.1"
+            className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-400 transition-colors"
+          />
+        </div>
+      </div>
+
+      {/* Active filter chips */}
+      {hasActiveFilters && (
+        <div className="px-5 pb-4 flex flex-wrap gap-2">
+          {filter.search && (
+            <Chip label={`"${filter.search}"`} onRemove={() => handleChange('search', '')} />
+          )}
+          {filter.status && (
+            <Chip
+              label={filter.status.replace(/_/g, ' ').toLowerCase()}
+              onRemove={() => handleChange('status', '')}
             />
-          </div>
-
-          {/* Clear Button */}
-          {hasActiveFilters && (
-            <button
-              onClick={clearFilters}
-              className="w-full px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
-            >
-              Clear All Filters
-            </button>
+          )}
+          {filter.isoReference && (
+            <Chip label={filter.isoReference} onRemove={() => handleChange('isoReference', '')} />
           )}
         </div>
       )}
     </div>
+  );
+}
+
+function Chip({ label, onRemove }: { label: string; onRemove: () => void }) {
+  return (
+    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200 capitalize">
+      {label}
+      <button
+        onClick={onRemove}
+        className="ml-0.5 text-blue-500 hover:text-blue-700 transition-colors"
+        aria-label={`Remove ${label} filter`}
+      >
+        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </span>
   );
 }

@@ -9,138 +9,161 @@ interface ControlsTableProps {
   sortDirection?: 'asc' | 'desc';
 }
 
-export function ControlsTable({ 
-  controls, 
-  columns, 
-  onSort, 
-  sortColumn, 
-  sortDirection 
+const STATUS_CONFIG: Record<
+  ControlStatus,
+  { label: string; bg: string; text: string; dot: string }
+> = {
+  [ControlStatus.IMPLEMENTED]: {
+    label: 'Implemented',
+    bg: 'bg-green-50',
+    text: 'text-green-700',
+    dot: 'bg-green-500',
+  },
+  [ControlStatus.PARTIALLY_IMPLEMENTED]: {
+    label: 'Partial',
+    bg: 'bg-amber-50',
+    text: 'text-amber-700',
+    dot: 'bg-amber-500',
+  },
+  [ControlStatus.NOT_IMPLEMENTED]: {
+    label: 'Not Implemented',
+    bg: 'bg-red-50',
+    text: 'text-red-700',
+    dot: 'bg-red-500',
+  },
+};
+
+export function ControlsTable({
+  controls,
+  columns,
+  onSort,
+  sortColumn,
+  sortDirection,
 }: ControlsTableProps) {
-  const getStatusColor = (status: ControlStatus) => {
-    switch (status) {
-      case ControlStatus.IMPLEMENTED:
-        return 'bg-green-100 text-green-800';
-      case ControlStatus.PARTIALLY_IMPLEMENTED:
-        return 'bg-yellow-100 text-yellow-800';
-      case ControlStatus.NOT_IMPLEMENTED:
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
+  const visibleColumns = columns.filter((c) => c.visible);
 
   const handleSort = (columnId: string) => {
-    if (onSort && columns.find(col => col.id === columnId)?.sortable) {
-      onSort(columnId);
-    }
+    const col = columns.find((c) => c.id === columnId);
+    if (onSort && col?.sortable) onSort(columnId);
   };
 
   const renderCell = (control: Control, column: ColumnConfig) => {
     switch (column.id) {
       case 'isoReference':
         return (
-          <span className="font-mono text-sm bg-gray-100 px-2 py-1 rounded">
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-semibold bg-blue-50 text-blue-800 border border-blue-200">
             {control.isoReference}
           </span>
         );
-      
+
       case 'title':
         return (
-          <span className="font-medium text-gray-900">
+          <span className="font-medium text-gray-900 text-sm leading-snug">
             {control.title}
           </span>
         );
-      
+
       case 'description':
         return (
-          <span className="text-gray-600 text-sm line-clamp-2">
+          <span
+            className="text-gray-500 text-sm leading-relaxed line-clamp-2"
+            title={control.description}
+          >
             {control.description}
           </span>
         );
-      
-      case 'status':
+
+      case 'status': {
+        const cfg = STATUS_CONFIG[control.status as ControlStatus] ?? {
+          label: control.status,
+          bg: 'bg-gray-50',
+          text: 'text-gray-600',
+          dot: 'bg-gray-400',
+        };
         return (
-          <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(control.status)}`}>
-            {control.status.replace('_', ' ').toLowerCase()}
+          <span
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${cfg.bg} ${cfg.text}`}
+          >
+            <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+            {cfg.label}
           </span>
         );
-      
+      }
+
       case 'justification':
         return (
-          <span className="text-gray-600 text-sm">
-            {control.justification || '-'}
+          <span className="text-gray-500 text-sm">
+            {control.justification || <span className="text-gray-300">—</span>}
           </span>
         );
-      
+
       case 'createdAt':
         return (
-          <span className="text-sm text-gray-600">
-            {new Date(control.createdAt).toLocaleDateString()}
+          <span className="text-sm text-gray-500 whitespace-nowrap">
+            {new Date(control.createdAt).toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric',
+            })}
           </span>
         );
-      
+
       default:
         return null;
     }
   };
 
-  const visibleColumns = columns.filter(col => col.visible);
-
-  if (controls.length === 0) {
-    return (
-      <div className="text-center py-12">
-        <div className="text-gray-500">No controls found</div>
-        <p className="text-gray-400 text-sm mt-2">
-          Try adjusting your filters or check back later.
-        </p>
-      </div>
-    );
-  }
-
   return (
-    <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="min-w-full">
-          <thead className="bg-gray-50 border-b border-gray-200">
-            <tr>
-              {visibleColumns.map((column) => (
+        <table className="min-w-full text-sm">
+          {/* Table head */}
+          <thead>
+            <tr className="border-b border-gray-200 bg-gray-50">
+              {visibleColumns.map((col) => (
                 <th
-                  key={column.id}
-                  onClick={() => handleSort(column.id)}
-                  className={`px-6 py-4 text-left text-xs font-medium text-gray-700 uppercase tracking-wider ${
-                    column.sortable ? 'cursor-pointer hover:bg-gray-100' : ''
-                  }`}
-                  style={{ minWidth: column.minWidth }}
+                  key={col.id}
+                  className={[
+                    'px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider select-none',
+                    col.sortable
+                      ? 'cursor-pointer hover:bg-gray-100 transition-colors'
+                      : '',
+                  ].join(' ')}
+                  style={{ minWidth: col.minWidth }}
+                  onClick={() => handleSort(col.id)}
+                  aria-sort={
+                    sortColumn === col.id
+                      ? sortDirection === 'asc'
+                        ? 'ascending'
+                        : 'descending'
+                      : undefined
+                  }
                 >
-                  <div className="flex items-center gap-2">
-                    {column.label}
-                    {column.sortable && sortColumn === column.id && (
-                      <svg
-                        className={`w-4 h-4 transition-transform ${sortDirection === 'desc' ? 'rotate-180' : ''}`}
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                      </svg>
+                  <span className="flex items-center gap-1.5">
+                    {col.label}
+                    {col.sortable && (
+                      <SortIcon active={sortColumn === col.id} direction={sortDirection} />
                     )}
-                  </div>
+                  </span>
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
-            {controls.map((control, index) => (
-              <tr 
-                key={control.id} 
-                className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors`}
+
+          {/* Table body */}
+          <tbody className="divide-y divide-gray-100">
+            {controls.map((control) => (
+              <tr
+                key={control.id}
+                className="hover:bg-blue-50/40 transition-colors group"
               >
-                {visibleColumns.map((column) => (
-                  <td 
-                    key={column.id} 
-                    className="px-6 py-4 whitespace-nowrap align-top"
+                {visibleColumns.map((col) => (
+                  <td
+                    key={col.id}
+                    className="px-4 py-3 align-top"
+                    style={{ minWidth: col.minWidth }}
                   >
-                    {renderCell(control, column)}
+                    {renderCell(control, col)}
                   </td>
                 ))}
               </tr>
@@ -149,5 +172,32 @@ export function ControlsTable({
         </table>
       </div>
     </div>
+  );
+}
+
+function SortIcon({
+  active,
+  direction,
+}: {
+  active: boolean;
+  direction?: 'asc' | 'desc';
+}) {
+  return (
+    <span className={`flex flex-col -space-y-1 ${active ? 'opacity-100' : 'opacity-30'}`}>
+      <svg
+        className={`w-3 h-3 ${active && direction === 'asc' ? 'text-blue-600' : 'text-gray-400'}`}
+        fill="currentColor"
+        viewBox="0 0 20 20"
+      >
+        <path d="M10 3l6 6H4l6-6z" />
+      </svg>
+      <svg
+        className={`w-3 h-3 ${active && direction === 'desc' ? 'text-blue-600' : 'text-gray-400'}`}
+        fill="currentColor"
+        viewBox="0 0 20 20"
+      >
+        <path d="M10 17l6-6H4l6 6z" />
+      </svg>
+    </span>
   );
 }

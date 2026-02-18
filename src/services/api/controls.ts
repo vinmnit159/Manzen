@@ -1,118 +1,14 @@
 import { apiClient, ApiResponse, PaginatedResponse } from './client';
-import { 
-  Control, 
-  CreateControlRequest, 
+import {
+  Control,
+  CreateControlRequest,
   UpdateControlRequest,
   ControlStatus,
   Evidence
 } from './types';
 
-// Create unauthenticated client for POC
-class UnauthenticatedClient {
-  private baseURL: string;
-
-  constructor(baseURL: string = 'https://isms-backend-production.up.railway.app') {
-    this.baseURL = baseURL;
-  }
-
-  async request<T>(
-    endpoint: string,
-    options: RequestInit = {}
-  ): Promise<T> {
-    // For POC development, always return mock data
-    console.log('🚀 POC Mode: Using mock data for', endpoint);
-    
-    if (endpoint === '/api/controls') {
-      return {
-        success: true,
-        data: this.getMockControls(),
-      } as T;
-    }
-    
-    return {
-      success: true,
-      data: [],
-    } as T;
-  }
-
-  async get<T>(endpoint: string, params?: Record<string, string>): Promise<T> {
-    let url = endpoint;
-    if (params) {
-      // Remove undefined parameters
-      const cleanParams: Record<string, string> = {};
-      Object.entries(params).forEach(([key, value]) => {
-        if (value && value !== 'undefined') {
-          cleanParams[key] = value;
-        }
-      });
-      
-      const searchParams = new URLSearchParams(cleanParams);
-      url += `?${searchParams.toString()}`;
-    }
-    return this.request<T>(url);
-  }
-
-  // Mock data for development when CORS fails
-  private getMockControls() {
-    return [
-      {
-        id: '1',
-        isoReference: 'A.5.1',
-        title: 'Policies for information security',
-        description: 'Information security policy shall be defined, approved by management, published and communicated.',
-        status: 'NOT_IMPLEMENTED',
-        organizationId: 'demo-org',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-      {
-        id: '2',
-        isoReference: 'A.5.2',
-        title: 'Information security roles and responsibilities',
-        description: 'Information security roles and responsibilities shall be defined and allocated.',
-        status: 'PARTIALLY_IMPLEMENTED',
-        organizationId: 'demo-org',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-      {
-        id: '3',
-        isoReference: 'A.8.1',
-        title: 'User endpoint devices',
-        description: 'Endpoint devices shall be protected.',
-        status: 'IMPLEMENTED',
-        organizationId: 'demo-org',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-      {
-        id: '4',
-        isoReference: 'A.8.7',
-        title: 'Protection against malware',
-        description: 'Protection against malware shall be implemented.',
-        status: 'NOT_IMPLEMENTED',
-        organizationId: 'demo-org',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-      {
-        id: '5',
-        isoReference: 'A.9.1',
-        title: 'Access control',
-        description: 'Access to information shall be restricted based on business requirements.',
-        status: 'PARTIALLY_IMPLEMENTED',
-        organizationId: 'demo-org',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-    ];
-  }
-}
-
-const unauthClient = new UnauthenticatedClient();
-
 export class ControlsService {
-  // Get all controls (without authentication for POC)
+  // Get all controls (authenticated)
   async getControls(params?: {
     page?: number;
     limit?: number;
@@ -120,7 +16,16 @@ export class ControlsService {
     search?: string;
     isoReference?: string;
   }): Promise<ApiResponse<Control[]>> {
-    return unauthClient.get('/api/controls', params);
+    // Build clean params - omit undefined/empty values
+    const cleanParams: Record<string, string> = {};
+    if (params) {
+      if (params.search) cleanParams.search = params.search;
+      if (params.status) cleanParams.status = params.status;
+      if (params.isoReference) cleanParams.isoReference = params.isoReference;
+      if (params.page !== undefined) cleanParams.page = String(params.page);
+      if (params.limit !== undefined) cleanParams.limit = String(params.limit);
+    }
+    return apiClient.get('/api/controls', Object.keys(cleanParams).length ? cleanParams : undefined);
   }
 
   // Get control by ID
@@ -141,16 +46,6 @@ export class ControlsService {
   // Delete control
   async deleteControl(id: string): Promise<ApiResponse<void>> {
     return apiClient.delete(`/api/controls/${id}`);
-  }
-
-  // Get controls with evidence
-  async getControlsWithEvidence(): Promise<ApiResponse<Control[]>> {
-    return apiClient.get('/api/controls/with-evidence');
-  }
-
-  // Get control by ISO reference
-  async getControlsByISOReference(reference: string): Promise<ApiResponse<Control[]>> {
-    return apiClient.get(`/api/controls/iso/${reference}`);
   }
 
   // Get control compliance status
@@ -179,64 +74,19 @@ export class ControlsService {
     return apiClient.delete(`/api/controls/${controlId}/evidence/${evidenceId}`);
   }
 
-  // Get ISO 27001 controls
-  async getISOControls(): Promise<ApiResponse<{
-    clause: string;
-    controls: Control[];
-  }[]>> {
-    return apiClient.get('/api/controls/iso27001');
-  }
-
-  // Get control gaps
-  async getControlGaps(): Promise<ApiResponse<{
-    isoReference: string;
-    title: string;
-    status: ControlStatus;
-    risks: number;
-    recommendations: string[];
-  }[]>> {
-    return apiClient.get('/api/controls/gaps');
-  }
-
-  // Implement control
-  async implementControl(id: string, implementationData: {
-    justification?: string;
-    evidence?: any[];
-  }): Promise<ApiResponse<Control>> {
-    return apiClient.post(`/api/controls/${id}/implement`, implementationData);
-  }
-
-  // Automated control check
-  async runAutomatedCheck(id: string): Promise<ApiResponse<{
-    status: 'passed' | 'failed' | 'warning';
-    details: any[];
-    recommendations?: string[];
-  }>> {
-    return apiClient.post(`/api/controls/${id}/check`);
-  }
-
   // Export controls
   async exportControls(format: 'csv' | 'xlsx' | 'pdf' = 'csv'): Promise<Blob> {
-    const response = await fetch(`${apiClient.baseURL}/api/controls/export?format=${format}`, {
-      headers: apiClient.token ? {
-        Authorization: `Bearer ${apiClient.token}`,
-      } : {},
+    const token = localStorage.getItem('isms_token');
+    const baseURL = (apiClient as any).baseURL || 'https://isms-backend-production.up.railway.app';
+    const response = await fetch(`${baseURL}/api/controls/export?format=${format}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
-    
+
     if (!response.ok) {
       throw new Error('Failed to export controls');
     }
-    
-    return response.blob();
-  }
 
-  // Sync with framework
-  async syncWithFramework(frameworkId: string, controlIds: string[]): Promise<ApiResponse<{
-    synced: number;
-    failed: number;
-    errors?: any[];
-  }>> {
-    return apiClient.post('/api/controls/sync', { frameworkId, controlIds });
+    return response.blob();
   }
 }
 
