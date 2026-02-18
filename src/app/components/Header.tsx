@@ -1,9 +1,10 @@
-import { Bell, Search, Settings, HelpCircle, LogOut, User } from "lucide-react";
+import { Bell, Search, Settings, HelpCircle, LogOut, User, Menu } from "lucide-react";
 import { Badge } from "@/app/components/ui/badge";
 import { Input } from "@/app/components/ui/input";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router";
 import { authService } from "@/services/api/auth";
+import { useSidebar } from "@/app/components/Layout";
 
 interface SearchResult {
   title: string;
@@ -55,6 +56,7 @@ export function Header() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const navigate = useNavigate();
   const searchRef = useRef<HTMLDivElement>(null);
+  const { toggle: toggleSidebar } = useSidebar();
 
   const handleLogout = () => {
     authService.logout();
@@ -96,10 +98,20 @@ export function Header() {
   };
 
   return (
-    <header className="bg-white border-b border-gray-200 px-6 py-3">
-      <div className="flex items-center justify-between">
-        <div className="flex-1 max-w-xl" ref={searchRef}>
-          <div className="relative">
+    <header className="bg-white border-b border-gray-200 px-3 sm:px-6 py-3">
+      <div className="flex items-center gap-2 sm:gap-3">
+        {/* Hamburger — only on mobile */}
+        <button
+          onClick={toggleSidebar}
+          className="lg:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-md flex-shrink-0"
+          aria-label="Open menu"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+
+        {/* Search — hidden on xs, visible from sm */}
+        <div className="hidden sm:block flex-1 max-w-xl" ref={searchRef}>
+          <div className="relative w-full">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
             <Input
               type="text"
@@ -144,8 +156,8 @@ export function Header() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 ml-6">
-          <button className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-md" title="Help">
+        <div className="flex items-center gap-1 sm:gap-2 ml-auto flex-shrink-0">
+          <button className="hidden sm:flex relative p-2 text-gray-600 hover:bg-gray-100 rounded-md" title="Help">
             <HelpCircle className="w-5 h-5" />
           </button>
 
@@ -156,18 +168,18 @@ export function Header() {
             </Badge>
           </button>
 
-          <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-md" title="Settings">
+          <button className="hidden sm:flex p-2 text-gray-600 hover:bg-gray-100 rounded-md" title="Settings">
             <Settings className="w-5 h-5" />
           </button>
 
           {/* User info + logout */}
-          <div className="flex items-center gap-2 ml-2 pl-2 border-l border-gray-200">
+          <div className="flex items-center gap-1 sm:gap-2 pl-2 sm:ml-2 sm:pl-2 border-l border-gray-200">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
                 <User className="w-4 h-4 text-blue-600" />
               </div>
               {cachedUser && (
-                <span className="text-sm font-medium text-gray-700 hidden sm:block max-w-[120px] truncate">
+                <span className="text-sm font-medium text-gray-700 hidden md:block max-w-[120px] truncate">
                   {cachedUser.name || cachedUser.email}
                 </span>
               )}

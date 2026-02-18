@@ -5,9 +5,11 @@ interface ControlsFilterProps {
   filter: ControlFilter;
   onFilterChange: (filter: ControlFilter) => void;
   onClearFilters: () => void;
+  /** When true, removes top rounded corners (mobile drawer handle provides them) */
+  mobileDrawer?: boolean;
 }
 
-export function ControlsFilter({ filter, onFilterChange, onClearFilters }: ControlsFilterProps) {
+export function ControlsFilter({ filter, onFilterChange, onClearFilters, mobileDrawer }: ControlsFilterProps) {
   const handleChange = (field: keyof ControlFilter, value: string) => {
     onFilterChange({ ...filter, [field]: value });
   };
@@ -15,7 +17,7 @@ export function ControlsFilter({ filter, onFilterChange, onClearFilters }: Contr
   const hasActiveFilters = !!(filter.search || filter.status || filter.isoReference);
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+    <div className={`bg-white border border-gray-200 shadow-sm overflow-hidden ${mobileDrawer ? 'rounded-b-xl lg:rounded-xl' : 'rounded-xl'}`}>
       {/* Panel header */}
       <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
         <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">Filters</h2>

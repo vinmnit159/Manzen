@@ -119,7 +119,7 @@ export function AccountSettingsPage() {
   const initials = getInitials(user?.name, user?.email);
 
   return (
-    <div className="max-w-3xl mx-auto p-6 space-y-6">
+    <div className="max-w-3xl mx-auto p-4 sm:p-6 space-y-6">
       {/* Page header */}
       <div>
         <h1 className="text-2xl font-semibold text-gray-900">Account Settings</h1>
@@ -355,9 +355,9 @@ export function AccountSettingsPage() {
               </dd>
             </div>
             <Separator />
-            <div className="flex justify-between">
-              <dt className="text-gray-500">User ID</dt>
-              <dd className="font-mono text-xs text-gray-500 truncate max-w-[200px]">{user?.id ?? "—"}</dd>
+            <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+              <dt className="text-gray-500 flex-shrink-0">User ID</dt>
+              <dd className="font-mono text-xs text-gray-500 break-all sm:text-right">{user?.id ?? "—"}</dd>
             </div>
           </dl>
         </CardContent>

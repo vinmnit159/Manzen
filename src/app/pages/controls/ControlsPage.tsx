@@ -5,6 +5,7 @@ import { Control, ControlFilter, ColumnConfig, DEFAULT_COLUMNS } from './types';
 import { ControlsFilter } from './ControlsFilter';
 import { ControlsTable } from './ControlsTable';
 import { ColumnSelector } from './ColumnSelector';
+import { SlidersHorizontal, X } from 'lucide-react';
 
 export function ControlsPage() {
   const navigate = useNavigate();
@@ -19,6 +20,7 @@ export function ControlsPage() {
   const [columns, setColumns] = useState<ColumnConfig[]>(DEFAULT_COLUMNS);
   const [sortColumn, setSortColumn] = useState<string>('isoReference');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [filterOpen, setFilterOpen] = useState(false);
 
   // Load column preferences from localStorage
   useEffect(() => {
@@ -126,13 +128,27 @@ export function ControlsPage() {
           <p className="text-sm text-gray-500 mt-0.5">ISO 27001 security control management</p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           {hasActiveFilters && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+            <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
               <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
               Filters active
             </span>
           )}
+          {/* Mobile filter toggle */}
+          <button
+            onClick={() => setFilterOpen((v) => !v)}
+            className={[
+              'lg:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors',
+              hasActiveFilters
+                ? 'bg-blue-600 text-white border-blue-600'
+                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50',
+            ].join(' ')}
+            aria-label="Toggle filters"
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+            Filters{hasActiveFilters ? ' •' : ''}
+          </button>
           <ColumnSelector columns={columns} onColumnToggle={handleColumnToggle} />
         </div>
       </div>
@@ -187,13 +203,43 @@ export function ControlsPage() {
       )}
 
       {/* ── Main Content: Filters + Table ── */}
-      <div className="flex flex-col lg:flex-row gap-4 px-6 py-4 flex-1 min-h-0">
-        {/* Sidebar filter panel */}
-        <div className="w-full lg:w-72 flex-shrink-0">
+      <div className="flex flex-col lg:flex-row gap-4 px-3 sm:px-6 py-4 flex-1 min-h-0">
+
+        {/* Mobile filter overlay */}
+        {filterOpen && (
+          <div
+            className="fixed inset-0 bg-black/40 z-20 lg:hidden"
+            onClick={() => setFilterOpen(false)}
+            aria-hidden="true"
+          />
+        )}
+
+        {/* Filter panel — drawer on mobile, sidebar on desktop */}
+        <div
+          className={[
+            // Mobile: fixed bottom drawer sliding up
+            'fixed bottom-0 left-0 right-0 z-30 lg:static lg:z-auto',
+            'lg:w-72 lg:flex-shrink-0',
+            'transition-transform duration-300 ease-in-out lg:transition-none lg:translate-y-0',
+            filterOpen ? 'translate-y-0' : 'translate-y-full lg:translate-y-0',
+          ].join(' ')}
+        >
+          {/* Close handle — mobile only */}
+          <div className="lg:hidden flex items-center justify-between px-5 pt-4 pb-2 bg-white rounded-t-2xl border-t border-x border-gray-200 shadow-lg">
+            <span className="text-sm font-semibold text-gray-900">Filters</span>
+            <button
+              onClick={() => setFilterOpen(false)}
+              className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+              aria-label="Close filters"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
           <ControlsFilter
             filter={filter}
-            onFilterChange={handleFilterChange}
+            onFilterChange={(f) => { handleFilterChange(f); }}
             onClearFilters={handleClearFilters}
+            mobileDrawer
           />
         </div>
 

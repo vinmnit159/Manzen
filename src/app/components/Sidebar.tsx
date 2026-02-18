@@ -17,10 +17,12 @@ import {
   ChevronDown,
   ChevronRight,
   UserCog,
+  X,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/app/components/ui/utils";
 import { authService } from "@/services/api/auth";
+import { useSidebar } from "@/app/components/Layout";
 
 interface NavItem {
   title: string;
@@ -129,6 +131,7 @@ function formatRole(role?: string): string {
 
 export function Sidebar() {
   const location = useLocation();
+  const { close: closeSidebar } = useSidebar();
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
 
   const user = authService.getCachedUser();
@@ -149,12 +152,20 @@ export function Sidebar() {
     children.some((child) => location.pathname === child.href);
 
   return (
-    <aside className="w-64 bg-slate-900 text-white flex flex-col">
-      <div className="p-4 border-b border-slate-800">
+    <aside className="w-64 h-full bg-slate-900 text-white flex flex-col">
+      <div className="p-4 border-b border-slate-800 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Shield className="w-8 h-8 text-blue-400" />
           <span className="text-xl font-semibold">SecureISMS</span>
         </div>
+        {/* Close button — only visible on mobile */}
+        <button
+          onClick={closeSidebar}
+          className="lg:hidden p-1.5 rounded-md text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+          aria-label="Close menu"
+        >
+          <X className="w-5 h-5" />
+        </button>
       </div>
 
       <nav className="flex-1 overflow-y-auto p-3 space-y-1">
@@ -190,6 +201,7 @@ export function Sidebar() {
                       <Link
                         key={child.href}
                         to={child.href}
+                        onClick={closeSidebar}
                         className={cn(
                           "block px-3 py-1.5 rounded-md text-sm transition-colors",
                           isActive(child.href)
@@ -210,6 +222,7 @@ export function Sidebar() {
             <Link
               key={item.title}
               to={item.href!}
+              onClick={closeSidebar}
               className={cn(
                 "flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors",
                 isActive(item.href!)
@@ -228,6 +241,7 @@ export function Sidebar() {
       <div className="p-3 border-t border-slate-800 space-y-1">
         <Link
           to="/account-settings"
+          onClick={closeSidebar}
           className={cn(
             "flex items-center gap-2 px-3 py-2 rounded-md transition-colors",
             isActive("/account-settings")

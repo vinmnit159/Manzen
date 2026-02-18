@@ -13,6 +13,7 @@ import {
   ChevronUp,
   ChevronDown,
   ChevronsUpDown,
+  SlidersHorizontal,
 } from 'lucide-react';
 
 // ── Types ─────────────────────────────────────────────────────────────────
@@ -83,6 +84,7 @@ export function PoliciesPage() {
   const [filter, setFilter] = useState<PolicyFilter>({ search: '', status: '' });
   const [sortKey, setSortKey] = useState<SortKey>('name');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [filterOpen, setFilterOpen] = useState(false);
 
   const fetchPolicies = useCallback(async () => {
     try {
@@ -140,17 +142,33 @@ export function PoliciesPage() {
     <div className="flex flex-col h-full bg-gray-50">
 
       {/* ── Top App Bar ── */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
+      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
         <div>
           <h1 className="text-xl font-semibold text-gray-900 tracking-tight">Policies</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Security policy management and lifecycle tracking</p>
+          <p className="text-sm text-gray-500 mt-0.5 hidden sm:block">Security policy management and lifecycle tracking</p>
         </div>
-        {hasActiveFilters && (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-            Filters active
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {hasActiveFilters && (
+            <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+              Filters active
+            </span>
+          )}
+          {/* Mobile filter toggle */}
+          <button
+            onClick={() => setFilterOpen((v) => !v)}
+            className={[
+              'lg:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors',
+              hasActiveFilters
+                ? 'bg-blue-600 text-white border-blue-600'
+                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50',
+            ].join(' ')}
+            aria-label="Toggle filters"
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+            Filters{hasActiveFilters ? ' •' : ''}
+          </button>
+        </div>
       </div>
 
       {/* ── Summary Cards ── */}
@@ -184,15 +202,43 @@ export function PoliciesPage() {
       )}
 
       {/* ── Main Content: Filter Panel + Table ── */}
-      <div className="flex flex-col lg:flex-row gap-4 px-6 py-4 flex-1 min-h-0">
+      <div className="flex flex-col lg:flex-row gap-4 px-3 sm:px-6 py-4 flex-1 min-h-0">
 
-        {/* Filter Panel */}
-        <div className="w-full lg:w-72 flex-shrink-0">
+        {/* Mobile filter overlay */}
+        {filterOpen && (
+          <div
+            className="fixed inset-0 bg-black/40 z-20 lg:hidden"
+            onClick={() => setFilterOpen(false)}
+            aria-hidden="true"
+          />
+        )}
+
+        {/* Filter Panel — bottom drawer on mobile, sidebar on desktop */}
+        <div
+          className={[
+            'fixed bottom-0 left-0 right-0 z-30 lg:static lg:z-auto',
+            'lg:w-72 lg:flex-shrink-0',
+            'transition-transform duration-300 ease-in-out lg:transition-none lg:translate-y-0',
+            filterOpen ? 'translate-y-0' : 'translate-y-full lg:translate-y-0',
+          ].join(' ')}
+        >
+          {/* Close handle — mobile only */}
+          <div className="lg:hidden flex items-center justify-between px-5 pt-4 pb-2 bg-white rounded-t-2xl border-t border-x border-gray-200 shadow-lg">
+            <span className="text-sm font-semibold text-gray-900">Filters</span>
+            <button
+              onClick={() => setFilterOpen(false)}
+              className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+              aria-label="Close filters"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
           <FilterPanel
             filter={filter}
             onChange={handleFilterChange}
             onClear={clearFilters}
             hasActiveFilters={hasActiveFilters}
+            mobileDrawer
           />
         </div>
 
@@ -234,16 +280,18 @@ function FilterPanel({
   onChange,
   onClear,
   hasActiveFilters,
+  mobileDrawer,
 }: {
   filter: PolicyFilter;
   onChange: (field: keyof PolicyFilter, value: string) => void;
   onClear: () => void;
   hasActiveFilters: boolean;
+  mobileDrawer?: boolean;
 }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-      {/* Header */}
-      <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+    <div className={`bg-white border border-gray-200 shadow-sm overflow-hidden ${mobileDrawer ? 'rounded-b-xl lg:rounded-xl' : 'rounded-xl'}`}>
+      {/* Header — hidden on mobile drawer (handle above provides it) */}
+      <div className={`px-5 py-4 border-b border-gray-100 flex items-center justify-between ${mobileDrawer ? 'hidden lg:flex' : ''}`}>
         <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">Filters</h2>
         {hasActiveFilters && (
           <button
