@@ -92,19 +92,25 @@ export class EvidenceService {
     return apiClient.post('/api/evidence/bulk', { operation, evidenceIds });
   }
 
-  // Download evidence file
-  async downloadEvidence(id: string): Promise<Blob> {
+  // Download evidence file — triggers browser save-as dialog
+  async downloadEvidence(id: string, fileName: string): Promise<void> {
     const response = await fetch(`${apiClient.baseURL}/api/evidence/${id}/download`, {
       headers: apiClient.token ? {
         Authorization: `Bearer ${apiClient.token}`,
       } : {},
     });
-    
+
     if (!response.ok) {
       throw new Error('Failed to download evidence');
     }
-    
-    return response.blob();
+
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   // Get evidence statistics
