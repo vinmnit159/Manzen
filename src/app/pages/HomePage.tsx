@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { controlsService } from "@/services/api/controls";
 import { risksService } from "@/services/api/risks";
+import { activityLogsService, ActivityLogEntry } from "@/services/api/activityLogs";
 
 interface ComplianceStats {
   total: number;
@@ -41,6 +42,8 @@ export function HomePage() {
   const [loadingCompliance, setLoadingCompliance] = useState(true);
   const [riskOverview, setRiskOverview] = useState<RiskOverview | null>(null);
   const [loadingRisks, setLoadingRisks] = useState(true);
+  const [recentActivity, setRecentActivity] = useState<ActivityLogEntry[]>([]);
+  const [loadingActivity, setLoadingActivity] = useState(true);
 
   useEffect(() => {
     controlsService.getControlCompliance().then((res: any) => {
@@ -53,14 +56,11 @@ export function HomePage() {
     risksService.getRisksOverview().then((res: any) => {
       setRiskOverview(res?.data ?? res);
     }).catch(() => {}).finally(() => setLoadingRisks(false));
-  }, []);
 
-  const recentActivity = [
-    { action: "SOC 2 Type II audit completed", time: "2 hours ago", status: "success" },
-    { action: "New vulnerability detected in API service", time: "5 hours ago", status: "warning" },
-    { action: "Policy updated: Data Retention Policy", time: "1 day ago", status: "info" },
-    { action: "Risk assessment approved by CFO", time: "2 days ago", status: "success" },
-  ];
+    activityLogsService.getRecentActivity(8).then((res: any) => {
+      setRecentActivity(res?.data ?? []);
+    }).catch(() => {}).finally(() => setLoadingActivity(false));
+  }, []);
 
   // Derived display values — fall back to skeleton dashes while loading
   const complianceScore = loadingCompliance
@@ -237,27 +237,40 @@ export function HomePage() {
             )}
           </Card>
 
-          {/* Recent Activity — static, unchanged */}
+          {/* Recent Activity — live from /api/activity-logs */}
           <Card className="p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-900">Recent Activity</h2>
               <Activity className="w-5 h-5 text-gray-400" />
             </div>
-            <div className="space-y-4">
-              {recentActivity.map((activity, index) => (
-                <div key={index} className="flex gap-3">
-                  <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
-                    activity.status === 'success' ? 'bg-green-500' :
-                    activity.status === 'warning' ? 'bg-orange-500' :
-                    'bg-blue-500'
-                  }`} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-gray-900">{activity.action}</p>
-                    <p className="text-xs text-gray-500">{activity.time}</p>
+            {loadingActivity ? (
+              <div className="flex items-center gap-3 py-6 text-sm text-gray-400">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Loading activity…
+              </div>
+            ) : recentActivity.length === 0 ? (
+              <p className="text-sm text-gray-400 py-6 text-center">
+                No activity yet. Actions like creating risks, policies, or uploading files will appear here.
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {recentActivity.map((activity) => (
+                  <div key={activity.id} className="flex gap-3">
+                    <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
+                      activity.status === 'success' ? 'bg-green-500' :
+                      activity.status === 'warning' ? 'bg-orange-500' :
+                      'bg-blue-500'
+                    }`} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-gray-900 leading-snug">{activity.label}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        {activity.user.name} · {activity.timeAgo}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </Card>
 
           {/* Risk Distribution — live from /api/risks/overview */}
