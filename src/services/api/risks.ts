@@ -70,7 +70,12 @@ export class RisksService {
     total: number;
     open: number;
     mitigated: number;
-    byImpact: { impact: string; count: number }[];
+    accepted: number;
+    transferred: number;
+    critical: number;
+    high: number;
+    medium: number;
+    low: number;
     recentRisks: Risk[];
   }>> {
     return apiClient.get('/api/risks/overview');

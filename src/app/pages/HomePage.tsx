@@ -29,7 +29,10 @@ interface RiskOverview {
   total: number;
   open: number;
   mitigated: number;
-  byImpact: { impact: string; count: number }[];
+  critical: number;
+  high: number;
+  medium: number;
+  low: number;
 }
 
 export function HomePage() {
@@ -272,28 +275,18 @@ export function HomePage() {
               <p className="text-sm text-gray-400 py-6">Could not load risk data.</p>
             ) : (
               <div className="space-y-3">
-                {(() => {
-                  const colorMap: Record<string, string> = {
-                    CRITICAL: "bg-red-500",
-                    HIGH: "bg-orange-500",
-                    MEDIUM: "bg-yellow-500",
-                    LOW: "bg-green-500",
-                  };
-                  const order = ["CRITICAL", "HIGH", "MEDIUM", "LOW"];
-                  const byImpact = riskOverview.byImpact ?? [];
-                  // Ensure all four levels appear even if count is 0
-                  const rows = order.map((level) => {
-                    const found = byImpact.find((r) => r.impact === level);
-                    return { level, count: found?.count ?? 0, color: colorMap[level] ?? "bg-gray-400" };
-                  });
-                  return rows.map((risk) => (
-                    <div key={risk.level} className="flex items-center gap-3">
-                      <div className={`w-3 h-3 rounded-full ${risk.color}`} />
-                      <span className="text-sm text-gray-700 flex-1 capitalize">{risk.level.charAt(0) + risk.level.slice(1).toLowerCase()}</span>
-                      <span className="text-sm font-semibold text-gray-900">{risk.count}</span>
-                    </div>
-                  ));
-                })()}
+                {[
+                  { level: "Critical", count: riskOverview.critical, color: "bg-red-500" },
+                  { level: "High",     count: riskOverview.high,     color: "bg-orange-500" },
+                  { level: "Medium",   count: riskOverview.medium,   color: "bg-yellow-500" },
+                  { level: "Low",      count: riskOverview.low,      color: "bg-green-500" },
+                ].map((risk) => (
+                  <div key={risk.level} className="flex items-center gap-3">
+                    <div className={`w-3 h-3 rounded-full ${risk.color}`} />
+                    <span className="text-sm text-gray-700 flex-1">{risk.level}</span>
+                    <span className="text-sm font-semibold text-gray-900">{risk.count}</span>
+                  </div>
+                ))}
                 <div className="pt-2 border-t text-xs text-gray-500 flex justify-between">
                   <span>{riskOverview.open} open</span>
                   <span>{riskOverview.mitigated} mitigated</span>
