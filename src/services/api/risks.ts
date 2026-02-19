@@ -65,6 +65,17 @@ export class RisksService {
     return apiClient.delete(`/api/risks/treatment/${id}`);
   }
 
+  // Get risk overview stats
+  async getRisksOverview(): Promise<ApiResponse<{
+    total: number;
+    open: number;
+    mitigated: number;
+    byImpact: { impact: string; count: number }[];
+    recentRisks: Risk[];
+  }>> {
+    return apiClient.get('/api/risks/overview');
+  }
+
   // Get risk distribution
   async getRiskDistribution(): Promise<ApiResponse<{
     level: RiskLevel;

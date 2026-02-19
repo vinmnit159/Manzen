@@ -15,6 +15,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { controlsService } from "@/services/api/controls";
+import { risksService } from "@/services/api/risks";
 
 interface ComplianceStats {
   total: number;
@@ -24,10 +25,19 @@ interface ComplianceStats {
   compliancePercentage: number;
 }
 
+interface RiskOverview {
+  total: number;
+  open: number;
+  mitigated: number;
+  byImpact: { impact: string; count: number }[];
+}
+
 export function HomePage() {
   const navigate = useNavigate();
   const [compliance, setCompliance] = useState<ComplianceStats | null>(null);
   const [loadingCompliance, setLoadingCompliance] = useState(true);
+  const [riskOverview, setRiskOverview] = useState<RiskOverview | null>(null);
+  const [loadingRisks, setLoadingRisks] = useState(true);
 
   useEffect(() => {
     controlsService.getControlCompliance().then((res: any) => {
@@ -36,6 +46,10 @@ export function HomePage() {
     }).catch((err: any) => {
       if (err?.statusCode === 401) window.location.href = "/login";
     }).finally(() => setLoadingCompliance(false));
+
+    risksService.getRisksOverview().then((res: any) => {
+      setRiskOverview(res?.data ?? res);
+    }).catch(() => {}).finally(() => setLoadingRisks(false));
   }, []);
 
   const recentActivity = [
@@ -58,19 +72,25 @@ export function HomePage() {
     ? String(compliance.total)
     : "—";
 
+  const openRisks = loadingRisks
+    ? null
+    : riskOverview
+    ? String(riskOverview.open)
+    : "—";
+
   const stats = [
     {
       label: "Active Controls",
       value: activeControls,
-      change: null,           // live — no static delta
+      change: null,
       icon: Shield,
       color: "text-blue-600",
       path: "/compliance/controls",
     },
     {
       label: "Open Risks",
-      value: "8",
-      change: "-3",
+      value: openRisks,
+      change: null,
       icon: AlertTriangle,
       color: "text-red-600",
       path: "/risk/risks",
@@ -78,7 +98,7 @@ export function HomePage() {
     {
       label: "Compliance Score",
       value: complianceScore,
-      change: null,           // live — no static delta
+      change: null,
       icon: CheckCircle,
       color: "text-green-600",
       path: "/compliance/frameworks",
@@ -237,26 +257,50 @@ export function HomePage() {
             </div>
           </Card>
 
-          {/* Risk Distribution — static, unchanged */}
+          {/* Risk Distribution — live from /api/risks/overview */}
           <Card className="p-6 cursor-pointer hover:shadow-md transition-shadow duration-200" onClick={() => navigate("/risk/risks")}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-900">Risk Distribution</h2>
               <TrendingUp className="w-5 h-5 text-gray-400" />
             </div>
-            <div className="space-y-3">
-              {[
-                { level: "Critical", count: 2, color: "bg-red-500" },
-                { level: "High", count: 6, color: "bg-orange-500" },
-                { level: "Medium", count: 15, color: "bg-yellow-500" },
-                { level: "Low", count: 28, color: "bg-green-500" },
-              ].map((risk) => (
-                <div key={risk.level} className="flex items-center gap-3">
-                  <div className={`w-3 h-3 rounded-full ${risk.color}`} />
-                  <span className="text-sm text-gray-700 flex-1">{risk.level}</span>
-                  <span className="text-sm font-semibold text-gray-900">{risk.count}</span>
+            {loadingRisks ? (
+              <div className="flex items-center gap-3 py-6 text-sm text-gray-400">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Loading risk data…
+              </div>
+            ) : !riskOverview ? (
+              <p className="text-sm text-gray-400 py-6">Could not load risk data.</p>
+            ) : (
+              <div className="space-y-3">
+                {(() => {
+                  const colorMap: Record<string, string> = {
+                    CRITICAL: "bg-red-500",
+                    HIGH: "bg-orange-500",
+                    MEDIUM: "bg-yellow-500",
+                    LOW: "bg-green-500",
+                  };
+                  const order = ["CRITICAL", "HIGH", "MEDIUM", "LOW"];
+                  const byImpact = riskOverview.byImpact ?? [];
+                  // Ensure all four levels appear even if count is 0
+                  const rows = order.map((level) => {
+                    const found = byImpact.find((r) => r.impact === level);
+                    return { level, count: found?.count ?? 0, color: colorMap[level] ?? "bg-gray-400" };
+                  });
+                  return rows.map((risk) => (
+                    <div key={risk.level} className="flex items-center gap-3">
+                      <div className={`w-3 h-3 rounded-full ${risk.color}`} />
+                      <span className="text-sm text-gray-700 flex-1 capitalize">{risk.level.charAt(0) + risk.level.slice(1).toLowerCase()}</span>
+                      <span className="text-sm font-semibold text-gray-900">{risk.count}</span>
+                    </div>
+                  ));
+                })()}
+                <div className="pt-2 border-t text-xs text-gray-500 flex justify-between">
+                  <span>{riskOverview.open} open</span>
+                  <span>{riskOverview.mitigated} mitigated</span>
+                  <span>{riskOverview.total} total</span>
                 </div>
-              ))}
-            </div>
+              </div>
+            )}
           </Card>
 
           {/* Quick Actions — static, unchanged */}
