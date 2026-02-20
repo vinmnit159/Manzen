@@ -86,6 +86,19 @@ export class PoliciesService {
     return apiClient.get('/api/policies/templates');
   }
 
+  /**
+   * Create a policy from a template and auto-attach a generated .docx document.
+   * The backend generates the editable Word document and stores it immediately.
+   */
+  async createPolicyFromTemplate(data: {
+    templateName: string;
+    version?: string;
+    status?: string;
+    approvedBy?: string;
+  }): Promise<ApiResponse<Policy>> {
+    return apiClient.post('/api/policies/from-template', data);
+  }
+
   async downloadPolicyDocument(policyId: string, fileName: string): Promise<void> {
     const token = localStorage.getItem('isms_token');
     const response = await fetch(`${API_BASE_URL}/api/policies/${policyId}/download`, {
