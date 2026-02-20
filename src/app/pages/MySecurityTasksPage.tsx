@@ -15,7 +15,8 @@ import {
 import { onboardingService, OnboardingStatus } from '@/services/api/onboarding';
 import { policiesService } from '@/services/api/policies';
 
-const API_BASE_URL = (import.meta as any).env?.VITE_API_URL ?? 'http://localhost:3000';
+// Video is served as a Vite public asset — no backend dependency, full range-request support
+const TRAINING_VIDEO_URL = '/security-awareness-training.mp4';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -263,7 +264,7 @@ function Task3Training({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const videoUrl = `${API_BASE_URL}/files/training/security-awareness-training.mp4`;
+  const videoUrl = TRAINING_VIDEO_URL;
 
   const handlePlay = async () => {
     if (started) return;
