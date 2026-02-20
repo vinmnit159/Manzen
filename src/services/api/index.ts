@@ -9,6 +9,8 @@ export { auditsService } from './audits';
 export { policiesService } from './policies';
 export { usersService } from './users';
 export type { UserWithGit, UserGitAccount, GitHubMember, LinkedGitAccount } from './users';
+export { mdmService } from './mdm';
+export type { ManagedDevice, DeviceCompliance, EnrollmentToken, CreatedToken, MdmOverview, DeviceCheckin } from './mdm';
 
 // Export types
 export * from './types';
