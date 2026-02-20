@@ -1,8 +1,9 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import { PageTemplate } from "@/app/components/PageTemplate";
 import { Card } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   RefreshCw,
   Shield,
@@ -21,6 +22,8 @@ import {
 import { mdmService, ManagedDevice } from "@/services/api/mdm";
 import { usersService } from "@/services/api/users";
 import type { UserWithGit } from "@/services/api/users";
+import { QK } from "@/lib/queryKeys";
+import { STALE } from "@/lib/queryClient";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -90,7 +93,6 @@ function ReassignModal({ device, users, onClose, onSave }: ReassignModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
-        {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b">
           <div>
             <h2 className="text-sm font-semibold text-gray-900">Reassign Device Owner</h2>
@@ -102,8 +104,6 @@ function ReassignModal({ device, users, onClose, onSave }: ReassignModalProps) {
             <X className="w-4 h-4" />
           </button>
         </div>
-
-        {/* Body */}
         <div className="px-5 py-4">
           <p className="text-xs text-gray-500 mb-3">
             Changing the owner will attribute the MDM task to the selected user.
@@ -121,16 +121,10 @@ function ReassignModal({ device, users, onClose, onSave }: ReassignModalProps) {
               </option>
             ))}
           </select>
-          {error && (
-            <p className="mt-2 text-xs text-red-600">{error}</p>
-          )}
+          {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
         </div>
-
-        {/* Footer */}
         <div className="flex items-center justify-end gap-2 px-5 py-3 border-t bg-gray-50 rounded-b-lg">
-          <Button variant="outline" size="sm" onClick={onClose} disabled={saving}>
-            Cancel
-          </Button>
+          <Button variant="outline" size="sm" onClick={onClose} disabled={saving}>Cancel</Button>
           <Button
             size="sm"
             onClick={handleSave}
@@ -147,35 +141,32 @@ function ReassignModal({ device, users, onClose, onSave }: ReassignModalProps) {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function ComputersPage() {
-  const [devices, setDevices] = useState<ManagedDevice[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const qc = useQueryClient();
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [revoking, setRevoking] = useState<string | null>(null);
-  const [users, setUsers] = useState<UserWithGit[]>([]);
   const [reassignDevice, setReassignDevice] = useState<ManagedDevice | null>(null);
 
-  const fetchDevices = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
+  const { data: devicesData, isLoading: loading, isFetching, error: devicesError } = useQuery({
+    queryKey: QK.mdmDevices(),
+    queryFn: async () => {
       const res = await mdmService.listDevices();
-      setDevices(res.devices);
-    } catch (e: any) {
-      setError(e?.message ?? "Failed to load devices");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+      return res.devices;
+    },
+    staleTime: STALE.MDM,
+  });
 
-  // Fetch users once for the owner picker
-  useEffect(() => {
-    usersService.listUsers().then((res) => setUsers(res.users)).catch(() => {});
-  }, []);
+  const { data: usersData } = useQuery({
+    queryKey: QK.users(),
+    queryFn: async () => {
+      const res = await usersService.listUsers();
+      return res.users;
+    },
+    staleTime: STALE.USERS,
+  });
 
-  useEffect(() => {
-    fetchDevices();
-  }, [fetchDevices]);
+  const devices: ManagedDevice[] = devicesData ?? [];
+  const users: UserWithGit[] = usersData ?? [];
+  const error: string | null = devicesError ? ((devicesError as any)?.message ?? "Failed to load devices") : null;
 
   const toggleExpand = (id: string) => {
     setExpanded((prev) => {
@@ -190,13 +181,8 @@ export function ComputersPage() {
     setRevoking(device.id);
     try {
       await mdmService.revokeDevice(device.id);
-      setDevices((prev) =>
-        prev.map((d) =>
-          d.id === device.id
-            ? { ...d, enrollment: d.enrollment ? { ...d.enrollment, revoked: true } : null }
-            : d
-        )
-      );
+      // Invalidate so the cache gets fresh revocation status
+      qc.invalidateQueries({ queryKey: QK.mdmDevices() });
     } catch (e: any) {
       alert(e?.message ?? "Failed to revoke device");
     } finally {
@@ -205,20 +191,18 @@ export function ComputersPage() {
   };
 
   const handleReassignOwner = async (deviceId: string, ownerId: string) => {
-    const res = await mdmService.reassignOwner(deviceId, ownerId);
-    setDevices((prev) =>
-      prev.map((d) => (d.id === deviceId ? { ...d, ownerId: res.device.ownerId } : d))
-    );
+    await mdmService.reassignOwner(deviceId, ownerId);
+    // Invalidate devices + onboarding data (MDM task credit may change)
+    qc.invalidateQueries({ queryKey: QK.mdmDevices() });
+    qc.invalidateQueries({ queryKey: ['onboarding'] });
   };
 
-  // Owner display helper
   const ownerLabel = (ownerId: string | null) => {
     if (!ownerId) return null;
     const u = users.find((u) => u.id === ownerId);
     return u ? (u.name || u.email) : null;
   };
 
-  // Summary stats
   const compliant = devices.filter((d) => d.compliance?.complianceStatus === "COMPLIANT").length;
   const nonCompliant = devices.filter((d) => d.compliance?.complianceStatus === "NON_COMPLIANT").length;
 
@@ -227,13 +211,17 @@ export function ComputersPage() {
       title="Computers"
       description="Managed Mac endpoints reporting to Manzen MDM. Enroll devices from the Integrations page."
       actions={
-        <Button variant="outline" size="sm" onClick={fetchDevices} disabled={loading}>
-          <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => qc.invalidateQueries({ queryKey: QK.mdmDevices() })}
+          disabled={isFetching}
+        >
+          <RefreshCw className={`w-4 h-4 mr-2 ${isFetching ? "animate-spin" : ""}`} />
           Refresh
         </Button>
       }
     >
-      {/* Summary cards */}
       {!loading && devices.length > 0 && (
         <div className="grid grid-cols-3 gap-3 mb-4">
           {[
@@ -294,7 +282,6 @@ export function ComputersPage() {
                   return (
                     <>
                       <tr key={device.id} className="hover:bg-gray-50">
-                        {/* Device */}
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-2">
                             <Laptop className="w-4 h-4 text-gray-400 shrink-0" />
@@ -308,19 +295,13 @@ export function ComputersPage() {
                             </div>
                           </div>
                         </td>
-
-                        {/* OS */}
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                           {device.osType === "darwin" ? "macOS" : device.osType ?? "—"}{" "}
                           <span className="text-gray-400">{device.osVersion}</span>
                         </td>
-
-                        {/* Owner */}
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                           {owner ?? <span className="text-gray-300 italic">unassigned</span>}
                         </td>
-
-                        {/* Last seen */}
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {device.enrollment?.lastSeenAt ? (
                             <span className="flex items-center gap-1">
@@ -329,8 +310,6 @@ export function ComputersPage() {
                             </span>
                           ) : "—"}
                         </td>
-
-                        {/* Compliance */}
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center gap-1.5">
                             <StatusIcon status={cs} />
@@ -341,15 +320,11 @@ export function ComputersPage() {
                             </span>
                           </div>
                         </td>
-
-                        {/* Status */}
                         <td className="px-6 py-4 whitespace-nowrap">
                           <Badge variant={revoked ? "destructive" : "default"}>
                             {revoked ? "Revoked" : "Active"}
                           </Badge>
                         </td>
-
-                        {/* Actions */}
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center gap-2">
                             <button
@@ -380,7 +355,6 @@ export function ComputersPage() {
                         </td>
                       </tr>
 
-                      {/* Expanded compliance detail */}
                       {isExpanded && device.compliance && (
                         <tr key={`${device.id}-detail`} className="bg-blue-50">
                           <td colSpan={7} className="px-8 py-3">
@@ -414,7 +388,6 @@ export function ComputersPage() {
         )}
       </Card>
 
-      {/* Reassign owner modal */}
       {reassignDevice && (
         <ReassignModal
           device={reassignDevice}

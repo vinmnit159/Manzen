@@ -1,9 +1,12 @@
-import { useEffect, useState } from 'react';
 import { PageTemplate } from '@/app/components/PageTemplate';
 import { Card } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
-import { Loader2, ShieldOff } from 'lucide-react';
+import { Button } from '@/app/components/ui/button';
+import { Loader2, ShieldOff, RefreshCw } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/services/api/client';
+import { QK } from '@/lib/queryKeys';
+import { STALE } from '@/lib/queryClient';
 
 function impactVariant(impact: string): 'default' | 'destructive' | 'secondary' | 'outline' {
   if (impact === 'CRITICAL' || impact === 'HIGH') return 'destructive';
@@ -19,18 +22,33 @@ function statusVariant(s: string): 'default' | 'outline' | 'secondary' | 'destru
 }
 
 export function RisksPage() {
-  const [risks, setRisks] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const qc = useQueryClient();
 
-  useEffect(() => {
-    apiClient.get<any>('/api/risks')
-      .then((res) => setRisks(res?.data ?? []))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+  const { data: risks = [], isLoading: loading, isFetching } = useQuery({
+    queryKey: QK.risks(),
+    queryFn: async () => {
+      const res = await apiClient.get<any>('/api/risks');
+      return res?.data ?? [];
+    },
+    staleTime: STALE.RISKS,
+  });
 
   return (
-    <PageTemplate title="Risks" description="All identified security risks across your organisation.">
+    <PageTemplate
+      title="Risks"
+      description="All identified security risks across your organisation."
+      actions={
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={isFetching}
+          onClick={() => qc.invalidateQueries({ queryKey: QK.risks() })}
+        >
+          <RefreshCw className={`w-4 h-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
+      }
+    >
       {loading ? (
         <div className="flex items-center justify-center h-48"><Loader2 className="w-8 h-8 animate-spin text-gray-400" /></div>
       ) : risks.length === 0 ? (
@@ -50,7 +68,7 @@ export function RisksPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {risks.map((risk) => (
+                {risks.map((risk: any) => (
                   <tr key={risk.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 text-sm font-medium text-gray-900 max-w-xs">
                       <p className="truncate">{risk.title}</p>

@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
 import { PageTemplate } from "@/app/components/PageTemplate";
 import { Card } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
 import { useNavigate } from "react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { 
   Shield, 
   AlertTriangle, 
@@ -13,10 +13,13 @@ import {
   Users,
   Activity,
   Loader2,
+  RefreshCw,
 } from "lucide-react";
 import { controlsService } from "@/services/api/controls";
 import { risksService } from "@/services/api/risks";
 import { activityLogsService, ActivityLogEntry } from "@/services/api/activityLogs";
+import { QK } from "@/lib/queryKeys";
+import { STALE } from "@/lib/queryClient";
 
 interface ComplianceStats {
   total: number;
@@ -38,29 +41,51 @@ interface RiskOverview {
 
 export function HomePage() {
   const navigate = useNavigate();
-  const [compliance, setCompliance] = useState<ComplianceStats | null>(null);
-  const [loadingCompliance, setLoadingCompliance] = useState(true);
-  const [riskOverview, setRiskOverview] = useState<RiskOverview | null>(null);
-  const [loadingRisks, setLoadingRisks] = useState(true);
-  const [recentActivity, setRecentActivity] = useState<ActivityLogEntry[]>([]);
-  const [loadingActivity, setLoadingActivity] = useState(true);
+  const qc = useQueryClient();
 
-  useEffect(() => {
-    controlsService.getControlCompliance().then((res: any) => {
-      const data = res?.data ?? res;
-      setCompliance(data);
-    }).catch((err: any) => {
-      if (err?.statusCode === 401) window.location.href = "/login";
-    }).finally(() => setLoadingCompliance(false));
+  const { data: complianceRaw, isLoading: loadingCompliance, isFetching: fetchingCompliance } =
+    useQuery({
+      queryKey: QK.complianceStats(),
+      queryFn: async () => {
+        const res: any = await controlsService.getControlCompliance();
+        return (res?.data ?? res) as ComplianceStats;
+      },
+      staleTime: STALE.DASHBOARD,
+      retry: (count, err: any) => {
+        if (err?.statusCode === 401) { window.location.href = '/login'; return false; }
+        return count < 1;
+      },
+    });
 
-    risksService.getRisksOverview().then((res: any) => {
-      setRiskOverview(res?.data ?? res);
-    }).catch(() => {}).finally(() => setLoadingRisks(false));
+  const { data: riskRaw, isLoading: loadingRisks } =
+    useQuery({
+      queryKey: QK.riskOverview(),
+      queryFn: async () => {
+        const res: any = await risksService.getRisksOverview();
+        return (res?.data ?? res) as RiskOverview;
+      },
+      staleTime: STALE.DASHBOARD,
+    });
 
-    activityLogsService.getRecentActivity(8).then((res: any) => {
-      setRecentActivity(res?.data ?? []);
-    }).catch(() => {}).finally(() => setLoadingActivity(false));
-  }, []);
+  const { data: activityRaw, isLoading: loadingActivity } =
+    useQuery({
+      queryKey: QK.activityLog(8),
+      queryFn: async () => {
+        const res: any = await activityLogsService.getRecentActivity(8);
+        return (res?.data ?? []) as ActivityLogEntry[];
+      },
+      staleTime: STALE.ACTIVITY,
+    });
+
+  const compliance    = complianceRaw ?? null;
+  const riskOverview  = riskRaw ?? null;
+  const recentActivity = activityRaw ?? [];
+
+  const handleRefresh = () => {
+    qc.invalidateQueries({ queryKey: QK.complianceStats() });
+    qc.invalidateQueries({ queryKey: QK.riskOverview() });
+    qc.invalidateQueries({ queryKey: QK.activityLog(8) });
+  };
 
   // Derived display values — fall back to skeleton dashes while loading
   const complianceScore = loadingCompliance
@@ -128,6 +153,12 @@ export function HomePage() {
     <PageTemplate
       title="Dashboard"
       description="Welcome back! Here's an overview of your security posture."
+      actions={
+        <Button variant="outline" size="sm" onClick={handleRefresh} disabled={fetchingCompliance}>
+          <RefreshCw className={`w-4 h-4 mr-2 ${fetchingCompliance ? "animate-spin" : ""}`} />
+          Refresh
+        </Button>
+      }
     >
       <div className="space-y-6">
         {/* Stats Grid */}

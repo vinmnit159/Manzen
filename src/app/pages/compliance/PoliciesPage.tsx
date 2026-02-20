@@ -1,7 +1,10 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { policiesService, PolicyTemplate } from '@/services/api/policies';
 import { Policy } from '@/services/api/types';
+import { QK } from '@/lib/queryKeys';
+import { STALE } from '@/lib/queryClient';
 import {
   FileText,
   CheckCircle2,
@@ -20,6 +23,7 @@ import {
   Loader2,
   Plus,
   LayoutTemplate,
+  RefreshCw,
 } from 'lucide-react';
 
 // ── Types ─────────────────────────────────────────────────────────────────
@@ -553,9 +557,7 @@ function CreatePolicyModal({
 
 export function PoliciesPage() {
   const navigate = useNavigate();
-  const [policies, setPolicies] = useState<Policy[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const qc = useQueryClient();
   const [filter, setFilter] = useState<PolicyFilter>({ search: '', status: '' });
   const [sortKey, setSortKey] = useState<SortKey>('name');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
@@ -564,35 +566,39 @@ export function PoliciesPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
 
-  const fetchPolicies = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await policiesService.getPolicies({
-        search: filter.search || undefined,
-        status: filter.status || undefined,
-      });
-      if (response.success && response.data) {
-        let data = [...response.data];
-        data.sort((a, b) => {
-          const aVal = String(a[sortKey as keyof Policy] ?? '');
-          const bVal = String(b[sortKey as keyof Policy] ?? '');
-          const cmp = aVal.localeCompare(bVal);
-          return sortDir === 'desc' ? -cmp : cmp;
-        });
-        setPolicies(data);
-      } else {
-        setError('Failed to load policies from the server.');
-      }
-    } catch (err: any) {
-      if (err?.statusCode === 401) { localStorage.removeItem('isms_token'); navigate('/login'); return; }
-      setError(err?.message || 'An unexpected error occurred.');
-    } finally {
-      setLoading(false);
-    }
-  }, [filter, sortKey, sortDir, navigate]);
+  const filterKey = { search: filter.search, status: filter.status };
 
-  useEffect(() => { fetchPolicies(); }, [fetchPolicies]);
+  const { data: rawPolicies, isLoading: loading, isError, error: queryError, isFetching } =
+    useQuery({
+      queryKey: QK.policies(filterKey),
+      queryFn: async () => {
+        const response = await policiesService.getPolicies({
+          search: filter.search || undefined,
+          status: filter.status || undefined,
+        });
+        if (response.success && response.data) return response.data as Policy[];
+        throw new Error('Failed to load policies from the server.');
+      },
+      staleTime: STALE.POLICIES,
+      retry: (count, err: any) => {
+        if (err?.statusCode === 401) { localStorage.removeItem('isms_token'); navigate('/login'); return false; }
+        return count < 1;
+      },
+    });
+
+  // Client-side sort (no extra fetch)
+  const policies: Policy[] = rawPolicies
+    ? [...rawPolicies].sort((a, b) => {
+        const aVal = String(a[sortKey as keyof Policy] ?? '');
+        const bVal = String(b[sortKey as keyof Policy] ?? '');
+        const cmp = aVal.localeCompare(bVal);
+        return sortDir === 'desc' ? -cmp : cmp;
+      })
+    : [];
+
+  const error: string | null = isError ? ((queryError as any)?.message ?? 'An unexpected error occurred.') : null;
+
+  const fetchPolicies = () => qc.invalidateQueries({ queryKey: ['policies'] });
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
@@ -610,18 +616,18 @@ export function PoliciesPage() {
   const inReview  = policies.filter(p => p.status === 'REVIEW').length;
   const archived  = policies.filter(p => p.status === 'ARCHIVED').length;
 
-  const handleUploadDone = (updated: Policy) => {
-    setPolicies(prev => prev.map(p => p.id === updated.id ? updated : p));
+  const handleUploadDone = (_updated: Policy) => {
+    qc.invalidateQueries({ queryKey: ['policies'] });
     setUploadPolicy(null);
   };
 
-  const handleCreated = (policy: Policy) => {
-    setPolicies(prev => [policy, ...prev]);
+  const handleCreated = (_policy: Policy) => {
+    qc.invalidateQueries({ queryKey: ['policies'] });
     setShowCreate(false);
   };
 
-  const handleTemplateCreated = (policy: Policy) => {
-    setPolicies(prev => [policy, ...prev]);
+  const handleTemplateCreated = (_policy: Policy) => {
+    qc.invalidateQueries({ queryKey: ['policies'] });
   };
 
   return (
@@ -661,6 +667,15 @@ export function PoliciesPage() {
               Filters active
             </span>
           )}
+          <button
+            onClick={fetchPolicies}
+            disabled={isFetching}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 transition-colors shadow-sm disabled:opacity-50"
+            title="Refresh policies"
+          >
+            <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">Refresh</span>
+          </button>
           <button
             onClick={() => setShowTemplates(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 transition-colors shadow-sm"

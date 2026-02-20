@@ -1,4 +1,7 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { QK } from "@/lib/queryKeys";
+import { STALE } from "@/lib/queryClient";
 import { PageTemplate } from "@/app/components/PageTemplate";
 import { Button } from "@/app/components/ui/button";
 import { Card } from "@/app/components/ui/card";
@@ -213,44 +216,44 @@ function UserDetailPanel({
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function PeoplePage() {
-  const [users, setUsers] = useState<UserWithGit[]>([]);
-  const [onboardingMap, setOnboardingMap] = useState<Map<string, UserOnboardingSummary>>(new Map());
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const qc = useQueryClient();
   const [selectedUser, setSelectedUser] = useState<UserOnboardingSummary | null>(null);
 
-  const fetchUsers = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [usersRes, onboardingRes] = await Promise.allSettled([
-        usersService.listUsers(),
-        onboardingService.listUsersOnboarding(),
-      ]);
+  const { data: usersData, isLoading: loadingUsers, isFetching, error: usersError } = useQuery({
+    queryKey: QK.users(),
+    queryFn: async () => {
+      const res = await usersService.listUsers();
+      return res.users;
+    },
+    staleTime: STALE.USERS,
+  });
 
-      if (usersRes.status === "fulfilled") setUsers(usersRes.value.users);
-      else setError((usersRes as any).reason?.message ?? "Failed to load users");
+  const { data: onboardingData } = useQuery({
+    queryKey: QK.onboardingUsers(),
+    queryFn: async () => {
+      const res = await onboardingService.listUsersOnboarding();
+      return (res.data ?? []) as UserOnboardingSummary[];
+    },
+    staleTime: STALE.USERS,
+  });
 
-      if (onboardingRes.status === "fulfilled" && onboardingRes.value.data) {
-        const map = new Map<string, UserOnboardingSummary>();
-        for (const u of onboardingRes.value.data) map.set(u.id, u);
-        setOnboardingMap(map);
-      }
-      // Onboarding load failure is non-fatal — just leave map empty
-    } catch (e: any) {
-      setError(e?.message ?? "Failed to load users");
-    } finally {
-      setLoading(false);
-    }
+  const users: UserWithGit[] = usersData ?? [];
+  const loading = loadingUsers;
+  const error: string | null = usersError ? ((usersError as any)?.message ?? "Failed to load users") : null;
+
+  const onboardingMap = new Map<string, UserOnboardingSummary>();
+  for (const u of onboardingData ?? []) onboardingMap.set(u.id, u);
+
+  const fetchUsers = () => {
+    qc.invalidateQueries({ queryKey: QK.users() });
+    qc.invalidateQueries({ queryKey: QK.onboardingUsers() });
   };
-
-  useEffect(() => { fetchUsers(); }, []);
 
   const handleDelete = async (id: string, name: string) => {
     if (!confirm(`Remove ${name || "this user"} from the organisation?`)) return;
     try {
       await usersService.deleteUser(id);
-      setUsers((prev) => prev.filter((u) => u.id !== id));
+      qc.invalidateQueries({ queryKey: QK.users() });
     } catch (e: any) {
       alert(e?.message ?? "Failed to remove user");
     }
@@ -267,8 +270,8 @@ export function PeoplePage() {
       description="Organisation members and their security roles."
       actions={
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={fetchUsers} disabled={loading}>
-            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+          <Button variant="outline" size="sm" onClick={fetchUsers} disabled={isFetching}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${isFetching ? "animate-spin" : ""}`} />
             Refresh
           </Button>
         </div>

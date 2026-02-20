@@ -1,17 +1,18 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { controlsService } from '@/services/api/controls';
 import { Control, ControlFilter, ColumnConfig, DEFAULT_COLUMNS } from './types';
 import { ControlsFilter } from './ControlsFilter';
 import { ControlsTable } from './ControlsTable';
 import { ColumnSelector } from './ColumnSelector';
-import { SlidersHorizontal, X } from 'lucide-react';
+import { SlidersHorizontal, X, RefreshCw } from 'lucide-react';
+import { QK } from '@/lib/queryKeys';
+import { STALE } from '@/lib/queryClient';
 
 export function ControlsPage() {
   const navigate = useNavigate();
-  const [controls, setControls] = useState<Control[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const qc = useQueryClient();
   const [filter, setFilter] = useState<ControlFilter>({
     search: '',
     status: '',
@@ -22,73 +23,61 @@ export function ControlsPage() {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [filterOpen, setFilterOpen] = useState(false);
 
-  // Load column preferences from localStorage
+  // Load / persist column preferences in localStorage (unchanged)
   useEffect(() => {
-    const savedColumns = localStorage.getItem('controls-columns');
-    if (savedColumns) {
-      try {
-        setColumns(JSON.parse(savedColumns));
-      } catch {
-        // ignore
-      }
-    }
+    const saved = localStorage.getItem('controls-columns');
+    if (saved) { try { setColumns(JSON.parse(saved)); } catch { /* ignore */ } }
   }, []);
-
-  // Save column preferences
   useEffect(() => {
     localStorage.setItem('controls-columns', JSON.stringify(columns));
   }, [columns]);
 
-  const fetchControls = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
+  const filterKey = { search: filter.search, status: filter.status, isoReference: filter.isoReference };
 
-      const response = await controlsService.getControls({
-        search: filter.search || undefined,
-        status: filter.status || undefined,
-        isoReference: filter.isoReference || undefined,
-      });
-
-      if (response.success && response.data) {
-        let data = [...(response.data || [])];
-
-        // Client-side sort
-        if (sortColumn) {
-          data.sort((a, b) => {
-            const aVal = a[sortColumn as keyof Control];
-            const bVal = b[sortColumn as keyof Control];
-            if (aVal === undefined || bVal === undefined) return 0;
-            const cmp =
-              typeof aVal === 'string' && typeof bVal === 'string'
-                ? aVal.localeCompare(bVal)
-                : typeof aVal === 'number' && typeof bVal === 'number'
-                ? aVal - bVal
-                : String(aVal).localeCompare(String(bVal));
-            return sortDirection === 'desc' ? -cmp : cmp;
-          });
+  const { data: rawControls, isLoading: loading, isError, error: queryError, isFetching, refetch } =
+    useQuery({
+      queryKey: QK.controls(filterKey),
+      queryFn: async () => {
+        const response = await controlsService.getControls({
+          search: filter.search || undefined,
+          status: filter.status || undefined,
+          isoReference: filter.isoReference || undefined,
+        });
+        if (response.success && response.data) return response.data as Control[];
+        throw new Error('Failed to load controls from the server.');
+      },
+      staleTime: STALE.CONTROLS,
+      retry: (count, err: any) => {
+        if (err?.statusCode === 401) {
+          localStorage.removeItem('isms_token');
+          navigate('/login');
+          return false;
         }
+        return count < 1;
+      },
+    });
 
-        setControls(data);
-      } else {
-        setError('Failed to load controls from the server.');
-      }
-    } catch (err: any) {
-      // If 401, redirect to login
-      if (err?.statusCode === 401) {
-        localStorage.removeItem('isms_token');
-        navigate('/login');
-        return;
-      }
-      setError(err?.message || 'An unexpected error occurred.');
-    } finally {
-      setLoading(false);
-    }
-  }, [filter, sortColumn, sortDirection, navigate]);
+  // Client-side sort applied to cached data
+  const controls: Control[] = rawControls
+    ? [...rawControls].sort((a, b) => {
+        const aVal = a[sortColumn as keyof Control];
+        const bVal = b[sortColumn as keyof Control];
+        if (aVal === undefined || bVal === undefined) return 0;
+        const cmp =
+          typeof aVal === 'string' && typeof bVal === 'string'
+            ? aVal.localeCompare(bVal)
+            : typeof aVal === 'number' && typeof bVal === 'number'
+            ? aVal - bVal
+            : String(aVal).localeCompare(String(bVal));
+        return sortDirection === 'desc' ? -cmp : cmp;
+      })
+    : [];
 
-  useEffect(() => {
-    fetchControls();
-  }, [fetchControls]);
+  const error: string | null = isError ? ((queryError as any)?.message ?? 'An unexpected error occurred.') : null;
+
+  const fetchControls = useCallback(() => {
+    qc.invalidateQueries({ queryKey: ['controls'] });
+  }, [qc]);
 
   const handleFilterChange = (newFilter: ControlFilter) => setFilter(newFilter);
 
@@ -148,6 +137,15 @@ export function ControlsPage() {
           >
             <SlidersHorizontal className="w-4 h-4" />
             Filters{hasActiveFilters ? ' •' : ''}
+          </button>
+          <button
+            onClick={fetchControls}
+            disabled={isFetching}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 transition-colors shadow-sm disabled:opacity-50"
+            title="Refresh controls"
+          >
+            <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">Refresh</span>
           </button>
           <ColumnSelector columns={columns} onColumnToggle={handleColumnToggle} />
         </div>
