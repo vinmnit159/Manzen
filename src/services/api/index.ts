@@ -7,6 +7,8 @@ export { controlsService } from './controls';
 export { evidenceService } from './evidence';
 export { auditsService } from './audits';
 export { policiesService } from './policies';
+export { usersService } from './users';
+export type { UserWithGit, UserGitAccount, GitHubMember, LinkedGitAccount } from './users';
 
 // Export types
 export * from './types';
