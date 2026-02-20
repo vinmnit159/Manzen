@@ -160,11 +160,14 @@ export function HomePage() {
           })}
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Compliance Overview */}
-          <Card className="p-6">
-            <div className="flex items-center justify-between mb-4">
+        {/* Main Content Grid — all four panels share equal height via `items-start` removed;
+            each card is flex-col so headers stay fixed and bodies fill remaining space */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:grid-rows-2">
+
+          {/* ── Compliance Overview ── */}
+          <Card className="p-6 flex flex-col h-72">
+            {/* fixed header */}
+            <div className="flex items-center justify-between mb-4 shrink-0">
               <h2 className="text-lg font-semibold text-gray-900">Compliance Overview</h2>
               <Button
                 variant="outline"
@@ -175,144 +178,146 @@ export function HomePage() {
               </Button>
             </div>
 
-            {loadingCompliance ? (
-              <div className="flex items-center gap-3 py-6 text-sm text-gray-400">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Loading compliance data…
-              </div>
-            ) : !compliance ? (
-              <p className="text-sm text-gray-400 py-6">Could not load compliance data.</p>
-            ) : (
-              <div className="space-y-4">
-                {/* ISO 27001 — fully implemented */}
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-sm font-medium text-gray-700">ISO 27001:2022 — Implemented</span>
-                    <span className="text-xs text-gray-500">{pct.toFixed(1)}%</span>
+            {/* scrollable body */}
+            <div className="flex-1 overflow-y-auto min-h-0">
+              {loadingCompliance ? (
+                <div className="flex items-center gap-3 py-6 text-sm text-gray-400">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Loading compliance data…
+                </div>
+              ) : !compliance ? (
+                <p className="text-sm text-gray-400 py-6">Could not load compliance data.</p>
+              ) : (
+                <div className="space-y-4">
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-sm font-medium text-gray-700">ISO 27001:2022 — Implemented</span>
+                      <span className="text-xs text-gray-500">{pct.toFixed(1)}%</span>
+                    </div>
+                    <div className="w-full bg-gray-100 rounded-full h-2">
+                      <div className="bg-blue-600 h-2 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                    </div>
                   </div>
-                  <div className="w-full bg-gray-100 rounded-full h-2">
-                    <div
-                      className="bg-blue-600 h-2 rounded-full transition-all"
-                      style={{ width: `${pct}%` }}
-                    />
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-sm font-medium text-gray-700">ISO 27001:2022 — Partial</span>
+                      <span className="text-xs text-gray-500">{partialPct}%</span>
+                    </div>
+                    <div className="w-full bg-gray-100 rounded-full h-2">
+                      <div className="bg-amber-400 h-2 rounded-full transition-all" style={{ width: `${partialPct}%` }} />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-sm font-medium text-gray-700">ISO 27001:2022 — Not implemented</span>
+                      <span className="text-xs text-gray-500">{notPct}%</span>
+                    </div>
+                    <div className="w-full bg-gray-100 rounded-full h-2">
+                      <div className="bg-red-400 h-2 rounded-full transition-all" style={{ width: `${notPct}%` }} />
+                    </div>
+                  </div>
+                  <div className="flex justify-between text-xs text-gray-500 pt-1 border-t">
+                    <span>{compliance.implemented} implemented</span>
+                    <span>{compliance.partiallyImplemented} partial</span>
+                    <span>{compliance.notImplemented} not implemented</span>
+                    <span className="font-medium text-gray-700">{compliance.total} total</span>
                   </div>
                 </div>
-
-                {/* Partially implemented */}
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-sm font-medium text-gray-700">ISO 27001:2022 — Partial</span>
-                    <span className="text-xs text-gray-500">{partialPct}%</span>
-                  </div>
-                  <div className="w-full bg-gray-100 rounded-full h-2">
-                    <div
-                      className="bg-amber-400 h-2 rounded-full transition-all"
-                      style={{ width: `${partialPct}%` }}
-                    />
-                  </div>
-                </div>
-
-                {/* Not implemented */}
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-sm font-medium text-gray-700">ISO 27001:2022 — Not implemented</span>
-                    <span className="text-xs text-gray-500">{notPct}%</span>
-                  </div>
-                  <div className="w-full bg-gray-100 rounded-full h-2">
-                    <div
-                      className="bg-red-400 h-2 rounded-full transition-all"
-                      style={{ width: `${notPct}%` }}
-                    />
-                  </div>
-                </div>
-
-                {/* Summary counts */}
-                <div className="flex justify-between text-xs text-gray-500 pt-1 border-t">
-                  <span>{compliance.implemented} implemented</span>
-                  <span>{compliance.partiallyImplemented} partial</span>
-                  <span>{compliance.notImplemented} not implemented</span>
-                  <span className="font-medium text-gray-700">{compliance.total} total</span>
-                </div>
-              </div>
-            )}
+              )}
+            </div>
           </Card>
 
-          {/* Recent Activity — live from /api/activity-logs */}
-          <Card className="p-6">
-            <div className="flex items-center justify-between mb-4">
+          {/* ── Recent Activity ── */}
+          <Card className="p-6 flex flex-col h-72">
+            {/* fixed header */}
+            <div className="flex items-center justify-between mb-4 shrink-0">
               <h2 className="text-lg font-semibold text-gray-900">Recent Activity</h2>
               <Activity className="w-5 h-5 text-gray-400" />
             </div>
-            {loadingActivity ? (
-              <div className="flex items-center gap-3 py-6 text-sm text-gray-400">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Loading activity…
-              </div>
-            ) : recentActivity.length === 0 ? (
-              <p className="text-sm text-gray-400 py-6 text-center">
-                No activity yet. Actions like creating risks, policies, or uploading files will appear here.
-              </p>
-            ) : (
-              <div className="space-y-4">
-                {recentActivity.map((activity) => (
-                  <div key={activity.id} className="flex gap-3">
-                    <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
-                      activity.status === 'success' ? 'bg-green-500' :
-                      activity.status === 'warning' ? 'bg-orange-500' :
-                      'bg-blue-500'
-                    }`} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-gray-900 leading-snug">{activity.label}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        {activity.user.name} · {activity.timeAgo}
-                      </p>
+
+            {/* scrollable body — only this area scrolls */}
+            <div className="flex-1 overflow-y-auto min-h-0 pr-1 scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent">
+              {loadingActivity ? (
+                <div className="flex items-center gap-3 py-6 text-sm text-gray-400">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Loading activity…
+                </div>
+              ) : recentActivity.length === 0 ? (
+                <p className="text-sm text-gray-400 py-6 text-center">
+                  No activity yet. Actions like creating risks, policies, or uploading files will appear here.
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  {recentActivity.map((activity) => (
+                    <div key={activity.id} className="flex gap-3">
+                      <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
+                        activity.status === 'success' ? 'bg-green-500' :
+                        activity.status === 'warning' ? 'bg-orange-500' :
+                        'bg-blue-500'
+                      }`} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-gray-900 leading-snug">{activity.label}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          {activity.user.name} · {activity.timeAgo}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
+            </div>
           </Card>
 
-          {/* Risk Distribution — live from /api/risks/overview */}
-          <Card className="p-6 cursor-pointer hover:shadow-md transition-shadow duration-200" onClick={() => navigate("/risk/risks")}>
-            <div className="flex items-center justify-between mb-4">
+          {/* ── Risk Distribution ── */}
+          <Card className="p-6 flex flex-col h-72 cursor-pointer hover:shadow-md transition-shadow duration-200" onClick={() => navigate("/risk/risks")}>
+            {/* fixed header */}
+            <div className="flex items-center justify-between mb-4 shrink-0">
               <h2 className="text-lg font-semibold text-gray-900">Risk Distribution</h2>
               <TrendingUp className="w-5 h-5 text-gray-400" />
             </div>
-            {loadingRisks ? (
-              <div className="flex items-center gap-3 py-6 text-sm text-gray-400">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Loading risk data…
-              </div>
-            ) : !riskOverview ? (
-              <p className="text-sm text-gray-400 py-6">Could not load risk data.</p>
-            ) : (
-              <div className="space-y-3">
-                {[
-                  { level: "Critical", count: riskOverview.critical, color: "bg-red-500" },
-                  { level: "High",     count: riskOverview.high,     color: "bg-orange-500" },
-                  { level: "Medium",   count: riskOverview.medium,   color: "bg-yellow-500" },
-                  { level: "Low",      count: riskOverview.low,      color: "bg-green-500" },
-                ].map((risk) => (
-                  <div key={risk.level} className="flex items-center gap-3">
-                    <div className={`w-3 h-3 rounded-full ${risk.color}`} />
-                    <span className="text-sm text-gray-700 flex-1">{risk.level}</span>
-                    <span className="text-sm font-semibold text-gray-900">{risk.count}</span>
-                  </div>
-                ))}
-                <div className="pt-2 border-t text-xs text-gray-500 flex justify-between">
-                  <span>{riskOverview.open} open</span>
-                  <span>{riskOverview.mitigated} mitigated</span>
-                  <span>{riskOverview.total} total</span>
+
+            {/* body */}
+            <div className="flex-1 overflow-y-auto min-h-0">
+              {loadingRisks ? (
+                <div className="flex items-center gap-3 py-6 text-sm text-gray-400">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Loading risk data…
                 </div>
-              </div>
-            )}
+              ) : !riskOverview ? (
+                <p className="text-sm text-gray-400 py-6">Could not load risk data.</p>
+              ) : (
+                <div className="space-y-3">
+                  {[
+                    { level: "Critical", count: riskOverview.critical, color: "bg-red-500" },
+                    { level: "High",     count: riskOverview.high,     color: "bg-orange-500" },
+                    { level: "Medium",   count: riskOverview.medium,   color: "bg-yellow-500" },
+                    { level: "Low",      count: riskOverview.low,      color: "bg-green-500" },
+                  ].map((risk) => (
+                    <div key={risk.level} className="flex items-center gap-3">
+                      <div className={`w-3 h-3 rounded-full ${risk.color}`} />
+                      <span className="text-sm text-gray-700 flex-1">{risk.level}</span>
+                      <span className="text-sm font-semibold text-gray-900">{risk.count}</span>
+                    </div>
+                  ))}
+                  <div className="pt-2 border-t text-xs text-gray-500 flex justify-between">
+                    <span>{riskOverview.open} open</span>
+                    <span>{riskOverview.mitigated} mitigated</span>
+                    <span>{riskOverview.total} total</span>
+                  </div>
+                </div>
+              )}
+            </div>
           </Card>
 
-          {/* Quick Actions — static, unchanged */}
-          <Card className="p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
-            <div className="grid grid-cols-2 gap-3">
+          {/* ── Quick Actions ── */}
+          <Card className="p-6 flex flex-col h-72">
+            {/* fixed header */}
+            <div className="shrink-0 mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">Quick Actions</h2>
+            </div>
+
+            {/* body — fills remaining height, grid centres itself naturally */}
+            <div className="flex-1 grid grid-cols-2 gap-3 content-start">
               <Button
                 variant="outline"
                 className="h-auto py-4 flex flex-col gap-2"
@@ -347,6 +352,7 @@ export function HomePage() {
               </Button>
             </div>
           </Card>
+
         </div>
       </div>
     </PageTemplate>
