@@ -25,6 +25,8 @@ export const integrationsService = {
     return apiClient.get('/integrations/status');
   },
 
+  // ── GitHub ────────────────────────────────────────────────────────────────
+
   async getGitHubRepos(): Promise<{ repos: GitHubRepo[] }> {
     return apiClient.get('/integrations/github/repos');
   },
@@ -41,5 +43,17 @@ export const integrationsService = {
     const backendUrl = (import.meta as any).env?.VITE_API_URL ?? 'https://ismsbackend.bitcoingames1346.com';
     const token = localStorage.getItem('isms_token') ?? '';
     return `${backendUrl}/integrations/github/connect?token=${encodeURIComponent(token)}`;
+  },
+
+  // ── Google Drive ──────────────────────────────────────────────────────────
+
+  getDriveConnectUrl(): string {
+    const backendUrl = (import.meta as any).env?.VITE_API_URL ?? 'https://ismsbackend.bitcoingames1346.com';
+    const token = localStorage.getItem('isms_token') ?? '';
+    return `${backendUrl}/integrations/google/connect?token=${encodeURIComponent(token)}`;
+  },
+
+  async disconnectDrive(): Promise<{ success: boolean }> {
+    return apiClient.delete('/integrations/google');
   },
 };
