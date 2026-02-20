@@ -15,8 +15,12 @@ import {
   ChevronUp,
   CheckCircle2,
   XCircle,
+  UserCog,
+  X,
 } from "lucide-react";
 import { mdmService, ManagedDevice } from "@/services/api/mdm";
+import { usersService } from "@/services/api/users";
+import type { UserWithGit } from "@/services/api/users";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -55,6 +59,91 @@ function ComplianceCheck({ label, value }: { label: string; value: boolean }) {
   );
 }
 
+// ─── Reassign Owner Modal ─────────────────────────────────────────────────────
+
+interface ReassignModalProps {
+  device: ManagedDevice;
+  users: UserWithGit[];
+  onClose: () => void;
+  onSave: (deviceId: string, ownerId: string) => Promise<void>;
+}
+
+function ReassignModal({ device, users, onClose, onSave }: ReassignModalProps) {
+  const [selectedUserId, setSelectedUserId] = useState(device.ownerId ?? "");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSave = async () => {
+    if (!selectedUserId) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await onSave(device.id, selectedUserId);
+      onClose();
+    } catch (e: any) {
+      setError(e?.message ?? "Failed to reassign owner");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b">
+          <div>
+            <h2 className="text-sm font-semibold text-gray-900">Reassign Device Owner</h2>
+            <p className="text-xs text-gray-500 mt-0.5 font-mono">
+              {device.hostname ?? device.name}
+            </p>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="px-5 py-4">
+          <p className="text-xs text-gray-500 mb-3">
+            Changing the owner will attribute the MDM task to the selected user.
+          </p>
+          <label className="block text-xs font-medium text-gray-700 mb-1">New Owner</label>
+          <select
+            value={selectedUserId}
+            onChange={(e) => setSelectedUserId(e.target.value)}
+            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">— select a user —</option>
+            {users.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.name} ({u.email})
+              </option>
+            ))}
+          </select>
+          {error && (
+            <p className="mt-2 text-xs text-red-600">{error}</p>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-2 px-5 py-3 border-t bg-gray-50 rounded-b-lg">
+          <Button variant="outline" size="sm" onClick={onClose} disabled={saving}>
+            Cancel
+          </Button>
+          <Button
+            size="sm"
+            onClick={handleSave}
+            disabled={saving || !selectedUserId || selectedUserId === device.ownerId}
+          >
+            {saving ? "Saving…" : "Save"}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function ComputersPage() {
@@ -63,6 +152,8 @@ export function ComputersPage() {
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [revoking, setRevoking] = useState<string | null>(null);
+  const [users, setUsers] = useState<UserWithGit[]>([]);
+  const [reassignDevice, setReassignDevice] = useState<ManagedDevice | null>(null);
 
   const fetchDevices = useCallback(async () => {
     setLoading(true);
@@ -75,6 +166,11 @@ export function ComputersPage() {
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  // Fetch users once for the owner picker
+  useEffect(() => {
+    usersService.listUsers().then((res) => setUsers(res.users)).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -106,6 +202,20 @@ export function ComputersPage() {
     } finally {
       setRevoking(null);
     }
+  };
+
+  const handleReassignOwner = async (deviceId: string, ownerId: string) => {
+    const res = await mdmService.reassignOwner(deviceId, ownerId);
+    setDevices((prev) =>
+      prev.map((d) => (d.id === deviceId ? { ...d, ownerId: res.device.ownerId } : d))
+    );
+  };
+
+  // Owner display helper
+  const ownerLabel = (ownerId: string | null) => {
+    if (!ownerId) return null;
+    const u = users.find((u) => u.id === ownerId);
+    return u ? (u.name || u.email) : null;
   };
 
   // Summary stats
@@ -152,6 +262,7 @@ export function ComputersPage() {
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Device</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">OS</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Owner</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Seen</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Compliance</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
@@ -161,13 +272,13 @@ export function ComputersPage() {
             <tbody className="bg-white divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-10 text-center text-sm text-gray-400">
+                  <td colSpan={7} className="px-6 py-10 text-center text-sm text-gray-400">
                     Loading devices…
                   </td>
                 </tr>
               ) : devices.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-10 text-center text-sm text-gray-400">
+                  <td colSpan={7} className="px-6 py-10 text-center text-sm text-gray-400">
                     No managed devices yet. Go to{" "}
                     <a href="/integrations" className="text-blue-600 underline">Integrations</a>{" "}
                     to create an enrollment token and install the agent.
@@ -178,6 +289,7 @@ export function ComputersPage() {
                   const isExpanded = expanded.has(device.id);
                   const cs = device.compliance?.complianceStatus;
                   const revoked = device.enrollment?.revoked;
+                  const owner = ownerLabel(device.ownerId);
 
                   return (
                     <>
@@ -201,6 +313,11 @@ export function ComputersPage() {
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                           {device.osType === "darwin" ? "macOS" : device.osType ?? "—"}{" "}
                           <span className="text-gray-400">{device.osVersion}</span>
+                        </td>
+
+                        {/* Owner */}
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                          {owner ?? <span className="text-gray-300 italic">unassigned</span>}
                         </td>
 
                         {/* Last seen */}
@@ -242,6 +359,13 @@ export function ComputersPage() {
                               {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                               Details
                             </button>
+                            <button
+                              onClick={() => setReassignDevice(device)}
+                              className="text-gray-500 hover:text-gray-700 p-1 rounded hover:bg-gray-100"
+                              title="Reassign owner"
+                            >
+                              <UserCog className="w-3.5 h-3.5" />
+                            </button>
                             {!revoked && (
                               <button
                                 onClick={() => handleRevoke(device)}
@@ -259,7 +383,7 @@ export function ComputersPage() {
                       {/* Expanded compliance detail */}
                       {isExpanded && device.compliance && (
                         <tr key={`${device.id}-detail`} className="bg-blue-50">
-                          <td colSpan={6} className="px-8 py-3">
+                          <td colSpan={7} className="px-8 py-3">
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-8 gap-y-0 divide-y divide-blue-100">
                               <ComplianceCheck label="Disk Encryption (A.8.24)" value={device.compliance.diskEncryptionEnabled} />
                               <ComplianceCheck label="Screen Lock (A.5.15)" value={device.compliance.screenLockEnabled} />
@@ -289,6 +413,16 @@ export function ComputersPage() {
           </div>
         )}
       </Card>
+
+      {/* Reassign owner modal */}
+      {reassignDevice && (
+        <ReassignModal
+          device={reassignDevice}
+          users={users}
+          onClose={() => setReassignDevice(null)}
+          onSave={handleReassignOwner}
+        />
+      )}
     </PageTemplate>
   );
 }

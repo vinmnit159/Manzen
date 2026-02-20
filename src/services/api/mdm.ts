@@ -32,6 +32,7 @@ export interface ManagedDevice {
   serialNumber: string | null;
   status: string;
   createdAt: string;
+  ownerId: string | null;
   compliance: DeviceCompliance | null;
   enrollment: DeviceEnrollmentInfo | null;
 }
@@ -96,6 +97,10 @@ export const mdmService = {
 
   async revokeDevice(deviceId: string): Promise<{ success: boolean }> {
     return apiClient.delete(`/api/mdm/devices/${deviceId}`);
+  },
+
+  async reassignOwner(deviceId: string, ownerId: string): Promise<{ device: ManagedDevice; newOwner: { id: string; name: string; email: string } }> {
+    return apiClient.patch(`/api/mdm/devices/${deviceId}/owner`, { ownerId });
   },
 
   // ── Overview ──────────────────────────────────────────────────────────────
