@@ -3,6 +3,15 @@ import { Policy } from './types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
+export interface PolicyTemplate {
+  name: string;
+  version: string;
+  status: string;
+  category: string;
+  isoReferences: string[];
+  description: string;
+}
+
 export interface CreatePolicyRequest {
   name: string;
   version: string;
@@ -72,6 +81,11 @@ export class PoliciesService {
    * Download a policy document. Returns a Blob for the browser to save.
    * Uses the authenticated /api/policies/:id/download endpoint.
    */
+  /** Get the built-in policy template catalogue */
+  async getTemplates(): Promise<ApiResponse<PolicyTemplate[]>> {
+    return apiClient.get('/api/policies/templates');
+  }
+
   async downloadPolicyDocument(policyId: string, fileName: string): Promise<void> {
     const token = localStorage.getItem('isms_token');
     const response = await fetch(`${API_BASE_URL}/api/policies/${policyId}/download`, {
