@@ -4,9 +4,8 @@ import { PageTemplate } from '@/app/components/PageTemplate';
 import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
-import { integrationsService, Integration, GitHubRepo, AutomatedTestResult } from '@/services/api/integrations';
+import { integrationsService, Integration, GitHubRepo } from '@/services/api/integrations';
 import { mdmService, EnrollmentToken, CreatedToken, MdmOverview } from '@/services/api/mdm';
-import { authService } from '@/services/api/auth';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -207,174 +206,6 @@ function GoogleDriveCard({
   );
 }
 
-// ─── Last result badge ────────────────────────────────────────────────────────
-
-function LastResultBadge({ result }: { result: AutomatedTestResult['lastResult'] }) {
-  const map: Record<string, { label: string; cls: string }> = {
-    Pass:    { label: 'Pass',    cls: 'bg-green-50 text-green-700 border-green-200' },
-    Fail:    { label: 'Fail',    cls: 'bg-red-50 text-red-700 border-red-200' },
-    Warning: { label: 'Warning', cls: 'bg-amber-50 text-amber-700 border-amber-200' },
-    Not_Run: { label: 'Not Run', cls: 'bg-gray-50 text-gray-500 border-gray-200' },
-  };
-  const cfg = map[result] ?? map['Not_Run'];
-  return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${cfg.cls}`}>
-      {cfg.label}
-    </span>
-  );
-}
-
-// ─── Automated tests panel ────────────────────────────────────────────────────
-
-function AutomatedTestsPanel({
-  integrationId,
-  onToast,
-}: {
-  integrationId: string;
-  onToast: (type: 'success' | 'error', msg: string) => void;
-}) {
-  const [tests, setTests] = useState<AutomatedTestResult[]>([]);
-  const [seeded, setSeeded] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [seeding, setSeeding] = useState(false);
-  const [running, setRunning] = useState(false);
-
-  const loadTests = async () => {
-    setLoading(true);
-    try {
-      const res = await integrationsService.getAutomatedTests();
-      setTests(res.data ?? []);
-      setSeeded(res.seeded);
-    } catch { /* ignore */ }
-    finally { setLoading(false); }
-  };
-
-  useEffect(() => { loadTests(); }, [integrationId]); // eslint-disable-line
-
-  const handleSeed = async () => {
-    setSeeding(true);
-    try {
-      const res = await integrationsService.seedAutomatedTests();
-      onToast('success', `Seeded ${res.data.created} test(s) (${res.data.skipped} already existed)`);
-      await loadTests();
-    } catch (e: any) {
-      onToast('error', e?.message ?? 'Failed to seed tests');
-    } finally {
-      setSeeding(false);
-    }
-  };
-
-  const handleRun = async () => {
-    setRunning(true);
-    try {
-      await integrationsService.runAutomatedTests();
-      onToast('success', 'Test run started — results will update in ~30s');
-      // Poll for results after a delay
-      setTimeout(async () => {
-        try { await loadTests(); } catch { /* ignore */ }
-        setRunning(false);
-      }, 35000);
-    } catch (e: any) {
-      onToast('error', e?.message ?? 'Failed to start test run');
-      setRunning(false);
-    }
-  };
-
-  const passCount  = tests.filter(t => t.lastResult === 'Pass').length;
-  const failCount  = tests.filter(t => t.lastResult === 'Fail').length;
-  const warnCount  = tests.filter(t => t.lastResult === 'Warning').length;
-  const notRunCount = tests.filter(t => t.lastResult === 'Not_Run').length;
-
-  return (
-    <div className="mt-5 border-t border-gray-100 pt-5">
-      <div className="flex items-center justify-between mb-3">
-        <h4 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
-          Engineering Automated Tests
-          {seeded && (
-            <span className="text-xs font-normal text-gray-400">({tests.length} tests)</span>
-          )}
-        </h4>
-        <div className="flex gap-2">
-          {!seeded && (
-            <button
-              onClick={handleSeed}
-              disabled={seeding}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors disabled:opacity-50"
-            >
-              {seeding ? 'Seeding…' : 'Seed Engineering Tests'}
-            </button>
-          )}
-          {seeded && (
-            <>
-              <button
-                onClick={handleRun}
-                disabled={running}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
-              >
-                {running ? 'Running…' : 'Run All Tests'}
-              </button>
-              <button
-                onClick={handleSeed}
-                disabled={seeding}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors disabled:opacity-50"
-                title="Re-seed missing tests"
-              >
-                Sync Tests
-              </button>
-            </>
-          )}
-        </div>
-      </div>
-
-      {loading && (
-        <div className="text-sm text-gray-400 animate-pulse py-4 text-center">Loading tests…</div>
-      )}
-
-      {!loading && seeded && tests.length > 0 && (
-        <>
-          {/* Summary row */}
-          <div className="flex gap-3 mb-3">
-            {[
-              { label: 'Pass',    count: passCount,   cls: 'bg-green-50 text-green-700' },
-              { label: 'Fail',    count: failCount,   cls: 'bg-red-50 text-red-700' },
-              { label: 'Warning', count: warnCount,   cls: 'bg-amber-50 text-amber-700' },
-              { label: 'Not Run', count: notRunCount, cls: 'bg-gray-50 text-gray-500' },
-            ].map(s => (
-              <div key={s.label} className={`flex-1 rounded-lg px-3 py-2 text-center ${s.cls}`}>
-                <div className="text-lg font-bold">{s.count}</div>
-                <div className="text-xs">{s.label}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* Test list */}
-          <div className="space-y-1.5">
-            {tests.map(test => (
-              <div key={test.id} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2 border border-gray-100 gap-2">
-                <span className="text-sm text-gray-700 truncate flex-1">{test.name}</span>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  {test.lastRunAt && (
-                    <span className="text-xs text-gray-400 hidden sm:block">
-                      {new Date(test.lastRunAt).toLocaleDateString()}
-                    </span>
-                  )}
-                  <LastResultBadge result={test.lastResult} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-
-      {!loading && !seeded && (
-        <p className="text-sm text-gray-400 py-3 text-center">
-          Click "Seed Engineering Tests" to create 13 automated tests linked to this GitHub integration.
-        </p>
-      )}
-    </div>
-  );
-}
-
 // ─── Static cards (Slack, Jira, AWS — coming soon) ───────────────────────────
 
 const STATIC_INTEGRATIONS = [
@@ -559,13 +390,9 @@ export function IntegrationsPage() {
   const [driveIntegration, setDriveIntegration] = useState<Integration | null>(null);
   const [repos, setRepos] = useState<GitHubRepo[]>([]);
   const [loading, setLoading] = useState(true);
-  const [scanning, setScanning] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
   const [showRepos, setShowRepos] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-
-  const cachedUser = authService.getCachedUser();
-  const isAdmin = cachedUser?.role === 'ORG_ADMIN' || cachedUser?.role === 'SUPER_ADMIN' || cachedUser?.role === 'SECURITY_OWNER';
 
   const showToast = (type: 'success' | 'error', message: string) => {
     setToast({ type, message });
@@ -598,25 +425,6 @@ export function IntegrationsPage() {
 
   const handleConnect = () => {
     window.location.href = integrationsService.getConnectUrl();
-  };
-
-  const handleScan = async () => {
-    setScanning(true);
-    try {
-      // Trigger repo scan + automated tests (run-tests fires automatically after syncRepos)
-      await integrationsService.triggerScan();
-      showToast('success', 'Scan started — repo data and automated tests will update in ~30s');
-      setTimeout(async () => {
-        try {
-          const { repos: updated } = await integrationsService.getGitHubRepos();
-          setRepos(updated);
-        } catch {}
-        setScanning(false);
-      }, 8000);
-    } catch {
-      showToast('error', 'Failed to start scan');
-      setScanning(false);
-    }
   };
 
   const handleDisconnect = async () => {
@@ -701,9 +509,6 @@ export function IntegrationsPage() {
             )}
             {isConnected && (
               <>
-                <Button variant="outline" onClick={handleScan} disabled={scanning}>
-                  {scanning ? 'Scanning...' : 'Run Scan Now'}
-                </Button>
                 <Button variant="outline" onClick={() => setShowRepos((v) => !v)}>
                   {showRepos ? 'Hide Repos' : `View Repos (${repos.length})`}
                 </Button>
@@ -741,13 +546,7 @@ export function IntegrationsPage() {
             </div>
           )}
 
-          {/* Automated tests panel — only shown when connected + admin */}
-          {isConnected && githubIntegration && isAdmin && (
-            <AutomatedTestsPanel
-              integrationId={githubIntegration.id}
-              onToast={showToast}
-            />
-          )}
+
         </Card>
 
         {/* ── Google Drive ──────────────────────────────────────────────────── */}
