@@ -146,7 +146,7 @@ export class TestsService {
   }
 
   async completeTest(id: string): Promise<ApiResponse<TestRecord>> {
-    return apiClient.post(`/api/tests/${id}/complete`);
+    return apiClient.post(`/api/tests/${id}/complete`, {});
   }
 
   // Evidence
@@ -192,7 +192,7 @@ export class TestsService {
 
   // Seed predefined Policy tests
   async seedTests(): Promise<ApiResponse<{ created: number; skipped: number }>> {
-    return apiClient.post('/api/tests/seed');
+    return apiClient.post('/api/tests/seed', {});
   }
 }
 
