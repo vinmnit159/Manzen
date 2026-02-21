@@ -109,7 +109,7 @@ export function ControlsPage() {
     : 0;
 
   return (
-    <div className="flex flex-col h-full bg-gray-50">
+    <div className="flex flex-col bg-gray-50">
       {/* ── Top App Bar (Material-style) ── */}
       <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
         <div>
@@ -201,7 +201,7 @@ export function ControlsPage() {
       )}
 
       {/* ── Main Content: Filters + Table ── */}
-      <div className="flex flex-col lg:flex-row gap-4 px-3 sm:px-6 py-4 flex-1 min-h-0">
+      <div className="flex flex-col lg:flex-row gap-4 px-3 sm:px-6 py-4">
 
         {/* Mobile filter overlay */}
         {filterOpen && (

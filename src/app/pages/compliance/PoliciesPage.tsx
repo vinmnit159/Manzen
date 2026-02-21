@@ -631,7 +631,7 @@ export function PoliciesPage() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-gray-50">
+    <div className="flex flex-col bg-gray-50">
 
       {/* Modals */}
       {uploadPolicy && (
@@ -730,7 +730,7 @@ export function PoliciesPage() {
       )}
 
       {/* ── Main Content ── */}
-      <div className="flex flex-col lg:flex-row gap-4 px-3 sm:px-6 py-4 flex-1 min-h-0">
+      <div className="flex flex-col lg:flex-row gap-4 px-3 sm:px-6 py-4">
 
         {filterOpen && (
           <div className="fixed inset-0 bg-black/40 z-20 lg:hidden" onClick={() => setFilterOpen(false)} />
