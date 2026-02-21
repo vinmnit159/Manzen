@@ -1,57 +1,317 @@
-import { PageTemplate } from "@/app/components/PageTemplate";
-import { Button } from "@/app/components/ui/button";
-import { Card } from "@/app/components/ui/card";
-import { Badge } from "@/app/components/ui/badge";
-import { Plus } from "lucide-react";
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { ClipboardList, ShieldCheck, AlertTriangle, CheckCircle, Clock, ChevronRight } from 'lucide-react';
+import { PageTemplate } from '@/app/components/PageTemplate';
+import { Card } from '@/app/components/ui/card';
+import { testsService } from '@/services/api/tests';
+import { onboardingService } from '@/services/api/onboarding';
+import { authService } from '@/services/api/auth';
+import { QK } from '@/lib/queryKeys';
+import { STALE } from '@/lib/queryClient';
+import type { TestRecord, TestStatus } from '@/services/api/tests';
+import { TestDetailPanel } from '@/app/pages/tests/TestDetailPanel';
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function fmtDate(iso: string | null | undefined): string {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function isOverdue(dueDate: string): boolean {
+  return new Date(dueDate) < new Date();
+}
+
+// ─── Status badge ─────────────────────────────────────────────────────────────
+
+const STATUS_CFG: Record<TestStatus, { label: string; cls: string }> = {
+  OK:                { label: 'Complete',          cls: 'bg-green-50 text-green-700 border-green-200' },
+  Due_soon:          { label: 'Due Soon',           cls: 'bg-amber-50 text-amber-700 border-amber-200' },
+  Overdue:           { label: 'Overdue',            cls: 'bg-red-50 text-red-700 border-red-200' },
+  Needs_remediation: { label: 'Needs Remediation',  cls: 'bg-purple-50 text-purple-700 border-purple-200' },
+};
+
+function StatusBadge({ status }: { status: TestStatus }) {
+  const cfg = STATUS_CFG[status] ?? { label: status, cls: 'bg-gray-50 text-gray-600 border-gray-200' };
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${cfg.cls}`}>
+      {cfg.label}
+    </span>
+  );
+}
+
+// ─── Onboarding task row ──────────────────────────────────────────────────────
+
+function OnboardingTaskRow({
+  label,
+  done,
+  doneAt,
+  description,
+  linkTo,
+}: {
+  label: string;
+  done: boolean;
+  doneAt: string | null;
+  description: string;
+  linkTo: string;
+}) {
+  return (
+    <div className="flex items-start gap-3 py-3 border-b border-gray-100 last:border-0">
+      <div className={`mt-0.5 flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${done ? 'bg-green-100' : 'bg-amber-100'}`}>
+        {done
+          ? <CheckCircle className="w-3.5 h-3.5 text-green-600" />
+          : <Clock className="w-3.5 h-3.5 text-amber-600" />
+        }
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className={`text-sm font-medium ${done ? 'text-gray-400 line-through' : 'text-gray-800'}`}>{label}</p>
+        <p className="text-xs text-gray-400 mt-0.5">{done ? `Completed ${fmtDate(doneAt)}` : description}</p>
+      </div>
+      {!done && (
+        <a
+          href={linkTo}
+          className="flex-shrink-0 flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700"
+        >
+          Go <ChevronRight className="w-3 h-3" />
+        </a>
+      )}
+    </div>
+  );
+}
+
+// ─── Main page ────────────────────────────────────────────────────────────────
 
 export function MyWorkPage() {
-  const tasks = [
-    { id: 1, title: "Review access control policy", priority: "High", dueDate: "2026-02-05", status: "In Progress" },
-    { id: 2, title: "Complete SOC 2 evidence upload", priority: "Critical", dueDate: "2026-02-02", status: "Pending" },
-    { id: 3, title: "Vendor risk assessment - Acme Corp", priority: "Medium", dueDate: "2026-02-10", status: "In Progress" },
-    { id: 4, title: "Update incident response plan", priority: "Low", dueDate: "2026-02-15", status: "Not Started" },
-  ];
+  const me = authService.getCachedUser();
+  const [selectedTestId, setSelectedTestId] = useState<string | null>(null);
+
+  // Fetch tests assigned to me that are not complete
+  const { data: testsData, isLoading: testsLoading, refetch: refetchTests } = useQuery({
+    queryKey: [...QK.tests({ ownerId: me?.id }), 'my-work'],
+    queryFn: async () => {
+      if (!me?.id) return [];
+      const res = await testsService.listTests({ ownerId: me.id, limit: 100 });
+      if (res.success && res.data) {
+        // Show all non-OK tests
+        return (res.data as TestRecord[]).filter(t => t.status !== 'OK');
+      }
+      return [];
+    },
+    staleTime: STALE.TESTS,
+    enabled: !!me?.id,
+  });
+
+  // Fetch onboarding status
+  const { data: onboardingData, isLoading: onboardingLoading } = useQuery({
+    queryKey: QK.onboardingMe(),
+    queryFn: async () => {
+      const res = await onboardingService.getMyStatus();
+      return res.data ?? null;
+    },
+    staleTime: STALE.USERS,
+  });
+
+  const pendingTests = testsData ?? [];
+  const overdue = pendingTests.filter(t => isOverdue(t.dueDate) && t.status !== 'OK');
+  const dueSoon = pendingTests.filter(t => !isOverdue(t.dueDate));
+
+  const onboarding = onboardingData;
+  const onboardingPendingCount = onboarding
+    ? [!onboarding.policyAccepted, !onboarding.mdmEnrolled, !onboarding.trainingCompleted].filter(Boolean).length
+    : 0;
+
+  const totalPending = pendingTests.length + onboardingPendingCount;
 
   return (
     <PageTemplate
       title="My Work"
-      description="Track and manage your assigned security tasks and responsibilities."
-      actions={<Button><Plus className="w-4 h-4 mr-2" />New Task</Button>}
+      description="Your assigned tests and pending security tasks."
     >
-      <Card>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Task</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {tasks.map((task) => (
-                <tr key={task.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{task.title}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <Badge variant={task.priority === 'Critical' || task.priority === 'High' ? 'destructive' : 'secondary'}>
-                      {task.priority}
-                    </Badge>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{task.dueDate}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <Badge variant="outline">{task.status}</Badge>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
-                    <button className="hover:underline">View</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* ── Summary strip ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        {[
+          {
+            label: 'Total Pending',
+            value: testsLoading || onboardingLoading ? '…' : totalPending,
+            icon: <ClipboardList className="w-4 h-4" />,
+            cls: 'text-gray-700 bg-white',
+          },
+          {
+            label: 'Overdue Tests',
+            value: testsLoading ? '…' : overdue.length,
+            icon: <AlertTriangle className="w-4 h-4" />,
+            cls: overdue.length > 0 ? 'text-red-700 bg-red-50' : 'text-gray-700 bg-white',
+          },
+          {
+            label: 'Due Soon',
+            value: testsLoading ? '…' : dueSoon.length,
+            icon: <Clock className="w-4 h-4" />,
+            cls: 'text-amber-700 bg-amber-50',
+          },
+          {
+            label: 'Onboarding Tasks',
+            value: onboardingLoading ? '…' : `${3 - onboardingPendingCount}/3`,
+            icon: <ShieldCheck className="w-4 h-4" />,
+            cls: onboardingPendingCount === 0 ? 'text-green-700 bg-green-50' : 'text-amber-700 bg-amber-50',
+          },
+        ].map(s => (
+          <Card key={s.label} className={`p-4 flex items-center gap-3 ${s.cls}`}>
+            <div className="opacity-70">{s.icon}</div>
+            <div>
+              <div className="text-xl font-bold leading-none">{s.value}</div>
+              <div className="text-xs mt-0.5 opacity-70">{s.label}</div>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+        {/* ── Assigned Tests ── */}
+        <div className="lg:col-span-2 space-y-4">
+
+          {/* Overdue */}
+          {(testsLoading || overdue.length > 0) && (
+            <Card className="overflow-hidden">
+              <div className="px-4 py-3 bg-red-50 border-b border-red-100 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-red-500" />
+                <h2 className="text-sm font-semibold text-red-700">Overdue Tests</h2>
+                {!testsLoading && <span className="ml-auto text-xs text-red-500">{overdue.length}</span>}
+              </div>
+              {testsLoading ? (
+                <div className="p-4 space-y-2">
+                  {[...Array(2)].map((_, i) => <div key={i} className="h-10 bg-gray-100 rounded animate-pulse" />)}
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-100">
+                  {overdue.map(test => (
+                    <TestRow key={test.id} test={test} onView={() => setSelectedTestId(test.id)} />
+                  ))}
+                </div>
+              )}
+            </Card>
+          )}
+
+          {/* Due Soon / In Progress */}
+          <Card className="overflow-hidden">
+            <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
+              <ClipboardList className="w-4 h-4 text-gray-500" />
+              <h2 className="text-sm font-semibold text-gray-700">Assigned Tests</h2>
+              {!testsLoading && <span className="ml-auto text-xs text-gray-400">{pendingTests.length} pending</span>}
+            </div>
+            {testsLoading ? (
+              <div className="p-4 space-y-2">
+                {[...Array(3)].map((_, i) => <div key={i} className="h-10 bg-gray-100 rounded animate-pulse" />)}
+              </div>
+            ) : pendingTests.length === 0 ? (
+              <div className="p-8 text-center text-sm text-gray-400">
+                <CheckCircle className="w-8 h-8 text-green-400 mx-auto mb-2" />
+                No pending tests assigned to you.
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-100">
+                {pendingTests.map(test => (
+                  <TestRow key={test.id} test={test} onView={() => setSelectedTestId(test.id)} />
+                ))}
+              </div>
+            )}
+          </Card>
         </div>
-      </Card>
+
+        {/* ── Security Onboarding ── */}
+        <div>
+          <Card className="overflow-hidden">
+            <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-gray-500" />
+              <h2 className="text-sm font-semibold text-gray-700">Security Onboarding</h2>
+              {onboarding && (
+                <span className={`ml-auto text-xs font-medium ${onboarding.allComplete ? 'text-green-600' : 'text-amber-600'}`}>
+                  {onboarding.allComplete ? 'Complete' : `${3 - onboardingPendingCount}/3 done`}
+                </span>
+              )}
+            </div>
+
+            {onboardingLoading ? (
+              <div className="p-4 space-y-2">
+                {[...Array(3)].map((_, i) => <div key={i} className="h-10 bg-gray-100 rounded animate-pulse" />)}
+              </div>
+            ) : onboarding ? (
+              <div className="px-4 py-2">
+                {/* Progress bar */}
+                <div className="mb-3 mt-1">
+                  <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-green-500 rounded-full transition-all"
+                      style={{ width: `${((3 - onboardingPendingCount) / 3) * 100}%` }}
+                    />
+                  </div>
+                </div>
+                <OnboardingTaskRow
+                  label="Accept security policies"
+                  done={onboarding.policyAccepted}
+                  doneAt={onboarding.policyAcceptedAt}
+                  description="Read and accept all published org policies"
+                  linkTo="/my-security-tasks"
+                />
+                <OnboardingTaskRow
+                  label="Enroll device in MDM"
+                  done={onboarding.mdmEnrolled}
+                  doneAt={onboarding.mdmEnrolledAt}
+                  description="Install the Manzen MDM agent on your Mac"
+                  linkTo="/my-security-tasks"
+                />
+                <OnboardingTaskRow
+                  label="Complete security training"
+                  done={onboarding.trainingCompleted}
+                  doneAt={onboarding.trainingCompletedAt}
+                  description="Watch the security awareness training video"
+                  linkTo="/my-security-tasks"
+                />
+              </div>
+            ) : (
+              <p className="p-4 text-sm text-gray-400">Could not load onboarding status.</p>
+            )}
+          </Card>
+        </div>
+      </div>
+
+      {/* ── Test detail side panel ── */}
+      {selectedTestId && (
+        <TestDetailPanel
+          testId={selectedTestId}
+          onClose={() => setSelectedTestId(null)}
+          onMutated={() => { setSelectedTestId(null); refetchTests(); }}
+        />
+      )}
     </PageTemplate>
+  );
+}
+
+// ─── Test row ──────────────────────────────────────────────────────────────────
+
+function TestRow({ test, onView }: { test: TestRecord; onView: () => void }) {
+  const overdue = isOverdue(test.dueDate) && test.status !== 'OK';
+  return (
+    <div className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors">
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-gray-800 truncate">{test.name}</p>
+        <p className={`text-xs mt-0.5 ${overdue ? 'text-red-500 font-medium' : 'text-gray-400'}`}>
+          Due {fmtDate(test.dueDate)}
+          {overdue && ' · Overdue'}
+        </p>
+      </div>
+      <div className="flex items-center gap-2 flex-shrink-0">
+        <span className="hidden sm:inline-block text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded">
+          {test.category}
+        </span>
+        <StatusBadge status={test.status} />
+        <button
+          onClick={onView}
+          className="text-xs text-blue-600 hover:text-blue-700 font-medium px-2 py-1 rounded hover:bg-blue-50 transition-colors"
+        >
+          View
+        </button>
+      </div>
+    </div>
   );
 }
