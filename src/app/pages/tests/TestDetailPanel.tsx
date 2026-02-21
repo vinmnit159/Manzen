@@ -180,7 +180,7 @@ export function TestDetailPanel({ testId, onClose, onMutated }: TestDetailPanelP
       const res = await usersService.listUsers();
       return res.users ?? [];
     },
-    staleTime: STALE.DEFAULT,
+    staleTime: STALE.USERS,
     enabled: isAdmin,
   });
 
