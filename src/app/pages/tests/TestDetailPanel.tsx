@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { X, CheckCircle, Clock, AlertTriangle, Tag, Link2, Shield, FileText, History, ChevronDown, ChevronUp, Zap, RefreshCw } from 'lucide-react';
+import { X, CheckCircle, Tag, Link2, Shield, FileText, History, ChevronDown, ChevronUp, Zap, RefreshCw } from 'lucide-react';
 import { QK } from '@/lib/queryKeys';
 import { STALE } from '@/lib/queryClient';
 import { testsService } from '@/services/api/tests';
 import { integrationsService } from '@/services/api/integrations';
+import { usersService } from '@/services/api/users';
+import { authService } from '@/services/api/auth';
 import type { TestRecord, TestStatus, TestCategory, TestType, TestRunRecord } from '@/services/api/tests';
 
 // ─── Status / category config ─────────────────────────────────────────────────
@@ -163,9 +165,24 @@ interface TestDetailPanelProps {
   onMutated?: () => void;
 }
 
+const ADMIN_ROLES = ['ORG_ADMIN', 'SUPER_ADMIN', 'SECURITY_OWNER'];
+
 export function TestDetailPanel({ testId, onClose, onMutated }: TestDetailPanelProps) {
   const qc = useQueryClient();
   const [runMsg, setRunMsg] = useState<string | null>(null);
+
+  const isAdmin = ADMIN_ROLES.includes(authService.getCachedUser()?.role ?? '');
+
+  // Load org users for owner picker (only for admins)
+  const { data: usersData } = useQuery({
+    queryKey: QK.users(),
+    queryFn: async () => {
+      const res = await usersService.listUsers();
+      return res.users ?? [];
+    },
+    staleTime: STALE.DEFAULT,
+    enabled: isAdmin,
+  });
 
   const { data: test, isLoading, isError } = useQuery({
     queryKey: QK.testDetail(testId),
@@ -198,6 +215,15 @@ export function TestDetailPanel({ testId, onClose, onMutated }: TestDetailPanelP
     onError: () => {
       setRunMsg('Failed to trigger scan.');
       setTimeout(() => setRunMsg(null), 3000);
+    },
+  });
+
+  const reassignOwner = useMutation({
+    mutationFn: (ownerId: string) => testsService.updateTest(testId, { ownerId }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: QK.testDetail(testId) });
+      qc.invalidateQueries({ queryKey: ['tests'] });
+      onMutated?.();
     },
   });
 
@@ -277,7 +303,6 @@ export function TestDetailPanel({ testId, onClose, onMutated }: TestDetailPanelP
                   {[
                     { label: 'Due Date',  value: fmtDate(test.dueDate) },
                     { label: 'Completed', value: fmtDate(test.completedAt) },
-                    { label: 'Owner',     value: test.owner?.name ?? test.ownerId },
                     { label: 'Type',      value: test.type },
                     { label: 'Category',  value: test.category },
                     { label: 'Created',   value: fmtDate(test.createdAt) },
@@ -287,6 +312,28 @@ export function TestDetailPanel({ testId, onClose, onMutated }: TestDetailPanelP
                       <dd className="mt-0.5 font-medium text-gray-800">{value}</dd>
                     </div>
                   ))}
+                  {/* Owner field — editable for admins */}
+                  <div className="col-span-2">
+                    <dt className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Owner</dt>
+                    {isAdmin && usersData && usersData.length > 0 ? (
+                      <select
+                        value={test.ownerId}
+                        onChange={e => reassignOwner.mutate(e.target.value)}
+                        disabled={reassignOwner.isPending}
+                        className="w-full text-sm border border-gray-300 rounded-md px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                      >
+                        {usersData.map(u => (
+                          <option key={u.id} value={u.id}>
+                            {u.name ?? u.email}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <dd className="font-medium text-gray-800">
+                        {test.owner?.name ?? test.owner?.email ?? test.ownerId}
+                      </dd>
+                    )}
+                  </div>
                 </dl>
 
                 {/* Automated-test metadata */}
