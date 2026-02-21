@@ -30,4 +30,10 @@ export const QK = {
   // Onboarding
   onboardingMe:    () => ['onboarding', 'me']       as const,
   onboardingUsers: () => ['onboarding', 'users']    as const,
+
+  // Tests
+  tests:       (filter?: object) => ['tests', 'list', filter]    as const,
+  testSummary: ()                => ['tests', 'summary']         as const,
+  testDetail:  (id: string)      => ['tests', 'detail', id]      as const,
+  testHistory: (id: string)      => ['tests', 'history', id]     as const,
 } as const;

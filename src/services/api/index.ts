@@ -11,6 +11,22 @@ export { usersService } from './users';
 export type { UserWithGit, UserGitAccount, GitHubMember, LinkedGitAccount } from './users';
 export { mdmService } from './mdm';
 export type { ManagedDevice, DeviceCompliance, EnrollmentToken, CreatedToken, MdmOverview, DeviceCheckin } from './mdm';
+export { testsService } from './tests';
+export type {
+  TestRecord,
+  TestSummary,
+  TestHistoryEntry,
+  TestCategory,
+  TestType,
+  TestStatus,
+  TestControlLink,
+  TestFrameworkLink,
+  TestAuditLink,
+  TestEvidenceLink,
+  ListTestsParams,
+  CreateTestRequest,
+  UpdateTestRequest,
+} from './tests';
 
 // Export types
 export * from './types';

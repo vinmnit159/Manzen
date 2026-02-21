@@ -22,6 +22,8 @@ export const STALE = {
   MDM: 60_000,
   /** Users / personnel — 5 min */
   USERS: 5 * 60_000,
+  /** Tests list and summary — 2 min */
+  TESTS: 2 * 60_000,
 } as const;
 
 export const queryClient = new QueryClient({
