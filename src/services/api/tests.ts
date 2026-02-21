@@ -36,6 +36,18 @@ export interface TestEvidenceLink {
   };
 }
 
+// ─── Integration test run record ─────────────────────────────────────────────
+export interface TestRunRecord {
+  id: string;
+  integrationId: string;
+  testId: string;
+  status: 'Pass' | 'Fail' | 'Warning' | 'Not_Run';
+  summary: string;
+  rawPayload: any | null;
+  executedAt: string;
+  durationMs: number | null;
+}
+
 // ─── Core test record ─────────────────────────────────────────────────────────
 export interface TestRecord {
   id: string;
@@ -54,6 +66,13 @@ export interface TestRecord {
   frameworks: TestFrameworkLink[];
   audits: TestAuditLink[];
   evidences: TestEvidenceLink[];
+  // Automated test fields
+  integrationId?: string | null;
+  lastRunAt?: string | null;
+  lastResult?: 'Pass' | 'Fail' | 'Warning' | 'Not_Run';
+  lastResultDetails?: any;
+  autoRemediationSupported?: boolean;
+  integration?: { id: string; provider: string; status: string } | null;
 }
 
 // ─── Summary ──────────────────────────────────────────────────────────────────
@@ -193,6 +212,11 @@ export class TestsService {
   // Seed predefined Policy tests
   async seedTests(): Promise<ApiResponse<{ created: number; skipped: number }>> {
     return apiClient.post('/api/tests/seed', {});
+  }
+
+  // Get integration test run history for an automated test
+  async getTestRuns(testId: string, page = 1): Promise<ApiResponse<TestRunRecord[]>> {
+    return apiClient.get(`/api/tests/${testId}/runs`, { page: String(page) });
   }
 }
 

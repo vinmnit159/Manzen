@@ -36,4 +36,5 @@ export const QK = {
   testSummary: ()                => ['tests', 'summary']         as const,
   testDetail:  (id: string)      => ['tests', 'detail', id]      as const,
   testHistory: (id: string)      => ['tests', 'history', id]     as const,
+  testRuns:    (id: string)      => ['tests', 'runs', id]         as const,
 } as const;

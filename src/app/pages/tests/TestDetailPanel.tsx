@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { X, CheckCircle, Clock, AlertTriangle, Tag, Link2, Shield, FileText, History, ChevronDown, ChevronUp } from 'lucide-react';
+import { X, CheckCircle, Clock, AlertTriangle, Tag, Link2, Shield, FileText, History, ChevronDown, ChevronUp, Zap, RefreshCw } from 'lucide-react';
 import { QK } from '@/lib/queryKeys';
 import { STALE } from '@/lib/queryClient';
 import { testsService } from '@/services/api/tests';
-import type { TestRecord, TestStatus, TestCategory, TestType } from '@/services/api/tests';
+import { integrationsService } from '@/services/api/integrations';
+import type { TestRecord, TestStatus, TestCategory, TestType, TestRunRecord } from '@/services/api/tests';
 
 // ─── Status / category config ─────────────────────────────────────────────────
 const STATUS_CONFIG: Record<TestStatus, { label: string; bg: string; text: string; dot: string }> = {
@@ -23,8 +24,25 @@ const CATEGORY_COLOR: Record<TestCategory, string> = {
   Risks:       'bg-orange-100 text-orange-700',
 };
 
+const LAST_RESULT_CONFIG: Record<string, { label: string; bg: string; text: string; dot: string }> = {
+  Pass:    { label: 'Pass',    bg: 'bg-green-50',  text: 'text-green-700',  dot: 'bg-green-500'  },
+  Fail:    { label: 'Fail',    bg: 'bg-red-50',    text: 'text-red-700',    dot: 'bg-red-500'    },
+  Warning: { label: 'Warning', bg: 'bg-amber-50',  text: 'text-amber-700',  dot: 'bg-amber-500'  },
+  Not_Run: { label: 'Not Run', bg: 'bg-gray-50',   text: 'text-gray-500',   dot: 'bg-gray-300'   },
+};
+
 function StatusBadge({ status }: { status: TestStatus }) {
   const cfg = STATUS_CONFIG[status] ?? { label: status, bg: 'bg-gray-50', text: 'text-gray-600', dot: 'bg-gray-400' };
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${cfg.bg} ${cfg.text}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+      {cfg.label}
+    </span>
+  );
+}
+
+function LastResultBadge({ result }: { result: string }) {
+  const cfg = LAST_RESULT_CONFIG[result] ?? { label: result, bg: 'bg-gray-50', text: 'text-gray-600', dot: 'bg-gray-400' };
   return (
     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${cfg.bg} ${cfg.text}`}>
       <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
@@ -36,6 +54,11 @@ function StatusBadge({ status }: { status: TestStatus }) {
 function fmtDate(iso: string | null | undefined): string {
   if (!iso) return '—';
   return new Date(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+function fmtDateTime(iso: string | null | undefined): string {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
 // ─── Section wrapper ──────────────────────────────────────────────────────────
@@ -92,6 +115,47 @@ function HistorySection({ testId }: { testId: string }) {
   );
 }
 
+// ─── Automated test runs section ──────────────────────────────────────────────
+function RunsSection({ testId }: { testId: string }) {
+  const { data, isLoading } = useQuery({
+    queryKey: QK.testRuns(testId),
+    queryFn: async () => {
+      const res = await testsService.getTestRuns(testId);
+      if (res.success && res.data) return res.data as TestRunRecord[];
+      return [];
+    },
+    staleTime: STALE.TESTS,
+  });
+
+  if (isLoading) return <p className="text-sm text-gray-400 animate-pulse">Loading scan history…</p>;
+  if (!data || data.length === 0) return <p className="text-sm text-gray-400">No scan runs recorded yet. Run a scan from the Integrations page.</p>;
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="text-xs font-medium text-gray-400 uppercase tracking-wide border-b border-gray-100">
+            <th className="text-left pb-2 pr-3">Run At</th>
+            <th className="text-left pb-2 pr-3">Result</th>
+            <th className="text-left pb-2 pr-3">Summary</th>
+            <th className="text-left pb-2">Duration</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-50">
+          {data.map(run => (
+            <tr key={run.id} className="py-2">
+              <td className="py-2 pr-3 text-xs text-gray-500 whitespace-nowrap">{fmtDateTime(run.executedAt)}</td>
+              <td className="py-2 pr-3"><LastResultBadge result={run.status} /></td>
+              <td className="py-2 pr-3 text-xs text-gray-700 max-w-[200px] truncate" title={run.summary}>{run.summary || '—'}</td>
+              <td className="py-2 text-xs text-gray-400">{run.durationMs != null ? `${run.durationMs}ms` : '—'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 // ─── Main panel ───────────────────────────────────────────────────────────────
 interface TestDetailPanelProps {
   testId: string;
@@ -101,6 +165,7 @@ interface TestDetailPanelProps {
 
 export function TestDetailPanel({ testId, onClose, onMutated }: TestDetailPanelProps) {
   const qc = useQueryClient();
+  const [runMsg, setRunMsg] = useState<string | null>(null);
 
   const { data: test, isLoading, isError } = useQuery({
     queryKey: QK.testDetail(testId),
@@ -120,6 +185,22 @@ export function TestDetailPanel({ testId, onClose, onMutated }: TestDetailPanelP
     },
   });
 
+  const runMutation = useMutation({
+    mutationFn: () => integrationsService.runAutomatedTests(),
+    onSuccess: () => {
+      setRunMsg('Scan triggered. Results will update shortly.');
+      setTimeout(() => {
+        qc.invalidateQueries({ queryKey: ['tests'] });
+        qc.invalidateQueries({ queryKey: QK.testRuns(testId) });
+        setRunMsg(null);
+      }, 4000);
+    },
+    onError: () => {
+      setRunMsg('Failed to trigger scan.');
+      setTimeout(() => setRunMsg(null), 3000);
+    },
+  });
+
   const detachEvidence = useMutation({
     mutationFn: (evidenceId: string) => testsService.detachEvidence(testId, evidenceId),
     onSuccess: () => qc.invalidateQueries({ queryKey: QK.testDetail(testId) }),
@@ -134,6 +215,8 @@ export function TestDetailPanel({ testId, onClose, onMutated }: TestDetailPanelP
     mutationFn: (fwId: string) => testsService.detachFramework(testId, fwId),
     onSuccess: () => qc.invalidateQueries({ queryKey: QK.testDetail(testId) }),
   });
+
+  const isAutomated = test?.type === 'Automated';
 
   return (
     // Overlay
@@ -155,7 +238,7 @@ export function TestDetailPanel({ testId, onClose, onMutated }: TestDetailPanelP
                 <span className={`px-2 py-0.5 rounded text-xs font-medium ${CATEGORY_COLOR[test.category]}`}>
                   {test.category}
                 </span>
-                <span className="px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
+                <span className={`px-2 py-0.5 rounded text-xs font-medium ${isAutomated ? 'bg-violet-100 text-violet-700' : 'bg-gray-100 text-gray-600'}`}>
                   {test.type}
                 </span>
               </div>
@@ -192,12 +275,12 @@ export function TestDetailPanel({ testId, onClose, onMutated }: TestDetailPanelP
               <Section title="Overview" icon={<FileText className="w-4 h-4 text-gray-500" />}>
                 <dl className="grid grid-cols-2 gap-3 text-sm">
                   {[
-                    { label: 'Due Date',     value: fmtDate(test.dueDate) },
-                    { label: 'Completed',    value: fmtDate(test.completedAt) },
-                    { label: 'Owner',        value: test.owner?.name ?? test.ownerId },
-                    { label: 'Type',         value: test.type },
-                    { label: 'Category',     value: test.category },
-                    { label: 'Created',      value: fmtDate(test.createdAt) },
+                    { label: 'Due Date',  value: fmtDate(test.dueDate) },
+                    { label: 'Completed', value: fmtDate(test.completedAt) },
+                    { label: 'Owner',     value: test.owner?.name ?? test.ownerId },
+                    { label: 'Type',      value: test.type },
+                    { label: 'Category',  value: test.category },
+                    { label: 'Created',   value: fmtDate(test.createdAt) },
                   ].map(({ label, value }) => (
                     <div key={label}>
                       <dt className="text-xs font-medium text-gray-400 uppercase tracking-wide">{label}</dt>
@@ -206,24 +289,75 @@ export function TestDetailPanel({ testId, onClose, onMutated }: TestDetailPanelP
                   ))}
                 </dl>
 
-                {/* Mark complete */}
-                {test.status !== 'OK' && (
-                  <button
-                    onClick={() => completeMutation.mutate()}
-                    disabled={completeMutation.isPending}
-                    className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-medium shadow-sm transition-colors disabled:opacity-50"
-                  >
-                    <CheckCircle className="w-4 h-4" />
-                    {completeMutation.isPending ? 'Marking…' : 'Mark Complete'}
-                  </button>
-                )}
-                {test.status === 'OK' && (
-                  <div className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-green-50 text-green-700 text-sm font-medium border border-green-200">
-                    <CheckCircle className="w-4 h-4" />
-                    Completed {fmtDate(test.completedAt)}
+                {/* Automated-test metadata */}
+                {isAutomated && (
+                  <div className="mt-4 p-3 rounded-lg bg-violet-50 border border-violet-200 space-y-2">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-violet-700 uppercase tracking-wide">
+                      <Zap className="w-3.5 h-3.5" />
+                      Automated via {test.integration?.provider ?? 'Integration'}
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <dt className="text-xs font-medium text-gray-400 uppercase tracking-wide">Last Scan</dt>
+                        <dd className="mt-0.5 font-medium text-gray-800">{fmtDateTime(test.lastRunAt)}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs font-medium text-gray-400 uppercase tracking-wide">Last Result</dt>
+                        <dd className="mt-0.5"><LastResultBadge result={test.lastResult ?? 'Not_Run'} /></dd>
+                      </div>
+                    </div>
+                    {test.lastResultDetails?.summary && (
+                      <p className="text-xs text-gray-600 mt-1">{test.lastResultDetails.summary}</p>
+                    )}
                   </div>
                 )}
+
+                {/* Action buttons */}
+                {isAutomated ? (
+                  <div className="mt-4 space-y-2">
+                    <button
+                      onClick={() => runMutation.mutate()}
+                      disabled={runMutation.isPending}
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium shadow-sm transition-colors disabled:opacity-50"
+                    >
+                      <RefreshCw className={`w-4 h-4 ${runMutation.isPending ? 'animate-spin' : ''}`} />
+                      {runMutation.isPending ? 'Running…' : 'Run Scan Now'}
+                    </button>
+                    {runMsg && (
+                      <p className="text-xs text-gray-500">{runMsg}</p>
+                    )}
+                    <p className="text-xs text-gray-400">
+                      This test is system-driven. Results update automatically on every scan.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    {test.status !== 'OK' && (
+                      <button
+                        onClick={() => completeMutation.mutate()}
+                        disabled={completeMutation.isPending}
+                        className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-medium shadow-sm transition-colors disabled:opacity-50"
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                        {completeMutation.isPending ? 'Marking…' : 'Mark Complete'}
+                      </button>
+                    )}
+                    {test.status === 'OK' && (
+                      <div className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-green-50 text-green-700 text-sm font-medium border border-green-200">
+                        <CheckCircle className="w-4 h-4" />
+                        Completed {fmtDate(test.completedAt)}
+                      </div>
+                    )}
+                  </>
+                )}
               </Section>
+
+              {/* ── Scan Run History (Automated only) ── */}
+              {isAutomated && (
+                <Section title="Scan Run History" icon={<Zap className="w-4 h-4 text-gray-500" />}>
+                  <RunsSection testId={testId} />
+                </Section>
+              )}
 
               {/* ── Evidence ── */}
               <Section title={`Evidence (${test.evidences.length})`} icon={<Shield className="w-4 h-4 text-gray-500" />}>
