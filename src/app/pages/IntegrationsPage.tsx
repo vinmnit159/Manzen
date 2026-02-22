@@ -206,12 +206,20 @@ function GoogleDriveCard({
   );
 }
 
-// ─── Static cards (Slack, Jira, AWS — coming soon) ───────────────────────────
+// ─── Static cards (coming soon) ───────────────────────────────────────────────
 
 const STATIC_INTEGRATIONS = [
-  { name: 'Slack', category: 'Communication', description: 'Security alerts and notifications' },
-  { name: 'Jira', category: 'Project Management', description: 'Ticketing and task tracking' },
-  { name: 'AWS', category: 'Cloud', description: 'Cloud infrastructure monitoring' },
+  { name: 'Slack',              category: 'Communication',      description: 'Send security alerts and compliance notifications to Slack channels.' },
+  { name: 'AWS',                category: 'Cloud',              description: 'Monitor cloud infrastructure and collect IAM / S3 compliance evidence.' },
+  { name: 'BambooHR',           category: 'HR',                 description: 'Sync employee records for personnel compliance and onboarding tracking.' },
+  { name: 'Cloudflare',         category: 'Network Security',   description: 'Pull WAF, DNS and access-log evidence for network security controls.' },
+  { name: 'Fleet',              category: 'Endpoint',           description: 'Collect device inventory and vulnerability data from Fleet-managed endpoints.' },
+  { name: 'Google Workspace',   category: 'Identity & Access',  description: 'Audit user accounts, group memberships and MFA enforcement across Workspace.' },
+  { name: 'Illow',              category: 'Privacy',            description: 'Import consent records and cookie-banner logs for privacy compliance.' },
+  { name: 'Intercom',           category: 'Customer Support',   description: 'Link customer data-access requests to your privacy controls and DSARs.' },
+  { name: 'New Relic',          category: 'Observability',      description: 'Surface availability, error-rate and SLO data as security evidence.' },
+  { name: 'Notion',             category: 'Knowledge Base',     description: 'Sync policy and procedure pages directly from your Notion workspace.' },
+  { name: 'Redash',             category: 'Analytics',          description: 'Export compliance dashboards and audit queries as scheduled evidence.' },
 ];
 
 // ─── MDM sub-component ────────────────────────────────────────────────────────
