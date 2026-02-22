@@ -86,6 +86,7 @@ export interface AuditSummaryStats {
   inProgress: number;
   openFindings: number;
   closedFindings: number;
+  avgCompliancePct?: number;
 }
 
 export interface AuditRow {
@@ -99,6 +100,7 @@ export interface AuditRow {
   major: number;
   minor: number;
   observation: number;
+  compliancePct?: number | null;
 }
 
 export interface AuditSummaryData {

@@ -6,6 +6,7 @@ import { TestsPage } from "@/app/pages/TestsPage";
 import { ReportsPage } from "@/app/pages/ReportsPage";
 import { ReportViewerPage } from "@/app/pages/reports/ReportViewerPage";
 import { AuditorDashboardPage } from "@/app/pages/auditor/AuditorDashboardPage";
+import { AuditFinalReportPage } from "@/app/pages/auditor/AuditFinalReportPage";
 
 // Auth
 import { LoginPage } from "@/app/pages/auth/LoginPage";
@@ -105,6 +106,7 @@ export const router = createBrowserRouter([
 
       // Auditor role
       { path: "auditor/dashboard", Component: AuditorDashboardPage },
+      { path: "auditor/audits/:auditId/final-report", Component: AuditFinalReportPage },
 
       // Compliance routes
       { path: "compliance/frameworks", Component: FrameworksPage },

@@ -5,7 +5,30 @@ import { apiClient } from './client';
 export type AuditType    = 'INTERNAL' | 'EXTERNAL' | 'SURVEILLANCE' | 'RECERTIFICATION';
 export type AuditStatus  = 'DRAFT' | 'PLANNED' | 'IN_PROGRESS' | 'COMPLETED';
 export type AuditControlStatus = 'PENDING' | 'COMPLIANT' | 'NON_COMPLIANT' | 'NOT_APPLICABLE';
-export type FindingSeverity = 'MINOR' | 'MAJOR' | 'OBSERVATION';
+export type FindingSeverity = 'MINOR' | 'MAJOR' | 'OBSERVATION' | 'OFI';
+
+export interface AuditSnapshot {
+  id:                    string;
+  auditId:               string;
+  capturedAt:            string;
+  totalControls:         number;
+  compliantControls:     number;
+  nonCompliantControls:  number;
+  notApplicableControls: number;
+  pendingControls:       number;
+  compliancePct:         number;
+  totalFindings:         number;
+  openFindings:          number;
+  closedFindings:        number;
+  majorFindings:         number;
+  minorFindings:         number;
+  observationFindings:   number;
+  ofiFindings:           number;
+  criticalRisks:         number;
+  highRisks:             number;
+  mediumRisks:           number;
+  lowRisks:              number;
+}
 
 export interface AuditFindingRecord {
   id:          string;
@@ -56,9 +79,39 @@ export interface AuditRecord {
   organizationId:       string;
   createdAt:            string;
   closedAt:             string | null;
+  // Final report fields
+  executiveSummary:     string | null;
+  auditConclusion:      string | null;
+  signedPdfUrl:         string | null;
+  signedAt:             string | null;
+  signedById:           string | null;
+  isLocked:             boolean;
   findings:             AuditFindingRecord[];
   auditControls?:       AuditControlRecord[];
+  snapshot?:            AuditSnapshot | null;
   _count?:              { auditControls: number };
+}
+
+/** Live metrics returned by GET /:id/report (before snapshot exists) */
+export interface AuditReportMetrics {
+  totalControls:         number;
+  compliantControls:     number;
+  nonCompliantControls:  number;
+  notApplicableControls: number;
+  pendingControls:       number;
+  compliancePct:         number;
+  totalFindings:         number;
+  openFindings:          number;
+  closedFindings:        number;
+  majorFindings:         number;
+  minorFindings:         number;
+  observationFindings:   number;
+  ofiFindings:           number;
+}
+
+export interface AuditReportResponse {
+  audit:   AuditRecord;
+  metrics: AuditReportMetrics;
 }
 
 export interface CreateAuditPayload {
@@ -128,5 +181,26 @@ export const auditsService = {
 
   deleteFinding(auditId: string, findingId: string) {
     return apiClient.delete<{ success: boolean }>(`/api/audits/${auditId}/findings/${findingId}`);
+  },
+
+  // ── Final Report ────────────────────────────────────────────────────────────
+
+  /** Get final report draft + live metrics */
+  getReport(auditId: string) {
+    return apiClient.get<{ success: boolean; data: AuditReportResponse }>(`/api/audits/${auditId}/report`);
+  },
+
+  /** Update executive summary / conclusion / PDF URL */
+  updateReport(auditId: string, payload: {
+    executiveSummary?: string | null;
+    auditConclusion?:  string | null;
+    signedPdfUrl?:     string | null;
+  }) {
+    return apiClient.patch<{ success: boolean; data: AuditRecord }>(`/api/audits/${auditId}/report`, payload);
+  },
+
+  /** Sign & complete — locks audit, captures snapshot, → COMPLETED */
+  signAndComplete(auditId: string) {
+    return apiClient.post<{ success: boolean; data: AuditRecord }>(`/api/audits/${auditId}/sign-and-complete`);
   },
 };

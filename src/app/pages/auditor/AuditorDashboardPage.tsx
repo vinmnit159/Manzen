@@ -7,11 +7,12 @@
  */
 
 import { useState } from 'react';
+import { useNavigate } from 'react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Shield, Clock, CheckCircle2, AlertTriangle, AlertCircle,
   ChevronRight, X, FileText, Eye, PlusCircle, Trash2,
-  Link as LinkIcon, FlaskConical, BookOpen,
+  Link as LinkIcon, FlaskConical, BookOpen, ClipboardList, Lock,
 } from 'lucide-react';
 import { auditsService, AuditRecord, AuditControlRecord, AuditControlStatus, FindingSeverity, CreateFindingPayload } from '@/services/api/audits';
 import { Card } from '@/app/components/ui/card';
@@ -458,7 +459,8 @@ function FindingRow({ finding, auditId, onDeleted }: { finding: any; auditId: st
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export function AuditorDashboardPage() {
-  const qc = useQueryClient();
+  const qc       = useQueryClient();
+  const navigate = useNavigate();
   const [selectedControl, setSelectedControl] = useState<AuditControlRecord | null>(null);
   const [statusFilter,    setStatusFilter]    = useState<'' | AuditControlStatus>('');
 
@@ -528,9 +530,26 @@ export function AuditorDashboardPage() {
           audit.status === 'COMPLETED'   ? 'bg-green-50 text-green-700' :
           'bg-blue-50 text-blue-700'
         }`}>{audit.status.replace('_', ' ')}</span>
+        {(audit as any).isLocked && (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+            <Lock className="w-3 h-3" /> Locked
+          </span>
+        )}
         <span className="ml-auto text-xs text-gray-400">
           {fmt(audit.startDate)} → {fmt(audit.endDate)}
         </span>
+        {/* Final Report button — shown when audit is IN_PROGRESS or COMPLETED */}
+        {(audit.status === 'IN_PROGRESS' || audit.status === 'COMPLETED') && (
+          <Button
+            size="sm"
+            variant={audit.status === 'COMPLETED' ? 'default' : 'outline'}
+            className={audit.status === 'COMPLETED' ? 'bg-green-700 hover:bg-green-600 text-white' : ''}
+            onClick={() => navigate(`/auditor/audits/${audit.id}/final-report`)}
+          >
+            <ClipboardList className="w-4 h-4 mr-1" />
+            {audit.status === 'COMPLETED' ? 'View Final Report' : 'Final Report'}
+          </Button>
+        )}
       </div>
 
       {/* 4 KPI panels */}

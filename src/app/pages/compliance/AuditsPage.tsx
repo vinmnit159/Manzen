@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageTemplate } from '@/app/components/PageTemplate';
 import { Button } from '@/app/components/ui/button';
@@ -7,6 +8,7 @@ import { Badge } from '@/app/components/ui/badge';
 import {
   Plus, Search, ChevronRight, Calendar, User, Shield,
   Clock, CheckCircle2, AlertCircle, FileText, X, ChevronDown,
+  ClipboardList, Lock,
 } from 'lucide-react';
 import { auditsService, AuditRecord, AuditType, AuditStatus, CreateAuditPayload } from '@/services/api/audits';
 import { apiClient } from '@/services/api/client';
@@ -337,6 +339,7 @@ function AuditDetailPanel({
   onClose: () => void;
   onRefresh: () => void;
 }) {
+  const navigate = useNavigate();
   const [acting, setActing] = useState(false);
 
   async function handleStart() {
@@ -369,10 +372,15 @@ function AuditDetailPanel({
         <div className="flex items-start justify-between p-6 border-b border-gray-100">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">{audit.name}</h2>
-            <div className="flex items-center gap-2 mt-1">
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
               <StatusBadge status={audit.status} />
               <span className="text-xs text-gray-400">{AUDIT_TYPE_LABELS[audit.type]}</span>
               {audit.frameworkName && <span className="text-xs text-gray-400">· {audit.frameworkName}</span>}
+              {(audit as any).isLocked && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700">
+                  <Lock className="w-3 h-3" /> Locked
+                </span>
+              )}
             </div>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-md hover:bg-gray-100 text-gray-400"><X className="w-5 h-5" /></button>
@@ -428,7 +436,7 @@ function AuditDetailPanel({
         )}
 
         {/* Actions */}
-        <div className="p-5 flex gap-2 mt-auto">
+        <div className="p-5 flex gap-2 mt-auto flex-wrap">
           {(audit.status === 'DRAFT' || audit.status === 'PLANNED') && (
             <Button onClick={handleStart} disabled={acting} className="flex-1">
               {acting ? 'Starting…' : 'Start Audit'}
@@ -437,6 +445,17 @@ function AuditDetailPanel({
           {audit.status === 'IN_PROGRESS' && (
             <Button onClick={handleClose} disabled={acting} className="flex-1 bg-green-700 hover:bg-green-600">
               {acting ? 'Closing…' : 'Close / Complete Audit'}
+            </Button>
+          )}
+          {(audit.status === 'IN_PROGRESS' || audit.status === 'COMPLETED') && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => navigate(`/auditor/audits/${audit.id}/final-report`)}
+              className="flex-1"
+            >
+              <ClipboardList className="w-4 h-4 mr-1" />
+              Final Report
             </Button>
           )}
         </div>

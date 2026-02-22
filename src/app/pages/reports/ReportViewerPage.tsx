@@ -5,7 +5,7 @@ import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell,
 } from 'recharts';
-import { ArrowLeft, RefreshCw, Calendar, CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Calendar, CheckCircle, AlertTriangle, XCircle, ClipboardList } from 'lucide-react';
 import { reportsService } from '@/services/api/reports';
 import { Card } from '@/app/components/ui/card';
 
@@ -249,6 +249,7 @@ function TestCompletionView({ startDate, endDate, granularity }: { startDate: st
 // ─── Audit Summary view ───────────────────────────────────────────────────────
 
 function AuditSummaryView({ startDate, endDate }: { startDate: string; endDate: string }) {
+  const navigate = useNavigate();
   const { data, isLoading } = useQuery({
     queryKey: ['reports', 'audit-summary', startDate, endDate],
     queryFn: async () => {
@@ -262,12 +263,18 @@ function AuditSummaryView({ startDate, endDate }: { startDate: string; endDate: 
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        <KpiCard label="Total Audits"   value={data.summary.totalAudits} />
-        <KpiCard label="Completed"      value={data.summary.completed}   color="text-green-600" />
-        <KpiCard label="In Progress"    value={data.summary.inProgress}  color="text-amber-600" />
-        <KpiCard label="Open Findings"  value={data.summary.openFindings}   color="text-red-600" />
+      <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
+        <KpiCard label="Total Audits"    value={data.summary.totalAudits} />
+        <KpiCard label="Completed"       value={data.summary.completed}   color="text-green-600" />
+        <KpiCard label="In Progress"     value={data.summary.inProgress}  color="text-amber-600" />
+        <KpiCard label="Open Findings"   value={data.summary.openFindings}   color="text-red-600" />
         <KpiCard label="Closed Findings" value={data.summary.closedFindings} color="text-gray-600" />
+        <KpiCard
+          label="Avg Compliance"
+          value={data.summary.avgCompliancePct != null ? `${data.summary.avgCompliancePct}%` : '—'}
+          color="text-blue-600"
+          sub="completed audits"
+        />
       </div>
 
       <Card className="overflow-hidden">
@@ -278,14 +285,14 @@ function AuditSummaryView({ startDate, endDate }: { startDate: string; endDate: 
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr>
-                {['Type', 'Scope', 'Auditor', 'Start', 'End', 'Status', 'Major', 'Minor', 'Obs.'].map(h => (
+                {['Type', 'Scope', 'Auditor', 'Start', 'End', 'Status', 'Compliance %', 'Major', 'Minor', 'Obs.', ''].map(h => (
                   <th key={h} className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {data.audits.length === 0 ? (
-                <tr><td colSpan={9} className="px-4 py-6 text-center text-sm text-gray-400">No audits in this period.</td></tr>
+                <tr><td colSpan={11} className="px-4 py-6 text-center text-sm text-gray-400">No audits in this period.</td></tr>
               ) : data.audits.map(a => (
                 <tr key={a.id} className="hover:bg-gray-50">
                   <td className="px-4 py-2 font-medium">{a.type}</td>
@@ -298,9 +305,23 @@ function AuditSummaryView({ startDate, endDate }: { startDate: string; endDate: 
                       {a.status}
                     </span>
                   </td>
+                  <td className="px-4 py-2 text-blue-700 font-medium">
+                    {a.compliancePct != null ? `${a.compliancePct}%` : '—'}
+                  </td>
                   <td className="px-4 py-2 text-red-600 font-medium">{a.major}</td>
                   <td className="px-4 py-2 text-amber-600">{a.minor}</td>
                   <td className="px-4 py-2 text-gray-500">{a.observation}</td>
+                  <td className="px-4 py-2">
+                    {a.status === 'Completed' && (
+                      <button
+                        onClick={() => navigate(`/auditor/audits/${a.id}/final-report`)}
+                        className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium whitespace-nowrap"
+                      >
+                        <ClipboardList className="w-3.5 h-3.5" />
+                        Report
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
