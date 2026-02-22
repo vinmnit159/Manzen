@@ -4,6 +4,7 @@ import { HomePage } from "@/app/pages/HomePage";
 import { MyWorkPage } from "@/app/pages/MyWorkPage";
 import { TestsPage } from "@/app/pages/TestsPage";
 import { ReportsPage } from "@/app/pages/ReportsPage";
+import { ReportViewerPage } from "@/app/pages/reports/ReportViewerPage";
 
 // Auth
 import { LoginPage } from "@/app/pages/auth/LoginPage";
@@ -98,6 +99,7 @@ export const router = createBrowserRouter([
       { path: "my-work", Component: MyWorkPage },
       { path: "tests", Component: TestsPage },
       { path: "reports", Component: ReportsPage },
+      { path: "reports/viewer/:reportId", Component: ReportViewerPage },
 
       // Compliance routes
       { path: "compliance/frameworks", Component: FrameworksPage },
