@@ -11,9 +11,14 @@ import {
   Loader2,
   AlertCircle,
   FileText,
+  ArrowRight,
+  Calendar,
+  AlertTriangle,
 } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { onboardingService, OnboardingStatus } from '@/services/api/onboarding';
 import { policiesService } from '@/services/api/policies';
+import { findingsService, FindingRecord, FindingSeverity, FindingStatus } from '@/services/api/findings';
 
 // Video is served as a Vite public asset — no backend dependency, full range-request support
 const TRAINING_VIDEO_URL = '/security-awareness-training.mp4';
@@ -376,6 +381,162 @@ function ProgressBanner({ status }: { status: OnboardingStatus }) {
   );
 }
 
+// ── Remediation Tasks section ─────────────────────────────────────────────────
+
+const SEVERITY_COLORS: Record<FindingSeverity, string> = {
+  MAJOR:       'bg-red-100 text-red-700',
+  MINOR:       'bg-amber-100 text-amber-700',
+  OBSERVATION: 'bg-blue-100 text-blue-700',
+  OFI:         'bg-purple-100 text-purple-700',
+};
+
+const STATUS_COLORS: Record<FindingStatus, string> = {
+  OPEN:             'bg-red-50 text-red-700',
+  IN_REMEDIATION:   'bg-amber-50 text-amber-700',
+  READY_FOR_REVIEW: 'bg-blue-50 text-blue-700',
+  CLOSED:           'bg-green-50 text-green-700',
+};
+
+const STATUS_LABELS: Record<FindingStatus, string> = {
+  OPEN:             'Open',
+  IN_REMEDIATION:   'In Remediation',
+  READY_FOR_REVIEW: 'Ready for Review',
+  CLOSED:           'Closed',
+};
+
+function fmtShort(iso: string | null | undefined) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function isOverdue(f: FindingRecord) {
+  if (!f.dueDate || f.status === 'CLOSED') return false;
+  return new Date(f.dueDate) < new Date();
+}
+
+function RemediationTasksSection() {
+  const qc = useQueryClient();
+  const [transitioning, setTransitioning] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  const { data: tasks = [], isLoading } = useQuery<FindingRecord[]>({
+    queryKey: ['findings', 'my-tasks'],
+    queryFn:  () => findingsService.myTasks(),
+  });
+
+  async function doTransition(finding: FindingRecord, action: 'start-remediation' | 'submit-review') {
+    setTransitioning(finding.id);
+    setErr(null);
+    try {
+      if (action === 'start-remediation') await findingsService.startRemediation(finding.id);
+      else                                  await findingsService.submitForReview(finding.id);
+      qc.invalidateQueries({ queryKey: ['findings'] });
+    } catch (e: any) {
+      setErr(e?.message ?? 'Action failed');
+    } finally {
+      setTransitioning(null);
+    }
+  }
+
+  if (isLoading) return (
+    <div className="flex items-center gap-2 py-4 text-sm text-gray-400">
+      <Loader2 className="w-4 h-4 animate-spin" /> Loading remediation tasks…
+    </div>
+  );
+
+  if (tasks.length === 0) return null;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <AlertTriangle className="w-5 h-5 text-amber-500" />
+        <h2 className="text-base font-semibold text-gray-900">Remediation Tasks</h2>
+        <span className="ml-1 inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-100 text-amber-700 text-xs font-bold">
+          {tasks.length}
+        </span>
+      </div>
+      <p className="text-sm text-gray-500">Audit findings assigned to you that need remediation.</p>
+
+      {err && (
+        <div className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{err}</div>
+      )}
+
+      <div className="space-y-3">
+        {tasks.map(f => (
+          <div
+            key={f.id}
+            className={`rounded-xl border shadow-sm bg-white overflow-hidden ${isOverdue(f) ? 'border-red-200' : 'border-gray-200'}`}
+          >
+            <div className="px-5 py-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center flex-wrap gap-2 mb-1">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${SEVERITY_COLORS[f.severity]}`}>
+                      {f.severity}
+                    </span>
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[f.status]}`}>
+                      {STATUS_LABELS[f.status]}
+                    </span>
+                    {isOverdue(f) && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                        <AlertTriangle className="w-3 h-3" /> Overdue
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs font-mono text-gray-400 mb-0.5">
+                    {f.control?.isoReference} — {f.control?.title}
+                  </p>
+                  <p className="text-sm text-gray-700">{f.description}</p>
+                  {f.dueDate && (
+                    <p className={`flex items-center gap-1 text-xs mt-1 ${isOverdue(f) ? 'text-red-600 font-semibold' : 'text-gray-400'}`}>
+                      <Calendar className="w-3 h-3" /> Due {fmtShort(f.dueDate)}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Action button */}
+              <div className="mt-3 flex gap-2">
+                {f.status === 'OPEN' && (
+                  <button
+                    onClick={() => doTransition(f, 'start-remediation')}
+                    disabled={transitioning === f.id}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white text-xs font-medium transition-colors"
+                  >
+                    {transitioning === f.id
+                      ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      : <ArrowRight className="w-3.5 h-3.5" />
+                    }
+                    Start Remediation
+                  </button>
+                )}
+                {f.status === 'IN_REMEDIATION' && (
+                  <button
+                    onClick={() => doTransition(f, 'submit-review')}
+                    disabled={transitioning === f.id}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white text-xs font-medium transition-colors"
+                  >
+                    {transitioning === f.id
+                      ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      : <ArrowRight className="w-3.5 h-3.5" />
+                    }
+                    Submit for Review
+                  </button>
+                )}
+                {f.status === 'READY_FOR_REVIEW' && (
+                  <span className="flex items-center gap-1 text-xs text-blue-600 font-medium px-3 py-1.5 rounded-lg bg-blue-50 border border-blue-200">
+                    <Clock className="w-3.5 h-3.5" /> Awaiting auditor review
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── Main page ──────────────────────────────────────────────────────────────────
 
 export function MySecurityTasksPage() {
@@ -474,6 +635,9 @@ export function MySecurityTasksPage() {
         >
           <Task3Training status={status} onDone={setStatus} />
         </TaskCard>
+
+        {/* Remediation Tasks from audit findings */}
+        <RemediationTasksSection />
       </div>
     </div>
   );

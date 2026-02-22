@@ -28,5 +28,15 @@ export type {
   UpdateTestRequest,
 } from './tests';
 
+export { findingsService } from './findings';
+export type {
+  FindingRecord,
+  FindingSeverity,
+  FindingStatus,
+  CreateFindingRequest,
+  UpdateFindingRequest,
+  ListFindingsParams,
+} from './findings';
+
 // Export types
 export * from './types';

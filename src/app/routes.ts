@@ -18,6 +18,7 @@ import { ControlsPage } from "@/app/pages/controls/ControlsPage";
 import { PoliciesPage } from "@/app/pages/compliance/PoliciesPage";
 import { DocumentsPage } from "@/app/pages/compliance/DocumentsPage";
 import { AuditsPage } from "@/app/pages/compliance/AuditsPage";
+import { FindingsPage } from "@/app/pages/compliance/FindingsPage";
 import { ComplianceSettingsPage } from "@/app/pages/compliance/SettingsPage";
 
 // Customer Trust
@@ -110,7 +111,8 @@ export const router = createBrowserRouter([
       { path: "compliance/controls", Component: ControlsPage },
       { path: "compliance/policies", Component: PoliciesPage },
       { path: "compliance/documents", Component: DocumentsPage },
-      { path: "compliance/audits", Component: AuditsPage },
+      { path: "compliance/audits",   Component: AuditsPage },
+      { path: "compliance/findings", Component: FindingsPage },
       { path: "compliance/settings", Component: ComplianceSettingsPage },
 
       // Customer Trust routes

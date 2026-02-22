@@ -65,8 +65,9 @@ const navigation: NavItem[] = [
       { title: "Controls",   href: "/compliance/controls" },
       { title: "Policies",   href: "/compliance/policies" },
       { title: "Documents",  href: "/compliance/documents" },
-      { title: "Audits",     href: "/compliance/audits" },
-      { title: "Settings",   href: "/compliance/settings", roles: [...ADMIN_ROLES] },
+      { title: "Audits",    href: "/compliance/audits" },
+      { title: "Findings",  href: "/compliance/findings" },
+      { title: "Settings",  href: "/compliance/settings", roles: [...ADMIN_ROLES] },
     ],
   },
   {
