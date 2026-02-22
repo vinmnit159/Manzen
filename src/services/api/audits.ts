@@ -1,161 +1,107 @@
-import { apiClient, ApiResponse } from './client';
-import { 
-  Audit, 
-  AuditFinding,
-  AuditType,
-  FindingSeverity 
-} from './types';
+import { apiClient } from './client';
 
-export class AuditsService {
-  // Get all audits
-  async getAudits(params?: {
-    type?: AuditType;
-    status?: string;
-    search?: string;
-    startDate?: string;
-    endDate?: string;
-  }): Promise<ApiResponse<Audit[]>> {
-    return apiClient.get('/api/audits', params);
-  }
+// ── Types ─────────────────────────────────────────────────────────────────────
 
-  // Get audit by ID
-  async getAudit(id: string): Promise<ApiResponse<Audit>> {
-    return apiClient.get(`/api/audits/${id}`);
-  }
+export type AuditType    = 'INTERNAL' | 'EXTERNAL' | 'SURVEILLANCE' | 'RECERTIFICATION';
+export type AuditStatus  = 'DRAFT' | 'PLANNED' | 'IN_PROGRESS' | 'COMPLETED';
+export type AuditControlStatus = 'PENDING' | 'REVIEWED' | 'FLAGGED' | 'NOT_APPLICABLE';
 
-  // Create new audit
-  async createAudit(auditData: {
-    type: AuditType;
-    auditor: string;
-    scope: string;
-    startDate: string;
-    endDate?: string;
-  }): Promise<ApiResponse<Audit>> {
-    return apiClient.post('/api/audits', auditData);
-  }
-
-  // Update audit
-  async updateAudit(id: string, auditData: Partial<{
-    auditor: string;
-    scope: string;
-    startDate: string;
-    endDate: string;
-    status: string;
-  }>): Promise<ApiResponse<Audit>> {
-    return apiClient.put(`/api/audits/${id}`, auditData);
-  }
-
-  // Delete audit
-  async deleteAudit(id: string): Promise<ApiResponse<void>> {
-    return apiClient.delete(`/api/audits/${id}`);
-  }
-
-  // Get audit findings
-  async getAuditFindings(auditId: string): Promise<ApiResponse<AuditFinding[]>> {
-    return apiClient.get(`/api/audits/${auditId}/findings`);
-  }
-
-  // Add audit finding
-  async addFinding(auditId: string, findingData: {
-    controlId: string;
-    severity: FindingSeverity;
-    description: string;
-    remediation?: string;
-  }): Promise<ApiResponse<AuditFinding>> {
-    return apiClient.post(`/api/audits/${auditId}/findings`, findingData);
-  }
-
-  // Update audit finding
-  async updateFinding(findingId: string, findingData: Partial<{
-    severity: FindingSeverity;
-    description: string;
-    remediation: string;
-    status: string;
-  }>): Promise<ApiResponse<AuditFinding>> {
-    return apiClient.put(`/api/audits/findings/${findingId}`, findingData);
-  }
-
-  // Delete audit finding
-  async deleteFinding(findingId: string): Promise<ApiResponse<void>> {
-    return apiClient.delete(`/api/audits/findings/${findingId}`);
-  }
-
-  // Generate audit report
-  async generateAuditReport(auditId: string, format: 'pdf' | 'docx' | 'html' = 'pdf'): Promise<Blob> {
-    const response = await fetch(`${apiClient.baseURL}/api/audits/${auditId}/report?format=${format}`, {
-      headers: apiClient.token ? {
-        Authorization: `Bearer ${apiClient.token}`,
-      } : {},
-    });
-    
-    if (!response.ok) {
-      throw new Error('Failed to generate audit report');
-    }
-    
-    return response.blob();
-  }
-
-  // Get audit statistics
-  async getAuditStats(period?: 'month' | 'quarter' | 'year'): Promise<ApiResponse<{
-    total: number;
-    internal: number;
-    external: number;
-    surveillance: number;
-    completed: number;
-    inProgress: number;
-    findingsBySeverity: {
-      severity: FindingSeverity;
-      count: number;
-    }[];
-  }>> {
-    const url = period ? `/api/audits/stats?period=${period}` : '/api/audits/stats';
-    return apiClient.get(url);
-  }
-
-  // Schedule audit
-  async scheduleAudit(auditData: {
-    type: AuditType;
-    auditor: string;
-    scope: string;
-    scheduledDate: string;
-    frequency?: 'monthly' | 'quarterly' | 'annually';
-  }): Promise<ApiResponse<Audit>> {
-    return apiClient.post('/api/audits/schedule', auditData);
-  }
-
-  // Get scheduled audits
-  async getScheduledAudits(): Promise<ApiResponse<Audit[]>> {
-    return apiClient.get('/api/audits/scheduled');
-  }
-
-  // Close audit
-  async closeAudit(auditId: string, closingData?: {
-    summary?: string;
-    recommendations?: string[];
-    nextAuditDate?: string;
-  }): Promise<ApiResponse<Audit>> {
-    return apiClient.post(`/api/audits/${auditId}/close`, closingData);
-  }
-
-  // Export audit data
-  async exportAudits(format: 'csv' | 'xlsx' | 'pdf' = 'csv', params?: {
-    startDate?: string;
-    endDate?: string;
-    type?: AuditType;
-  }): Promise<Blob> {
-    const queryParams = new URLSearchParams({ format, ...params });
-    const response = await fetch(`${apiClient.baseURL}/api/audits/export?${queryParams}`, {
-      headers: apiClient.token ? {
-        Authorization: `Bearer ${apiClient.token}`,
-      } : {},
-    });
-    
-    if (!response.ok) {
-      throw new Error('Failed to export audits');
-    }
-    
-    return response.blob();
-  }
+export interface AuditRecord {
+  id:                   string;
+  name:                 string;
+  type:                 AuditType;
+  frameworkName:        string | null;
+  periodStart:          string | null;
+  periodEnd:            string | null;
+  startDate:            string;
+  endDate:              string | null;
+  status:               AuditStatus;
+  assignedAuditorId:    string | null;
+  externalAuditorEmail: string | null;
+  ownerId:              string;
+  organizationId:       string;
+  createdAt:            string;
+  closedAt:             string | null;
+  findings:             AuditFindingRecord[];
+  auditControls?:       AuditControlRecord[];
+  _count?:              { auditControls: number };
 }
 
-export const auditsService = new AuditsService();
+export interface AuditFindingRecord {
+  id:          string;
+  auditId:     string;
+  controlId:   string;
+  severity:    'MINOR' | 'MAJOR' | 'OBSERVATION';
+  description: string;
+  remediation: string | null;
+  status:      string;
+  createdAt:   string;
+  control?: { id: string; isoReference: string; title: string };
+}
+
+export interface AuditControlRecord {
+  id:           string;
+  auditId:      string;
+  controlId:    string;
+  reviewStatus: AuditControlStatus;
+  reviewedBy:   string | null;
+  reviewedAt:   string | null;
+  notes:        string | null;
+  control: {
+    id:          string;
+    isoReference: string;
+    title:       string;
+    status:      string;
+    description?: string;
+  };
+}
+
+export interface CreateAuditPayload {
+  name:                 string;
+  type:                 AuditType;
+  frameworkName?:       string;
+  periodStart?:         string;
+  periodEnd?:           string;
+  startDate:            string;
+  endDate?:             string;
+  assignedAuditorId?:   string;
+  externalAuditorEmail?: string;
+  controlIds?:          string[];
+  allControls?:         boolean;
+}
+
+// ── Service ───────────────────────────────────────────────────────────────────
+
+export const auditsService = {
+  list(params?: { type?: AuditType; status?: AuditStatus; search?: string }) {
+    return apiClient.get<{ success: boolean; data: AuditRecord[] }>('/api/audits', params as any);
+  },
+
+  get(id: string) {
+    return apiClient.get<{ success: boolean; data: AuditRecord }>(`/api/audits/${id}`);
+  },
+
+  create(payload: CreateAuditPayload) {
+    return apiClient.post<{ success: boolean; data: AuditRecord }>('/api/audits', payload);
+  },
+
+  update(id: string, payload: Partial<CreateAuditPayload>) {
+    return apiClient.patch<{ success: boolean; data: AuditRecord }>(`/api/audits/${id}`, payload);
+  },
+
+  start(id: string) {
+    return apiClient.post<{ success: boolean; data: AuditRecord }>(`/api/audits/${id}/start`);
+  },
+
+  close(id: string) {
+    return apiClient.post<{ success: boolean; data: AuditRecord }>(`/api/audits/${id}/close`);
+  },
+
+  listControls(id: string) {
+    return apiClient.get<{ success: boolean; data: AuditControlRecord[] }>(`/api/audits/${id}/controls`);
+  },
+
+  updateControl(auditId: string, controlId: string, payload: { reviewStatus?: AuditControlStatus; notes?: string }) {
+    return apiClient.patch<{ success: boolean; data: AuditControlRecord }>(`/api/audits/${auditId}/controls/${controlId}`, payload);
+  },
+};
