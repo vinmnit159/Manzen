@@ -4,7 +4,41 @@ import { apiClient } from './client';
 
 export type AuditType    = 'INTERNAL' | 'EXTERNAL' | 'SURVEILLANCE' | 'RECERTIFICATION';
 export type AuditStatus  = 'DRAFT' | 'PLANNED' | 'IN_PROGRESS' | 'COMPLETED';
-export type AuditControlStatus = 'PENDING' | 'REVIEWED' | 'FLAGGED' | 'NOT_APPLICABLE';
+export type AuditControlStatus = 'PENDING' | 'COMPLIANT' | 'NON_COMPLIANT' | 'NOT_APPLICABLE';
+export type FindingSeverity = 'MINOR' | 'MAJOR' | 'OBSERVATION';
+
+export interface AuditFindingRecord {
+  id:          string;
+  auditId:     string;
+  controlId:   string;
+  severity:    FindingSeverity;
+  description: string;
+  remediation: string | null;
+  status:      string;
+  createdAt:   string;
+  control?: { id: string; isoReference: string; title: string };
+}
+
+export interface AuditControlRecord {
+  id:           string;
+  auditId:      string;
+  controlId:    string;
+  reviewStatus: AuditControlStatus;
+  reviewedBy:   string | null;
+  reviewedAt:   string | null;
+  notes:        string | null;
+  control: {
+    id:           string;
+    isoReference: string;
+    title:        string;
+    status:       string;
+    description?: string;
+    evidence?:    any[];
+    riskMappings?: any[];
+    testMappings?: any[];
+    findings?:    any[];
+  };
+}
 
 export interface AuditRecord {
   id:                   string;
@@ -27,47 +61,26 @@ export interface AuditRecord {
   _count?:              { auditControls: number };
 }
 
-export interface AuditFindingRecord {
-  id:          string;
-  auditId:     string;
-  controlId:   string;
-  severity:    'MINOR' | 'MAJOR' | 'OBSERVATION';
-  description: string;
-  remediation: string | null;
-  status:      string;
-  createdAt:   string;
-  control?: { id: string; isoReference: string; title: string };
-}
-
-export interface AuditControlRecord {
-  id:           string;
-  auditId:      string;
-  controlId:    string;
-  reviewStatus: AuditControlStatus;
-  reviewedBy:   string | null;
-  reviewedAt:   string | null;
-  notes:        string | null;
-  control: {
-    id:          string;
-    isoReference: string;
-    title:       string;
-    status:      string;
-    description?: string;
-  };
-}
-
 export interface CreateAuditPayload {
-  name:                 string;
-  type:                 AuditType;
-  frameworkName?:       string;
-  periodStart?:         string;
-  periodEnd?:           string;
-  startDate:            string;
-  endDate?:             string;
-  assignedAuditorId?:   string;
+  name:                  string;
+  type:                  AuditType;
+  frameworkName?:        string;
+  periodStart?:          string;
+  periodEnd?:            string;
+  startDate:             string;
+  endDate?:              string;
+  assignedAuditorId?:    string;
   externalAuditorEmail?: string;
-  controlIds?:          string[];
-  allControls?:         boolean;
+  controlIds?:           string[];
+  allControls?:          boolean;
+}
+
+export interface CreateFindingPayload {
+  controlId:    string;
+  severity:     FindingSeverity;
+  description:  string;
+  remediation?: string;
+  status?:      string;
 }
 
 // ── Service ───────────────────────────────────────────────────────────────────
@@ -103,5 +116,17 @@ export const auditsService = {
 
   updateControl(auditId: string, controlId: string, payload: { reviewStatus?: AuditControlStatus; notes?: string }) {
     return apiClient.patch<{ success: boolean; data: AuditControlRecord }>(`/api/audits/${auditId}/controls/${controlId}`, payload);
+  },
+
+  createFinding(auditId: string, payload: CreateFindingPayload) {
+    return apiClient.post<{ success: boolean; data: AuditFindingRecord }>(`/api/audits/${auditId}/findings`, payload);
+  },
+
+  updateFinding(auditId: string, findingId: string, payload: Partial<Omit<CreateFindingPayload, 'controlId'>>) {
+    return apiClient.patch<{ success: boolean; data: AuditFindingRecord }>(`/api/audits/${auditId}/findings/${findingId}`, payload);
+  },
+
+  deleteFinding(auditId: string, findingId: string) {
+    return apiClient.delete<{ success: boolean }>(`/api/audits/${auditId}/findings/${findingId}`);
   },
 };
