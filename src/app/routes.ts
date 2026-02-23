@@ -7,6 +7,7 @@ import { ReportsPage } from "@/app/pages/ReportsPage";
 import { ReportViewerPage } from "@/app/pages/reports/ReportViewerPage";
 import { AuditorDashboardPage } from "@/app/pages/auditor/AuditorDashboardPage";
 import { AuditFinalReportPage } from "@/app/pages/auditor/AuditFinalReportPage";
+import { PublicTrustPortalPage } from "@/app/pages/trust/PublicTrustPortalPage";
 
 // Auth
 import { LoginPage } from "@/app/pages/auth/LoginPage";
@@ -90,6 +91,12 @@ export const router = createBrowserRouter([
     // OAuth callback — stores JWT then redirects to "/"
     path: "/auth/callback",
     Component: AuthCallbackPage,
+  },
+
+  // Public Trust Center portal (no auth, no app layout)
+  {
+    path: "/trust/:orgSlug",
+    Component: PublicTrustPortalPage,
   },
 
   // Protected app routes (with layout)
