@@ -24,12 +24,7 @@ import { FindingsPage } from "@/app/pages/compliance/FindingsPage";
 import { ComplianceSettingsPage } from "@/app/pages/compliance/SettingsPage";
 
 // Customer Trust
-import { CustomerTrustOverviewPage } from "@/app/pages/customer-trust/OverviewPage";
-import { AccountsPage } from "@/app/pages/customer-trust/AccountsPage";
 import { TrustCenterPage } from "@/app/pages/customer-trust/TrustCenterPage";
-import { CommitmentsPage } from "@/app/pages/customer-trust/CommitmentsPage";
-import { KnowledgeBasePage } from "@/app/pages/customer-trust/KnowledgeBasePage";
-import { ActivityPage } from "@/app/pages/customer-trust/ActivityPage";
 import { CustomerTrustSettingsPage } from "@/app/pages/customer-trust/SettingsPage";
 
 // Risk
@@ -125,12 +120,7 @@ export const router = createBrowserRouter([
       { path: "compliance/settings", Component: ComplianceSettingsPage },
 
       // Customer Trust routes
-      { path: "customer-trust/overview", Component: CustomerTrustOverviewPage },
-      { path: "customer-trust/accounts", Component: AccountsPage },
       { path: "customer-trust/trust-center", Component: TrustCenterPage },
-      { path: "customer-trust/commitments", Component: CommitmentsPage },
-      { path: "customer-trust/knowledge-base", Component: KnowledgeBasePage },
-      { path: "customer-trust/activity", Component: ActivityPage },
       { path: "customer-trust/settings", Component: CustomerTrustSettingsPage },
 
       // Risk routes

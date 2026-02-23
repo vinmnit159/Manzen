@@ -74,12 +74,7 @@ const navigation: NavItem[] = [
     title: "Customer Trust",
     icon: Users,
     children: [
-      { title: "Overview",      href: "/customer-trust/overview" },
-      { title: "Accounts",      href: "/customer-trust/accounts" },
       { title: "Trust Center",  href: "/customer-trust/trust-center" },
-      { title: "Commitments",   href: "/customer-trust/commitments" },
-      { title: "KnowledgeBase", href: "/customer-trust/knowledge-base" },
-      { title: "Activity",      href: "/customer-trust/activity" },
       { title: "Settings",      href: "/customer-trust/settings", roles: [...ADMIN_ROLES] },
     ],
   },
