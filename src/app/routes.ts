@@ -57,6 +57,7 @@ import { PersonnelSettingsPage } from "@/app/pages/personnel/SettingsPage";
 
 // Other
 import { IntegrationsPage } from "@/app/pages/IntegrationsPage";
+import { SlackIntegrationPage } from "@/app/pages/integrations/SlackIntegrationPage";
 import { MySecurityTasksPage } from "@/app/pages/MySecurityTasksPage";
 import { MyAccessRequestsPage } from "@/app/pages/MyAccessRequestsPage";
 
@@ -153,6 +154,7 @@ export const router = createBrowserRouter([
 
       // Other routes
       { path: "integrations", Component: IntegrationsPage },
+      { path: "integrations/slack", Component: SlackIntegrationPage },
       { path: "my-security-tasks", Component: MySecurityTasksPage },
       { path: "my-access-requests", Component: MyAccessRequestsPage },
 
