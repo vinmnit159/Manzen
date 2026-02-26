@@ -28,6 +28,23 @@ export interface LinkedGitAccount extends UserGitAccount {
   user: Pick<User, 'id' | 'name' | 'email' | 'role'>;
 }
 
+export interface SlackMember {
+  slackUserId: string;
+  slackUserName: string;
+  displayName: string;
+  realName: string;
+  email: string | null;
+  avatarUrl: string | null;
+  isAdmin: boolean;
+  /** The ISMS user id this Slack account is currently mapped to, or null */
+  mappedUserId: string | null;
+}
+
+export interface UserWithSlack extends User {
+  gitAccounts: UserGitAccount[];
+  slackUserId: string | null;
+}
+
 // ─── Service ──────────────────────────────────────────────────────────────────
 
 export const usersService = {
@@ -81,5 +98,26 @@ export const usersService = {
   /** Remove a GitHub ↔ ISMS user link */
   async unmapGitAccount(id: string): Promise<{ success: boolean }> {
     return apiClient.delete(`/api/users/git-accounts/${id}`);
+  },
+
+  // ── Slack account mapping ────────────────────────────────────────────────
+
+  /**
+   * Fetch Slack workspace members via the backend (requires an active
+   * Slack integration). Each member includes `mappedUserId` showing which
+   * ISMS user they are currently linked to.
+   */
+  async getSlackMembers(): Promise<{ members: SlackMember[]; connected: boolean }> {
+    return apiClient.get('/api/users/slack-accounts/members');
+  },
+
+  /** Link a Slack user to an ISMS user */
+  async mapSlackAccount(data: { userId: string; slackUserId: string }): Promise<{ user: UserWithSlack }> {
+    return apiClient.post('/api/users/slack-accounts/map', data);
+  },
+
+  /** Remove a Slack ↔ ISMS user link */
+  async unmapSlackAccount(userId: string): Promise<{ success: boolean }> {
+    return apiClient.delete(`/api/users/slack-accounts/unmap/${userId}`);
   },
 };

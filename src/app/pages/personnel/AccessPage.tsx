@@ -12,38 +12,60 @@ import {
   CheckCircle2,
   User,
 } from "lucide-react";
-import { usersService, GitHubMember, UserWithGit } from "@/services/api/users";
+import { usersService, GitHubMember, UserWithGit, SlackMember } from "@/services/api/users";
+
+// ─── Slack icon (inline SVG, no extra dep) ────────────────────────────────────
+
+function SlackIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 54 54" xmlns="http://www.w3.org/2000/svg">
+      <path d="M19.712.133a5.381 5.381 0 0 0-5.376 5.387 5.381 5.381 0 0 0 5.376 5.386h5.376V5.52A5.381 5.381 0 0 0 19.712.133m0 14.365H5.376A5.381 5.381 0 0 0 0 19.884a5.381 5.381 0 0 0 5.376 5.387h14.336a5.381 5.381 0 0 0 5.376-5.387 5.381 5.381 0 0 0-5.376-5.386" fill="#36C5F0"/>
+      <path d="M53.76 19.884a5.381 5.381 0 0 0-5.376-5.386 5.381 5.381 0 0 0-5.376 5.386v5.387h5.376a5.381 5.381 0 0 0 5.376-5.387m-14.336 0V5.52A5.381 5.381 0 0 0 34.048.133a5.381 5.381 0 0 0-5.376 5.387v14.364a5.381 5.381 0 0 0 5.376 5.387 5.381 5.381 0 0 0 5.376-5.387" fill="#2EB67D"/>
+      <path d="M34.048 54a5.381 5.381 0 0 0 5.376-5.387 5.381 5.381 0 0 0-5.376-5.386h-5.376v5.386A5.381 5.381 0 0 0 34.048 54m0-14.365h14.336a5.381 5.381 0 0 0 5.376-5.386 5.381 5.381 0 0 0-5.376-5.387H34.048a5.381 5.381 0 0 0-5.376 5.387 5.381 5.381 0 0 0 5.376 5.386" fill="#ECB22E"/>
+      <path d="M0 34.249a5.381 5.381 0 0 0 5.376 5.386 5.381 5.381 0 0 0 5.376-5.386v-5.387H5.376A5.381 5.381 0 0 0 0 34.249m14.336 0v14.364A5.381 5.381 0 0 0 19.712 54a5.381 5.381 0 0 0 5.376-5.387V34.249a5.381 5.381 0 0 0-5.376-5.387 5.381 5.381 0 0 0-5.376 5.387" fill="#E01E5A"/>
+    </svg>
+  );
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface MappingState {
-  /** githubUsername → userId being saved right now */
   saving: string | null;
-  /** githubUsername → error message */
   errors: Record<string, string>;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function AccessPage() {
+  // ── GitHub state ──────────────────────────────────────────────────────────
   const [members, setMembers] = useState<GitHubMember[]>([]);
-  const [users, setUsers] = useState<UserWithGit[]>([]);
   const [connected, setConnected] = useState(false);
+  const [mapping, setMapping] = useState<MappingState>({ saving: null, errors: {} });
+
+  // ── Slack state ───────────────────────────────────────────────────────────
+  const [slackMembers, setSlackMembers] = useState<SlackMember[]>([]);
+  const [slackConnected, setSlackConnected] = useState(false);
+  const [slackMapping, setSlackMapping] = useState<MappingState>({ saving: null, errors: {} });
+
+  // ── Shared ────────────────────────────────────────────────────────────────
+  const [users, setUsers] = useState<UserWithGit[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [mapping, setMapping] = useState<MappingState>({ saving: null, errors: {} });
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [membersRes, usersRes] = await Promise.all([
+      const [membersRes, usersRes, slackRes] = await Promise.all([
         usersService.getGitHubMembers(),
         usersService.listUsers(),
+        usersService.getSlackMembers(),
       ]);
       setMembers(membersRes.members);
       setConnected(membersRes.connected);
       setUsers(usersRes.users);
+      setSlackMembers(slackRes.members);
+      setSlackConnected(slackRes.connected);
     } catch (e: any) {
       setError(e?.message ?? "Failed to load data");
     } finally {
@@ -55,7 +77,8 @@ export function AccessPage() {
     fetchData();
   }, [fetchData]);
 
-  // Map a GitHub account to an ISMS user
+  // ── GitHub handlers ───────────────────────────────────────────────────────
+
   const handleMap = async (member: GitHubMember, userId: string) => {
     if (!userId) return;
     setMapping((prev) => ({ ...prev, saving: member.githubUsername }));
@@ -67,7 +90,6 @@ export function AccessPage() {
         avatarUrl: member.avatarUrl ?? undefined,
         profileUrl: member.profileUrl ?? undefined,
       });
-      // Re-fetch to get updated mapping state
       const res = await usersService.getGitHubMembers();
       setMembers(res.members);
       setMapping((prev) => {
@@ -82,24 +104,20 @@ export function AccessPage() {
     }
   };
 
-  // Unmap a GitHub account
   const handleUnmap = async (member: GitHubMember) => {
     if (!member.mappedUserId) return;
-
-    // Find the UserGitAccount id from the linked users list
     const user = users.find((u) => u.id === member.mappedUserId);
-    const gitAccount = user?.gitAccounts.find(
-      (ga) => ga.githubUsername === member.githubUsername
-    );
+    const gitAccount = user?.gitAccounts.find((ga) => ga.githubUsername === member.githubUsername);
     if (!gitAccount) return;
 
     setMapping((prev) => ({ ...prev, saving: member.githubUsername }));
     try {
       await usersService.unmapGitAccount(gitAccount.id);
-      const res = await usersService.getGitHubMembers();
+      const [res, usersRes] = await Promise.all([
+        usersService.getGitHubMembers(),
+        usersService.listUsers(),
+      ]);
       setMembers(res.members);
-      // Refresh users too so PeoplePage gitAccounts stay consistent if re-visited
-      const usersRes = await usersService.listUsers();
       setUsers(usersRes.users);
       setMapping((prev) => ({ saving: null, errors: prev.errors }));
     } catch (e: any) {
@@ -110,13 +128,52 @@ export function AccessPage() {
     }
   };
 
+  // ── Slack handlers ────────────────────────────────────────────────────────
+
+  const handleSlackMap = async (member: SlackMember, userId: string) => {
+    if (!userId) return;
+    setSlackMapping((prev) => ({ ...prev, saving: member.slackUserId }));
+    try {
+      await usersService.mapSlackAccount({ userId, slackUserId: member.slackUserId });
+      const res = await usersService.getSlackMembers();
+      setSlackMembers(res.members);
+      setSlackMapping((prev) => {
+        const { [member.slackUserId]: _, ...errs } = prev.errors;
+        return { saving: null, errors: errs };
+      });
+    } catch (e: any) {
+      setSlackMapping((prev) => ({
+        saving: null,
+        errors: { ...prev.errors, [member.slackUserId]: e?.message ?? "Failed to map" },
+      }));
+    }
+  };
+
+  const handleSlackUnmap = async (member: SlackMember) => {
+    if (!member.mappedUserId) return;
+    setSlackMapping((prev) => ({ ...prev, saving: member.slackUserId }));
+    try {
+      await usersService.unmapSlackAccount(member.mappedUserId);
+      const res = await usersService.getSlackMembers();
+      setSlackMembers(res.members);
+      setSlackMapping((prev) => ({ saving: null, errors: prev.errors }));
+    } catch (e: any) {
+      setSlackMapping((prev) => ({
+        saving: null,
+        errors: { ...prev.errors, [member.slackUserId]: e?.message ?? "Failed to unmap" },
+      }));
+    }
+  };
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+
   const mappedUser = (userId: string | null) =>
     userId ? users.find((u) => u.id === userId) : undefined;
 
   return (
     <PageTemplate
       title="Access Management"
-      description="GitHub accounts connected to this organisation and their ISMS user mappings."
+      description="External accounts connected to this organisation and their ISMS user mappings."
       actions={
         <Button variant="outline" size="sm" onClick={fetchData} disabled={loading}>
           <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} />
@@ -124,27 +181,26 @@ export function AccessPage() {
         </Button>
       }
     >
-      {/* Integration banner */}
-      {!loading && !connected && (
-        <div className="flex items-start gap-3 rounded-md border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800 mb-4">
-          <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-          <div>
-            <span className="font-medium">GitHub integration not connected.</span> Go to{" "}
-            <a href="/integrations" className="underline font-medium">
-              Integrations
-            </a>{" "}
-            to connect your GitHub account or organisation to see members here.
-          </div>
-        </div>
-      )}
-
       {error && (
         <div className="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 mb-4">
           {error}
         </div>
       )}
 
-      <Card>
+      {/* ── GitHub Card ─────────────────────────────────────────────────────── */}
+
+      {!loading && !connected && (
+        <div className="flex items-start gap-3 rounded-md border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800 mb-4">
+          <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+          <div>
+            <span className="font-medium">GitHub integration not connected.</span> Go to{" "}
+            <a href="/integrations" className="underline font-medium">Integrations</a>{" "}
+            to connect GitHub to see members here.
+          </div>
+        </div>
+      )}
+
+      <Card className="mb-4">
         <div className="px-6 py-4 border-b flex items-center gap-2">
           <Github className="w-4 h-4 text-gray-600" />
           <h3 className="text-sm font-semibold text-gray-700">GitHub Accounts</h3>
@@ -160,33 +216,21 @@ export function AccessPage() {
           <table className="w-full">
             <thead className="bg-gray-50 border-b">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  GitHub Account
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Mapped ISMS User
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Map to User
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">GitHub Account</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mapped ISMS User</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Map to User</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan={4} className="px-6 py-10 text-center text-sm text-gray-400">
-                    Loading…
-                  </td>
+                  <td colSpan={4} className="px-6 py-10 text-center text-sm text-gray-400">Loading…</td>
                 </tr>
               ) : members.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="px-6 py-10 text-center text-sm text-gray-400">
-                    {connected
-                      ? "No GitHub members found. You may need to trigger a scan."
-                      : "Connect GitHub to see members."}
+                    {connected ? "No GitHub members found." : "Connect GitHub to see members."}
                   </td>
                 </tr>
               ) : (
@@ -197,7 +241,6 @@ export function AccessPage() {
 
                   return (
                     <tr key={member.githubUsername} className="hover:bg-gray-50">
-                      {/* GitHub account */}
                       <td className="px-6 py-4">
                         <a
                           href={member.profileUrl ?? `https://github.com/${member.githubUsername}`}
@@ -206,11 +249,7 @@ export function AccessPage() {
                           className="flex items-center gap-2 group"
                         >
                           {member.avatarUrl ? (
-                            <img
-                              src={member.avatarUrl}
-                              alt={member.githubUsername}
-                              className="w-7 h-7 rounded-full border border-gray-200"
-                            />
+                            <img src={member.avatarUrl} alt={member.githubUsername} className="w-7 h-7 rounded-full border border-gray-200" />
                           ) : (
                             <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center">
                               <Github className="w-4 h-4 text-gray-500" />
@@ -221,39 +260,26 @@ export function AccessPage() {
                           </span>
                         </a>
                       </td>
-
-                      {/* Mapped user */}
                       <td className="px-6 py-4">
                         {linked ? (
                           <div className="flex items-center gap-2">
                             <User className="w-3.5 h-3.5 text-green-600 shrink-0" />
                             <div>
-                              <div className="text-sm font-medium text-gray-900">
-                                {linked.name ?? linked.email}
-                              </div>
-                              {linked.name && (
-                                <div className="text-xs text-gray-500">{linked.email}</div>
-                              )}
+                              <div className="text-sm font-medium text-gray-900">{linked.name ?? linked.email}</div>
+                              {linked.name && <div className="text-xs text-gray-500">{linked.email}</div>}
                             </div>
                           </div>
                         ) : (
                           <span className="text-xs text-gray-400 italic">Not mapped</span>
                         )}
                       </td>
-
-                      {/* Dropdown to select user */}
                       <td className="px-6 py-4">
-                        {memberError && (
-                          <p className="text-xs text-red-600 mb-1">{memberError}</p>
-                        )}
+                        {memberError && <p className="text-xs text-red-600 mb-1">{memberError}</p>}
                         <select
                           className="text-sm border border-gray-300 rounded-md px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60 min-w-[180px]"
                           defaultValue={member.mappedUserId ?? ""}
                           disabled={isSaving}
-                          onChange={(e) => {
-                            const uid = e.target.value;
-                            if (uid) handleMap(member, uid);
-                          }}
+                          onChange={(e) => { const uid = e.target.value; if (uid) handleMap(member, uid); }}
                         >
                           <option value="">— Select user —</option>
                           {users.map((u) => (
@@ -263,8 +289,6 @@ export function AccessPage() {
                           ))}
                         </select>
                       </td>
-
-                      {/* Actions */}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-2">
                           {linked ? (
@@ -282,9 +306,7 @@ export function AccessPage() {
                               Not linked
                             </span>
                           )}
-                          {isSaving && (
-                            <RefreshCw className="w-3 h-3 animate-spin text-blue-500" />
-                          )}
+                          {isSaving && <RefreshCw className="w-3 h-3 animate-spin text-blue-500" />}
                         </div>
                       </td>
                     </tr>
@@ -300,6 +322,152 @@ export function AccessPage() {
             <span>{members.length} GitHub account{members.length !== 1 ? "s" : ""}</span>
             <span>{members.filter((m) => m.mappedUserId).length} mapped</span>
             <span>{members.filter((m) => !m.mappedUserId).length} unmapped</span>
+          </div>
+        )}
+      </Card>
+
+      {/* ── Slack Card ──────────────────────────────────────────────────────── */}
+
+      {!loading && !slackConnected && (
+        <div className="flex items-start gap-3 rounded-md border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800 mb-4">
+          <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+          <div>
+            <span className="font-medium">Slack integration not connected.</span> Go to{" "}
+            <a href="/integrations" className="underline font-medium">Integrations</a>{" "}
+            to connect your Slack workspace to see members here.
+          </div>
+        </div>
+      )}
+
+      <Card>
+        <div className="px-6 py-4 border-b flex items-center gap-2">
+          <SlackIcon className="w-4 h-4" />
+          <h3 className="text-sm font-semibold text-gray-700">Slack Accounts</h3>
+          {slackConnected && (
+            <Badge variant="default" className="ml-auto text-xs">
+              <CheckCircle2 className="w-3 h-3 mr-1" />
+              Connected
+            </Badge>
+          )}
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Slack Account</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mapped ISMS User</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Map to User</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {loading ? (
+                <tr>
+                  <td colSpan={4} className="px-6 py-10 text-center text-sm text-gray-400">Loading…</td>
+                </tr>
+              ) : slackMembers.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-6 py-10 text-center text-sm text-gray-400">
+                    {slackConnected ? "No Slack members found." : "Connect Slack to see workspace members."}
+                  </td>
+                </tr>
+              ) : (
+                slackMembers.map((member) => {
+                  const linked = mappedUser(member.mappedUserId);
+                  const isSaving = slackMapping.saving === member.slackUserId;
+                  const memberError = slackMapping.errors[member.slackUserId];
+
+                  return (
+                    <tr key={member.slackUserId} className="hover:bg-gray-50">
+                      {/* Slack account */}
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          {member.avatarUrl ? (
+                            <img src={member.avatarUrl} alt={member.displayName} className="w-7 h-7 rounded-full border border-gray-200" />
+                          ) : (
+                            <div className="w-7 h-7 rounded-full bg-purple-100 flex items-center justify-center">
+                              <SlackIcon className="w-4 h-4" />
+                            </div>
+                          )}
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">{member.displayName}</div>
+                            <div className="text-xs text-gray-400">
+                              @{member.slackUserName}
+                              {member.email && <span> · {member.email}</span>}
+                              {member.isAdmin && <span className="ml-1 text-purple-600 font-medium">· Admin</span>}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Mapped ISMS user */}
+                      <td className="px-6 py-4">
+                        {linked ? (
+                          <div className="flex items-center gap-2">
+                            <User className="w-3.5 h-3.5 text-green-600 shrink-0" />
+                            <div>
+                              <div className="text-sm font-medium text-gray-900">{linked.name ?? linked.email}</div>
+                              {linked.name && <div className="text-xs text-gray-500">{linked.email}</div>}
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-gray-400 italic">Not mapped</span>
+                        )}
+                      </td>
+
+                      {/* Map to user dropdown */}
+                      <td className="px-6 py-4">
+                        {memberError && <p className="text-xs text-red-600 mb-1">{memberError}</p>}
+                        <select
+                          className="text-sm border border-gray-300 rounded-md px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-60 min-w-[180px]"
+                          defaultValue={member.mappedUserId ?? ""}
+                          disabled={isSaving}
+                          onChange={(e) => { const uid = e.target.value; if (uid) handleSlackMap(member, uid); }}
+                        >
+                          <option value="">— Select user —</option>
+                          {users.map((u) => (
+                            <option key={u.id} value={u.id}>
+                              {u.name ? `${u.name} (${u.email})` : u.email}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+
+                      {/* Actions */}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          {linked ? (
+                            <button
+                              onClick={() => handleSlackUnmap(member)}
+                              disabled={isSaving}
+                              className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded transition-colors disabled:opacity-50"
+                            >
+                              <Unlink className="w-3 h-3" />
+                              Unmap
+                            </button>
+                          ) : (
+                            <span className="flex items-center gap-1 text-xs text-gray-400">
+                              <Link2 className="w-3 h-3" />
+                              Not linked
+                            </span>
+                          )}
+                          {isSaving && <RefreshCw className="w-3 h-3 animate-spin text-purple-500" />}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {!loading && slackMembers.length > 0 && (
+          <div className="px-6 py-3 bg-gray-50 border-t text-xs text-gray-500 flex gap-4">
+            <span>{slackMembers.length} Slack account{slackMembers.length !== 1 ? "s" : ""}</span>
+            <span>{slackMembers.filter((m) => m.mappedUserId).length} mapped</span>
+            <span>{slackMembers.filter((m) => !m.mappedUserId).length} unmapped</span>
           </div>
         )}
       </Card>
