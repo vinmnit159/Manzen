@@ -20,6 +20,7 @@ import {
   X,
   ClipboardCheck,
 } from "lucide-react";
+// ChevronDown and ChevronRight retained for other expandable nav groups
 import { useState } from "react";
 import { cn } from "@/app/components/ui/utils";
 import { authService } from "@/services/api/auth";
@@ -120,14 +121,7 @@ const navigation: NavItem[] = [
       { title: "Settings",  href: "/personnel/settings", roles: [...ADMIN_ROLES] },
     ],
   },
-  {
-    title: "Integrations",
-    icon: Settings,
-    children: [
-      { title: "All Integrations", href: "/integrations" },
-      { title: "Slack",            href: "/integrations/slack", roles: [...ADMIN_ROLES] },
-    ],
-  },
+  { title: "Integrations", href: "/integrations", icon: Settings },
   { title: "My Security Tasks",  href: "/my-security-tasks",  icon: CheckSquare },
   { title: "My Access Requests", href: "/my-access-requests", icon: FileWarning },
 ];

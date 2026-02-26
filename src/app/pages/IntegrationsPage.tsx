@@ -6,7 +6,7 @@ import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
 import { integrationsService, Integration, GitHubRepo } from '@/services/api/integrations';
 import { mdmService, EnrollmentToken, CreatedToken, MdmOverview } from '@/services/api/mdm';
-import { slackService, SlackIntegration } from '@/services/api/slack';
+import { slackService, SlackIntegration, SlackChannel, SLACK_EVENT_TYPES } from '@/services/api/slack';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -337,57 +337,230 @@ function StaticIcon({ name, className }: { name: string; className?: string }) {
   }
 }
 
-// ─── Slack card ───────────────────────────────────────────────────────────────
+// ─── Slack — Add Channel Modal ────────────────────────────────────────────────
+
+function SlackAddChannelModal({ onClose, onAdded }: { onClose: () => void; onAdded: () => void }) {
+  const [channelId, setChannelId] = useState('');
+  const [channelName, setChannelName] = useState('');
+  const [eventType, setEventType] = useState(SLACK_EVENT_TYPES[0].value);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!channelId.trim() || !channelName.trim()) { setError('Channel ID and name are required'); return; }
+    setLoading(true); setError('');
+    try {
+      await slackService.addChannel({ channelId: channelId.trim(), channelName: channelName.trim(), eventType });
+      onAdded(); onClose();
+    } catch (err: any) {
+      setError(err?.message ?? 'Failed to add channel mapping');
+    } finally { setLoading(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+        <h2 className="text-lg font-semibold mb-4">Add Channel Mapping</h2>
+        <form onSubmit={submit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Slack Channel ID <span className="text-gray-400 font-normal">(e.g. C0123ABCDE)</span>
+            </label>
+            <input type="text" value={channelId} onChange={e => setChannelId(e.target.value)} placeholder="C0123ABCDE"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#4A154B]" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Channel Name</label>
+            <input type="text" value={channelName} onChange={e => setChannelName(e.target.value)} placeholder="#security-alerts"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#4A154B]" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Event Type</label>
+            <select value={eventType} onChange={e => setEventType(e.target.value)}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#4A154B]">
+              {SLACK_EVENT_TYPES.map(et => <option key={et.value} value={et.value}>{et.label}</option>)}
+            </select>
+          </div>
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          <div className="flex gap-2 pt-2">
+            <Button type="submit" disabled={loading} className="flex-1 bg-[#4A154B] hover:bg-[#3a1039] text-white">
+              {loading ? 'Adding...' : 'Add Mapping'}
+            </Button>
+            <Button type="button" variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ─── Slack — full card ────────────────────────────────────────────────────────
 
 function SlackCard({
   slackIntegration,
-  loading,
+  channels,
+  loadingStatus,
+  onDisconnect,
+  onChannelsChange,
+  onToast,
 }: {
   slackIntegration: SlackIntegration | null;
-  loading: boolean;
+  channels: SlackChannel[];
+  loadingStatus: boolean;
+  onDisconnect: () => void;
+  onChannelsChange: (channels: SlackChannel[]) => void;
+  onToast: (type: 'success' | 'error', msg: string) => void;
 }) {
   const isConnected = !!slackIntegration;
+  const [disconnecting, setDisconnecting] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showChannels, setShowChannels] = useState(false);
+
+  async function handleDisconnect() {
+    if (!window.confirm('Disconnect Slack? This will remove all channel mappings.')) return;
+    setDisconnecting(true);
+    try {
+      await slackService.disconnect();
+      onDisconnect();
+      onToast('success', 'Slack disconnected');
+    } catch {
+      onToast('error', 'Failed to disconnect Slack');
+    } finally { setDisconnecting(false); }
+  }
+
+  async function handleRemoveChannel(id: string) {
+    try {
+      await slackService.removeChannel(id);
+      onChannelsChange(channels.filter(c => c.id !== id));
+    } catch {
+      onToast('error', 'Failed to remove channel mapping');
+    }
+  }
+
+  async function handleChannelAdded() {
+    try {
+      const res = await slackService.getChannels();
+      onChannelsChange(res.data ?? []);
+    } catch {}
+  }
+
+  const eventLabel = (v: string) => SLACK_EVENT_TYPES.find(e => e.value === v)?.label ?? v;
 
   return (
-    <Card className="p-6 md:col-span-2">
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center flex-shrink-0 p-1 overflow-hidden">
-            <SlackIcon className="w-7 h-7" />
+    <>
+      <Card className="p-6 md:col-span-2">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center flex-shrink-0 p-1 overflow-hidden">
+              <SlackIcon className="w-7 h-7" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Slack</h3>
+              <p className="text-sm text-gray-500">Communication · Alerts &amp; interactive notifications</p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900">Slack</h3>
-            <p className="text-sm text-gray-500">Communication · Alerts &amp; interactive notifications</p>
-          </div>
+          <Badge variant={isConnected ? 'default' : 'outline'}>
+            {loadingStatus ? 'Checking...' : isConnected ? 'Connected' : 'Available'}
+          </Badge>
         </div>
-        <Badge variant={isConnected ? 'default' : 'outline'}>
-          {loading ? 'Checking...' : isConnected ? 'Connected' : 'Available'}
-        </Badge>
-      </div>
 
-      <p className="text-sm text-gray-600 mb-4">
-        Receive automated alerts for critical risks, audit findings, overdue tests, and more.
-        Respond with interactive buttons directly from Slack — accept risks, start remediation, and more.
-      </p>
-
-      <div className="flex flex-wrap gap-2 mb-5">
-        {['Critical Risks', 'Audit Findings', 'Overdue Tests', 'Audit Events'].map((l) => (
-          <span key={l} className="text-xs bg-purple-50 text-purple-700 px-2 py-1 rounded-full border border-purple-100 font-medium">{l}</span>
-        ))}
-      </div>
-
-      {isConnected && slackIntegration && (
-        <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2 mb-4">
-          Connected to workspace <strong>{slackIntegration.workspaceName}</strong> since {new Date(slackIntegration.createdAt).toLocaleDateString()}.
+        <p className="text-sm text-gray-600 mb-4">
+          Receive automated alerts for critical risks, audit findings, overdue tests, and audit events.
+          Respond with interactive buttons directly from Slack — accept risks, start remediation, and more.
         </p>
-      )}
 
-      <a href="/integrations/slack">
-        <Button variant="outline" size="sm" className={isConnected ? 'border-green-300 text-green-700 hover:bg-green-50' : ''}>
-          {isConnected ? 'Manage Slack Integration' : 'Connect Slack'}
-        </Button>
-      </a>
-    </Card>
+        <div className="flex flex-wrap gap-2 mb-5">
+          {['Critical Risks', 'Audit Findings', 'Overdue Tests', 'Audit Events'].map((l) => (
+            <span key={l} className="text-xs bg-purple-50 text-purple-700 px-2 py-1 rounded-full border border-purple-100 font-medium">{l}</span>
+          ))}
+        </div>
+
+        {isConnected && slackIntegration && (
+          <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2 mb-4">
+            Connected to workspace <strong>{slackIntegration.workspaceName}</strong> since {new Date(slackIntegration.createdAt).toLocaleDateString()}.
+          </p>
+        )}
+
+        <div className="flex flex-wrap gap-2">
+          {!loadingStatus && !isConnected && (
+            <a href={slackService.getInstallUrl()}>
+              <Button className="gap-2 bg-[#4A154B] hover:bg-[#3a1039] text-white">
+                <SlackIcon className="w-4 h-4" />
+                Connect Slack
+              </Button>
+            </a>
+          )}
+          {isConnected && (
+            <>
+              <Button variant="outline" size="sm" onClick={() => setShowChannels(v => !v)}>
+                {showChannels ? 'Hide Channels' : `Channel Mappings (${channels.length})`}
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => { setShowChannels(true); setShowAddModal(true); }}
+                className="bg-[#4A154B] hover:bg-[#3a1039] text-white border-0">
+                + Add Mapping
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleDisconnect} disabled={disconnecting}
+                className="text-red-600 border-red-200 hover:bg-red-50">
+                {disconnecting ? 'Disconnecting...' : 'Disconnect'}
+              </Button>
+            </>
+          )}
+        </div>
+
+        {/* Channel mappings table — inline, no separate page */}
+        {isConnected && showChannels && (
+          <div className="mt-5 border-t border-gray-100 pt-4">
+            <h4 className="text-sm font-semibold text-gray-700 mb-3">Channel Mappings</h4>
+            {channels.length === 0 ? (
+              <p className="text-sm text-gray-400">No channel mappings yet. Use "+ Add Mapping" to route events to Slack channels.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-100 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
+                      <th className="py-2 pr-4">Channel</th>
+                      <th className="py-2 pr-4">Event</th>
+                      <th className="py-2 pr-4">Added</th>
+                      <th className="py-2 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {channels.map(ch => (
+                      <tr key={ch.id} className="hover:bg-gray-50">
+                        <td className="py-2 pr-4 font-medium text-gray-900">
+                          {ch.channelName}
+                          <span className="block text-xs text-gray-400 font-normal">{ch.channelId}</span>
+                        </td>
+                        <td className="py-2 pr-4">
+                          <span className="inline-block bg-purple-50 text-purple-700 text-xs font-medium px-2 py-0.5 rounded-full">
+                            {eventLabel(ch.eventType)}
+                          </span>
+                        </td>
+                        <td className="py-2 pr-4 text-xs text-gray-400">{new Date(ch.createdAt).toLocaleDateString()}</td>
+                        <td className="py-2 text-right">
+                          <button onClick={() => handleRemoveChannel(ch.id)}
+                            className="text-xs text-red-500 hover:text-red-700 font-medium">
+                            Remove
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+      </Card>
+
+      {showAddModal && (
+        <SlackAddChannelModal
+          onClose={() => setShowAddModal(false)}
+          onAdded={handleChannelAdded}
+        />
+      )}
+    </>
   );
 }
 
@@ -581,6 +754,7 @@ export function IntegrationsPage() {
   const [githubIntegration, setGithubIntegration] = useState<Integration | null>(null);
   const [driveIntegration, setDriveIntegration] = useState<Integration | null>(null);
   const [slackIntegration, setSlackIntegration] = useState<SlackIntegration | null>(null);
+  const [slackChannels, setSlackChannels] = useState<SlackChannel[]>([]);
   const [repos, setRepos] = useState<GitHubRepo[]>([]);
   const [loading, setLoading] = useState(true);
   const [disconnecting, setDisconnecting] = useState(false);
@@ -594,15 +768,17 @@ export function IntegrationsPage() {
 
   const loadStatus = async () => {
     try {
-      const [{ integrations }, slackRes] = await Promise.all([
+      const [{ integrations }, slackRes, channelsRes] = await Promise.all([
         integrationsService.getStatus(),
         slackService.getStatus().catch(() => ({ success: false, data: null })),
+        slackService.getChannels().catch(() => ({ data: [] as SlackChannel[] })),
       ]);
       const gh = integrations.find((i) => i.provider === 'GITHUB' && i.status === 'ACTIVE') ?? null;
       const drive = integrations.find((i) => i.provider === 'GOOGLE_DRIVE' && i.status === 'ACTIVE') ?? null;
       setGithubIntegration(gh);
       setDriveIntegration(drive);
       setSlackIntegration(slackRes.data);
+      setSlackChannels(channelsRes.data ?? []);
       if (gh) setRepos(gh.repos);
     } catch {
       /* unauthenticated or network — treat as disconnected */
@@ -755,7 +931,14 @@ export function IntegrationsPage() {
         />
 
         {/* ── Slack ────────────────────────────────────────────────────────── */}
-        <SlackCard slackIntegration={slackIntegration} loading={loading} />
+        <SlackCard
+          slackIntegration={slackIntegration}
+          channels={slackChannels}
+          loadingStatus={loading}
+          onDisconnect={() => { setSlackIntegration(null); setSlackChannels([]); }}
+          onChannelsChange={setSlackChannels}
+          onToast={showToast}
+        />
 
         {/* ── Manzen MDM Agent ─────────────────────────────────────────────── */}
         <MdmCard onToast={showToast} />
