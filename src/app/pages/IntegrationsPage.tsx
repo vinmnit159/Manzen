@@ -8,6 +8,7 @@ import { integrationsService, Integration, GitHubRepo } from '@/services/api/int
 import { mdmService, EnrollmentToken, CreatedToken, MdmOverview } from '@/services/api/mdm';
 import { slackService, SlackIntegration, SlackChannel, SLACK_EVENT_TYPES } from '@/services/api/slack';
 import { newRelicService, NewRelicStatus, NewRelicSyncLog } from '@/services/api/newrelic';
+import { notionService, NotionStatus, NotionSyncLog, NotionAvailableDatabase } from '@/services/api/notion';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -833,6 +834,373 @@ function NewRelicCard({
   );
 }
 
+// ─── Notion — Connect Modal ───────────────────────────────────────────────────
+
+function NotionConnectModal({ onClose, onConnected }: {
+  onClose: () => void;
+  onConnected: (status: NotionStatus) => void;
+}) {
+  const [token, setToken] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!token.trim()) { setError('Integration token is required'); return; }
+    setLoading(true); setError('');
+    try {
+      const res = await notionService.connect(token.trim());
+      if (res.success) {
+        const statusRes = await notionService.getStatus();
+        if (statusRes.connected && statusRes.data) {
+          onConnected(statusRes.data);
+        }
+        onClose();
+      }
+    } catch (err: any) {
+      setError(err?.message ?? 'Failed to connect — check your token and try again');
+    } finally { setLoading(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+        <h2 className="text-lg font-semibold mb-1">Connect Notion</h2>
+        <p className="text-sm text-gray-500 mb-4">
+          Create a Notion Internal Integration at{' '}
+          <a href="https://www.notion.so/my-integrations" target="_blank" rel="noreferrer" className="text-blue-600 underline">
+            notion.so/my-integrations
+          </a>{' '}
+          and paste the token below. Then share your task databases with the integration.
+        </p>
+        <form onSubmit={submit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Internal Integration Token <span className="text-gray-400 font-normal">(starts with secret_…)</span>
+            </label>
+            <input
+              type="password"
+              value={token}
+              onChange={e => setToken(e.target.value)}
+              placeholder="secret_XXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 font-mono"
+            />
+          </div>
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          <div className="flex gap-2 pt-2">
+            <Button type="submit" disabled={loading} className="flex-1 bg-gray-900 hover:bg-gray-800 text-white">
+              {loading ? 'Connecting…' : 'Connect Notion'}
+            </Button>
+            <Button type="button" variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ─── Notion — Link Database Modal ─────────────────────────────────────────────
+
+function NotionLinkDbModal({ onClose, onLinked }: {
+  onClose: () => void;
+  onLinked: () => void;
+}) {
+  const [dbs, setDbs] = useState<NotionAvailableDatabase[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [linking, setLinking] = useState<string | null>(null);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    notionService.getDatabases()
+      .then(res => setDbs(res.data ?? []))
+      .catch(() => setError('Failed to load databases'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  async function handleLink(db: NotionAvailableDatabase) {
+    setLinking(db.id);
+    try {
+      await notionService.linkDatabase(db.id, db.title);
+      onLinked();
+      onClose();
+    } catch { setError('Failed to link database'); }
+    finally { setLinking(null); }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">Link a Notion Database</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
+        </div>
+        <p className="text-sm text-gray-500 mb-4">
+          Select a database to sync tasks from. Make sure the database has been shared with your integration.
+        </p>
+        {loading && <p className="text-sm text-gray-400 animate-pulse">Loading databases…</p>}
+        {error && <p className="text-sm text-red-600">{error}</p>}
+        {!loading && dbs.length === 0 && (
+          <p className="text-sm text-gray-400">No databases found. Share at least one Notion database with your integration.</p>
+        )}
+        <div className="space-y-2 max-h-80 overflow-y-auto">
+          {dbs.map(db => (
+            <div key={db.id} className="flex items-center justify-between p-3 border border-gray-100 rounded-lg hover:bg-gray-50">
+              <div>
+                <p className="text-sm font-medium text-gray-900">{db.title}</p>
+                <p className="text-xs text-gray-400 font-mono">{db.id}</p>
+              </div>
+              {db.linked ? (
+                <span className="text-xs text-green-600 font-medium">Linked</span>
+              ) : (
+                <Button size="sm" onClick={() => handleLink(db)} disabled={linking === db.id}
+                  className="bg-gray-900 hover:bg-gray-800 text-white text-xs">
+                  {linking === db.id ? 'Linking…' : 'Link'}
+                </Button>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Notion — full card ───────────────────────────────────────────────────────
+
+function NotionCard({
+  notionStatus,
+  connected,
+  loadingStatus,
+  onConnected,
+  onDisconnected,
+  onToast,
+}: {
+  notionStatus: NotionStatus | null;
+  connected: boolean;
+  loadingStatus: boolean;
+  onConnected: (status: NotionStatus) => void;
+  onDisconnected: () => void;
+  onToast: (type: 'success' | 'error', msg: string) => void;
+}) {
+  const [showModal, setShowModal] = useState(false);
+  const [showLinkDb, setShowLinkDb] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [showLogs, setShowLogs] = useState(false);
+  const [showDbs, setShowDbs] = useState(false);
+  const [logs, setLogs] = useState<NotionSyncLog[]>([]);
+  const [logsLoading, setLogsLoading] = useState(false);
+
+  async function handleDisconnect() {
+    if (!window.confirm('Disconnect Notion? Task sync will stop.')) return;
+    setDisconnecting(true);
+    try {
+      await notionService.disconnect();
+      onDisconnected();
+      onToast('success', 'Notion disconnected');
+    } catch { onToast('error', 'Failed to disconnect Notion'); }
+    finally { setDisconnecting(false); }
+  }
+
+  async function handleSync() {
+    setSyncing(true);
+    try {
+      await notionService.sync();
+      onToast('success', 'Notion sync started — tasks will update shortly');
+    } catch { onToast('error', 'Failed to start sync'); }
+    finally { setSyncing(false); }
+  }
+
+  async function handleToggleLogs() {
+    const next = !showLogs;
+    setShowLogs(next);
+    if (next && logs.length === 0) {
+      setLogsLoading(true);
+      try {
+        const res = await notionService.getLogs();
+        setLogs(res.data ?? []);
+      } catch { /* ignore */ }
+      finally { setLogsLoading(false); }
+    }
+  }
+
+  function logBadge(status: string) {
+    switch (status) {
+      case 'SUCCESS': return <span className="inline-block bg-green-50 text-green-700 text-xs font-medium px-2 py-0.5 rounded-full">Success</span>;
+      case 'FAILURE': return <span className="inline-block bg-red-50 text-red-700 text-xs font-medium px-2 py-0.5 rounded-full">Failure</span>;
+      case 'PARTIAL': return <span className="inline-block bg-yellow-50 text-yellow-700 text-xs font-medium px-2 py-0.5 rounded-full">Partial</span>;
+      default:        return <span className="inline-block bg-gray-100 text-gray-500 text-xs font-medium px-2 py-0.5 rounded-full">{status}</span>;
+    }
+  }
+
+  return (
+    <>
+      <Card className="p-6 md:col-span-2">
+        {/* Header */}
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center flex-shrink-0 p-1 overflow-hidden">
+              <NotionIcon className="w-7 h-7" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Notion</h3>
+              <p className="text-sm text-gray-500">Knowledge Base · Task tracking &amp; remediation</p>
+            </div>
+          </div>
+          <Badge variant={connected ? 'default' : 'outline'}>
+            {loadingStatus ? 'Checking...' : connected ? 'Connected' : 'Available'}
+          </Badge>
+        </div>
+
+        <p className="text-sm text-gray-600 mb-4">
+          Sync compliance tasks from Notion boards into ISMS. Track task ownership, overdue items, and
+          SLA compliance automatically. Push remediation tasks directly from failed tests to Notion.
+        </p>
+
+        {/* ISO control tags */}
+        <div className="flex flex-wrap gap-2 mb-5">
+          {['A.5.2 Task Ownership', 'A.5.31 Compliance Tasks', 'A.5.24 Remediation SLA', 'A.5.18 Access Reviews'].map(l => (
+            <span key={l} className="text-xs bg-gray-50 text-gray-700 px-2 py-1 rounded-full border border-gray-200 font-medium">{l}</span>
+          ))}
+        </div>
+
+        {/* Connected banner */}
+        {connected && notionStatus && (
+          <div className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2 mb-4 flex items-center justify-between flex-wrap gap-2">
+            <span>
+              Connected to workspace <strong>{notionStatus.workspaceName}</strong> since {new Date(notionStatus.connectedAt).toLocaleDateString()}.
+              {notionStatus.linkedDatabases.length > 0
+                ? ` ${notionStatus.linkedDatabases.length} database${notionStatus.linkedDatabases.length > 1 ? 's' : ''} linked.`
+                : ' No databases linked yet.'}
+            </span>
+            {notionStatus.lastSync && (
+              <span className="text-xs text-green-600">
+                Last sync: {new Date(notionStatus.lastSync.createdAt).toLocaleString()}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Action buttons */}
+        <div className="flex flex-wrap gap-2">
+          {!loadingStatus && !connected && (
+            <button
+              onClick={() => setShowModal(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-gray-900 text-white text-sm font-medium hover:bg-gray-800"
+            >
+              <NotionIcon className="w-4 h-4" />
+              Connect Notion
+            </button>
+          )}
+          {connected && (
+            <>
+              <Button variant="outline" size="sm" onClick={() => setShowLinkDb(true)}>
+                Link Database
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleSync} disabled={syncing}>
+                {syncing ? 'Syncing…' : 'Sync Tasks'}
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setShowDbs(v => !v)}>
+                {showDbs ? 'Hide Databases' : `Databases (${notionStatus?.linkedDatabases.length ?? 0})`}
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleToggleLogs}>
+                {showLogs ? 'Hide Logs' : 'Sync Logs'}
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleDisconnect} disabled={disconnecting}
+                className="text-red-600 border-red-200 hover:bg-red-50">
+                {disconnecting ? 'Disconnecting...' : 'Disconnect'}
+              </Button>
+            </>
+          )}
+        </div>
+
+        {/* Linked Databases */}
+        {connected && showDbs && (
+          <div className="mt-5 border-t border-gray-100 pt-4">
+            <h4 className="text-sm font-semibold text-gray-700 mb-3">Linked Databases</h4>
+            {!notionStatus || notionStatus.linkedDatabases.length === 0 ? (
+              <p className="text-sm text-gray-400">No databases linked. Click "Link Database" to connect a Notion board.</p>
+            ) : (
+              <div className="space-y-2">
+                {notionStatus.linkedDatabases.map(db => (
+                  <div key={db.id} className="flex items-center justify-between p-3 border border-gray-100 rounded-lg bg-gray-50">
+                    <div>
+                      <p className="text-sm font-medium text-gray-800">{db.databaseName}</p>
+                      <p className="text-xs text-gray-400">{db.lastSyncedAt ? `Last synced: ${new Date(db.lastSyncedAt).toLocaleString()}` : 'Not yet synced'}</p>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        await notionService.unlinkDatabase(db.id).catch(() => {});
+                        const res = await notionService.getStatus().catch(() => null);
+                        if (res?.connected && res.data) onConnected(res.data);
+                      }}
+                      className="text-xs text-red-500 hover:text-red-700 font-medium"
+                    >
+                      Unlink
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Sync Logs */}
+        {connected && showLogs && (
+          <div className="mt-5 border-t border-gray-100 pt-4">
+            <h4 className="text-sm font-semibold text-gray-700 mb-3">Sync Logs</h4>
+            {logsLoading ? (
+              <p className="text-sm text-gray-400">Loading logs…</p>
+            ) : logs.length === 0 ? (
+              <p className="text-sm text-gray-400">No sync logs yet. Click "Sync Tasks" to start.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-100 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
+                      <th className="py-2 pr-4">Date</th>
+                      <th className="py-2 pr-4">Status</th>
+                      <th className="py-2 pr-4">Found</th>
+                      <th className="py-2">Message</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {logs.map(log => (
+                      <tr key={log.id} className="hover:bg-gray-50">
+                        <td className="py-2 pr-4 text-xs text-gray-500 whitespace-nowrap">{new Date(log.createdAt).toLocaleString()}</td>
+                        <td className="py-2 pr-4">{logBadge(log.status)}</td>
+                        <td className="py-2 pr-4 text-xs text-gray-600">{log.tasksFound} found / {log.tasksUpdated} updated</td>
+                        <td className="py-2 text-xs text-gray-600 max-w-[200px] truncate" title={log.message ?? ''}>{log.message ?? '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+      </Card>
+
+      {showModal && (
+        <NotionConnectModal
+          onClose={() => setShowModal(false)}
+          onConnected={(status) => { onConnected(status); onToast('success', 'Notion connected successfully!'); }}
+        />
+      )}
+      {showLinkDb && (
+        <NotionLinkDbModal
+          onClose={() => setShowLinkDb(false)}
+          onLinked={async () => {
+            const res = await notionService.getStatus().catch(() => null);
+            if (res?.connected && res.data) onConnected(res.data);
+            onToast('success', 'Database linked');
+          }}
+        />
+      )}
+    </>
+  );
+}
+
 // ─── Static cards (coming soon) ───────────────────────────────────────────────
 
 const STATIC_INTEGRATIONS = [
@@ -843,7 +1211,6 @@ const STATIC_INTEGRATIONS = [
   { name: 'Google Workspace',   category: 'Identity & Access',  description: 'Audit user accounts, group memberships and MFA enforcement across Workspace.' },
   { name: 'Illow',              category: 'Privacy',            description: 'Import consent records and cookie-banner logs for privacy compliance.' },
   { name: 'Intercom',           category: 'Customer Support',   description: 'Link customer data-access requests to your privacy controls and DSARs.' },
-  { name: 'Notion',             category: 'Knowledge Base',     description: 'Sync policy and procedure pages directly from your Notion workspace.' },
   { name: 'Redash',             category: 'Analytics',          description: 'Export compliance dashboards and audit queries as scheduled evidence.' },
 ];
 
@@ -1025,6 +1392,8 @@ export function IntegrationsPage() {
   const [slackChannels, setSlackChannels] = useState<SlackChannel[]>([]);
   const [nrConnected, setNrConnected] = useState(false);
   const [nrStatus, setNrStatus] = useState<NewRelicStatus | null>(null);
+  const [notionConnected, setNotionConnected] = useState(false);
+  const [notionStatus, setNotionStatus] = useState<NotionStatus | null>(null);
   const [repos, setRepos] = useState<GitHubRepo[]>([]);
   const [loading, setLoading] = useState(true);
   const [disconnecting, setDisconnecting] = useState(false);
@@ -1038,11 +1407,12 @@ export function IntegrationsPage() {
 
   const loadStatus = async () => {
     try {
-      const [{ integrations }, slackRes, channelsRes, nrRes] = await Promise.all([
+      const [{ integrations }, slackRes, channelsRes, nrRes, notionRes] = await Promise.all([
         integrationsService.getStatus(),
         slackService.getStatus().catch(() => ({ success: false, data: null })),
         slackService.getChannels().catch(() => ({ data: [] as SlackChannel[] })),
         newRelicService.getStatus().catch(() => ({ connected: false, data: null })),
+        notionService.getStatus().catch(() => ({ connected: false, data: null })),
       ]);
       const gh = integrations.find((i) => i.provider === 'GITHUB' && i.status === 'ACTIVE') ?? null;
       const drive = integrations.find((i) => i.provider === 'GOOGLE_DRIVE' && i.status === 'ACTIVE') ?? null;
@@ -1052,6 +1422,8 @@ export function IntegrationsPage() {
       setSlackChannels(channelsRes.data ?? []);
       setNrConnected(nrRes.connected);
       setNrStatus(nrRes.data);
+      setNotionConnected(notionRes.connected);
+      setNotionStatus(notionRes.data);
       if (gh) setRepos(gh.repos);
     } catch {
       /* unauthenticated or network — treat as disconnected */
@@ -1216,6 +1588,16 @@ export function IntegrationsPage() {
 
         {/* ── Manzen MDM Agent ─────────────────────────────────────────────── */}
         <MdmCard onToast={showToast} />
+
+        {/* ── Notion ───────────────────────────────────────────────────────── */}
+        <NotionCard
+          notionStatus={notionStatus}
+          connected={notionConnected}
+          loadingStatus={loading}
+          onConnected={(status) => { setNotionConnected(true); setNotionStatus(status); }}
+          onDisconnected={() => { setNotionConnected(false); setNotionStatus(null); }}
+          onToast={showToast}
+        />
 
         {/* ── New Relic ────────────────────────────────────────────────────── */}
         <NewRelicCard
