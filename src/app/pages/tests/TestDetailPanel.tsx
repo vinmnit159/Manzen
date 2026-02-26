@@ -5,6 +5,7 @@ import { QK } from '@/lib/queryKeys';
 import { STALE } from '@/lib/queryClient';
 import { testsService } from '@/services/api/tests';
 import { integrationsService } from '@/services/api/integrations';
+import { newRelicService } from '@/services/api/newrelic';
 import { usersService } from '@/services/api/users';
 import { authService } from '@/services/api/auth';
 import type { TestRecord, TestStatus, TestCategory, TestType, TestRunRecord } from '@/services/api/tests';
@@ -203,7 +204,11 @@ export function TestDetailPanel({ testId, onClose, onMutated }: TestDetailPanelP
   });
 
   const runMutation = useMutation({
-    mutationFn: () => integrationsService.runAutomatedTests(),
+    mutationFn: () => {
+      const provider = test?.integration?.provider ?? '';
+      if (provider === 'NEWRELIC') return newRelicService.runScan();
+      return integrationsService.runAutomatedTests();
+    },
     onSuccess: () => {
       setRunMsg('Scan triggered. Results will update shortly.');
       setTimeout(() => {
@@ -374,7 +379,7 @@ export function TestDetailPanel({ testId, onClose, onMutated }: TestDetailPanelP
                       <p className="text-xs text-gray-500">{runMsg}</p>
                     )}
                     <p className="text-xs text-gray-400">
-                      This test is system-driven. Results update automatically on every scan.
+                      This test is system-driven via {test.integration?.provider === 'NEWRELIC' ? 'New Relic' : 'GitHub'}. Results update automatically on every scan.
                     </p>
                   </div>
                 ) : (

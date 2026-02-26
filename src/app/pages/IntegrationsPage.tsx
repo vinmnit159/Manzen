@@ -7,7 +7,7 @@ import { Badge } from '@/app/components/ui/badge';
 import { integrationsService, Integration, GitHubRepo } from '@/services/api/integrations';
 import { mdmService, EnrollmentToken, CreatedToken, MdmOverview } from '@/services/api/mdm';
 import { slackService, SlackIntegration, SlackChannel, SLACK_EVENT_TYPES } from '@/services/api/slack';
-import { newRelicService, NewRelicStatus, NewRelicSyncLog, NewRelicTest } from '@/services/api/newrelic';
+import { newRelicService, NewRelicStatus, NewRelicSyncLog } from '@/services/api/newrelic';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -664,11 +664,8 @@ function NewRelicCard({
   const [showModal, setShowModal] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
   const [scanning, setScanning] = useState(false);
-  const [showTests, setShowTests] = useState(false);
   const [showLogs, setShowLogs] = useState(false);
-  const [tests, setTests] = useState<NewRelicTest[]>([]);
   const [logs, setLogs] = useState<NewRelicSyncLog[]>([]);
-  const [testsLoading, setTestsLoading] = useState(false);
   const [logsLoading, setLogsLoading] = useState(false);
 
   async function handleDisconnect() {
@@ -693,19 +690,6 @@ function NewRelicCard({
     } finally { setScanning(false); }
   }
 
-  async function handleToggleTests() {
-    const next = !showTests;
-    setShowTests(next);
-    if (next && tests.length === 0) {
-      setTestsLoading(true);
-      try {
-        const res = await newRelicService.getTests();
-        setTests(res.data ?? []);
-      } catch { /* ignore */ }
-      finally { setTestsLoading(false); }
-    }
-  }
-
   async function handleToggleLogs() {
     const next = !showLogs;
     setShowLogs(next);
@@ -716,15 +700,6 @@ function NewRelicCard({
         setLogs(res.data ?? []);
       } catch { /* ignore */ }
       finally { setLogsLoading(false); }
-    }
-  }
-
-  function testStatusBadge(status: string) {
-    switch (status) {
-      case 'Pass':    return <span className="inline-block bg-green-50 text-green-700 text-xs font-medium px-2 py-0.5 rounded-full">Pass</span>;
-      case 'Fail':    return <span className="inline-block bg-red-50 text-red-700 text-xs font-medium px-2 py-0.5 rounded-full">Fail</span>;
-      case 'Warning': return <span className="inline-block bg-yellow-50 text-yellow-700 text-xs font-medium px-2 py-0.5 rounded-full">Warning</span>;
-      default:        return <span className="inline-block bg-gray-100 text-gray-500 text-xs font-medium px-2 py-0.5 rounded-full">Not Run</span>;
     }
   }
 
@@ -792,9 +767,6 @@ function NewRelicCard({
               <Button variant="outline" size="sm" onClick={handleScan} disabled={scanning}>
                 {scanning ? 'Scanning…' : 'Run Scan Now'}
               </Button>
-              <Button variant="outline" size="sm" onClick={handleToggleTests}>
-                {showTests ? 'Hide Tests' : 'Automated Tests'}
-              </Button>
               <Button variant="outline" size="sm" onClick={handleToggleLogs}>
                 {showLogs ? 'Hide Logs' : 'Sync Logs'}
               </Button>
@@ -810,41 +782,6 @@ function NewRelicCard({
             </>
           )}
         </div>
-
-        {/* Automated Tests section */}
-        {connected && showTests && (
-          <div className="mt-5 border-t border-gray-100 pt-4">
-            <h4 className="text-sm font-semibold text-gray-700 mb-3">Automated Tests</h4>
-            {testsLoading ? (
-              <p className="text-sm text-gray-400">Loading tests…</p>
-            ) : tests.length === 0 ? (
-              <p className="text-sm text-gray-400">No tests found. Run a scan to populate results.</p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-gray-100 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
-                      <th className="py-2 pr-4">Test Name</th>
-                      <th className="py-2 pr-4">Status</th>
-                      <th className="py-2">Last Run</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {tests.map(t => (
-                      <tr key={t.id} className="hover:bg-gray-50">
-                        <td className="py-2 pr-4 text-gray-800">{t.name}</td>
-                        <td className="py-2 pr-4">{testStatusBadge(t.lastResult)}</td>
-                        <td className="py-2 text-xs text-gray-400">
-                          {t.lastRunAt ? new Date(t.lastRunAt).toLocaleString() : '—'}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        )}
 
         {/* Sync Logs section */}
         {connected && showLogs && (
