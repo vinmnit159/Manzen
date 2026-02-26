@@ -6,6 +6,7 @@ import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
 import { integrationsService, Integration, GitHubRepo } from '@/services/api/integrations';
 import { mdmService, EnrollmentToken, CreatedToken, MdmOverview } from '@/services/api/mdm';
+import { slackService, SlackIntegration } from '@/services/api/slack';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -336,10 +337,63 @@ function StaticIcon({ name, className }: { name: string; className?: string }) {
   }
 }
 
+// ─── Slack card ───────────────────────────────────────────────────────────────
+
+function SlackCard({
+  slackIntegration,
+  loading,
+}: {
+  slackIntegration: SlackIntegration | null;
+  loading: boolean;
+}) {
+  const isConnected = !!slackIntegration;
+
+  return (
+    <Card className="p-6 md:col-span-2">
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center flex-shrink-0 p-1 overflow-hidden">
+            <SlackIcon className="w-7 h-7" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">Slack</h3>
+            <p className="text-sm text-gray-500">Communication · Alerts &amp; interactive notifications</p>
+          </div>
+        </div>
+        <Badge variant={isConnected ? 'default' : 'outline'}>
+          {loading ? 'Checking...' : isConnected ? 'Connected' : 'Available'}
+        </Badge>
+      </div>
+
+      <p className="text-sm text-gray-600 mb-4">
+        Receive automated alerts for critical risks, audit findings, overdue tests, and more.
+        Respond with interactive buttons directly from Slack — accept risks, start remediation, and more.
+      </p>
+
+      <div className="flex flex-wrap gap-2 mb-5">
+        {['Critical Risks', 'Audit Findings', 'Overdue Tests', 'Audit Events'].map((l) => (
+          <span key={l} className="text-xs bg-purple-50 text-purple-700 px-2 py-1 rounded-full border border-purple-100 font-medium">{l}</span>
+        ))}
+      </div>
+
+      {isConnected && slackIntegration && (
+        <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2 mb-4">
+          Connected to workspace <strong>{slackIntegration.workspaceName}</strong> since {new Date(slackIntegration.createdAt).toLocaleDateString()}.
+        </p>
+      )}
+
+      <a href="/integrations/slack">
+        <Button variant="outline" size="sm" className={isConnected ? 'border-green-300 text-green-700 hover:bg-green-50' : ''}>
+          {isConnected ? 'Manage Slack Integration' : 'Connect Slack'}
+        </Button>
+      </a>
+    </Card>
+  );
+}
+
 // ─── Static cards (coming soon) ───────────────────────────────────────────────
 
 const STATIC_INTEGRATIONS = [
-  { name: 'Slack',              category: 'Communication',      description: 'Send security alerts and compliance notifications to Slack channels.' },
   { name: 'AWS',                category: 'Cloud',              description: 'Monitor cloud infrastructure and collect IAM / S3 compliance evidence.' },
   { name: 'BambooHR',           category: 'HR',                 description: 'Sync employee records for personnel compliance and onboarding tracking.' },
   { name: 'Cloudflare',         category: 'Network Security',   description: 'Pull WAF, DNS and access-log evidence for network security controls.' },
@@ -526,6 +580,7 @@ export function IntegrationsPage() {
   const [searchParams] = useSearchParams();
   const [githubIntegration, setGithubIntegration] = useState<Integration | null>(null);
   const [driveIntegration, setDriveIntegration] = useState<Integration | null>(null);
+  const [slackIntegration, setSlackIntegration] = useState<SlackIntegration | null>(null);
   const [repos, setRepos] = useState<GitHubRepo[]>([]);
   const [loading, setLoading] = useState(true);
   const [disconnecting, setDisconnecting] = useState(false);
@@ -539,11 +594,15 @@ export function IntegrationsPage() {
 
   const loadStatus = async () => {
     try {
-      const { integrations } = await integrationsService.getStatus();
+      const [{ integrations }, slackRes] = await Promise.all([
+        integrationsService.getStatus(),
+        slackService.getStatus().catch(() => ({ success: false, data: null })),
+      ]);
       const gh = integrations.find((i) => i.provider === 'GITHUB' && i.status === 'ACTIVE') ?? null;
       const drive = integrations.find((i) => i.provider === 'GOOGLE_DRIVE' && i.status === 'ACTIVE') ?? null;
       setGithubIntegration(gh);
       setDriveIntegration(drive);
+      setSlackIntegration(slackRes.data);
       if (gh) setRepos(gh.repos);
     } catch {
       /* unauthenticated or network — treat as disconnected */
@@ -694,6 +753,9 @@ export function IntegrationsPage() {
           onToast={showToast}
           onDisconnect={() => setDriveIntegration(null)}
         />
+
+        {/* ── Slack ────────────────────────────────────────────────────────── */}
+        <SlackCard slackIntegration={slackIntegration} loading={loading} />
 
         {/* ── Manzen MDM Agent ─────────────────────────────────────────────── */}
         <MdmCard onToast={showToast} />
