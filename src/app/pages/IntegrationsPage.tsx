@@ -792,6 +792,7 @@ export function IntegrationsPage() {
     const error = searchParams.get('error');
     if (connected === 'github') showToast('success', 'GitHub connected successfully!');
     if (connected === 'google_drive') showToast('success', 'Google Drive connected! Folder structure is being created.');
+    if (connected === 'slack') showToast('success', 'Slack connected successfully!');
     if (error) showToast('error', decodeURIComponent(error));
     loadStatus();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
