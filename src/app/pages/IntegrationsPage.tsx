@@ -7,6 +7,7 @@ import { Badge } from '@/app/components/ui/badge';
 import { integrationsService, Integration, GitHubRepo } from '@/services/api/integrations';
 import { mdmService, EnrollmentToken, CreatedToken, MdmOverview } from '@/services/api/mdm';
 import { slackService, SlackIntegration, SlackChannel, SLACK_EVENT_TYPES } from '@/services/api/slack';
+import { newRelicService, NewRelicStatus, NewRelicSyncLog, NewRelicTest } from '@/services/api/newrelic';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -564,6 +565,337 @@ function SlackCard({
   );
 }
 
+// ─── New Relic — Connect Modal ────────────────────────────────────────────────
+
+function NewRelicConnectModal({ onClose, onConnected }: {
+  onClose: () => void;
+  onConnected: (status: NewRelicStatus) => void;
+}) {
+  const [apiKey, setApiKey] = useState('');
+  const [accountId, setAccountId] = useState('');
+  const [region, setRegion] = useState<'US' | 'EU'>('US');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!apiKey.trim() || !accountId.trim()) { setError('API Key and Account ID are required'); return; }
+    setLoading(true); setError('');
+    try {
+      const res = await newRelicService.connect({ apiKey: apiKey.trim(), accountId: accountId.trim(), region });
+      if (res.success) {
+        onConnected({ id: res.data.id, accountId: res.data.accountId, region: res.data.region as 'US' | 'EU', connectedAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+        onClose();
+      }
+    } catch (err: any) {
+      setError(err?.message ?? 'Failed to connect New Relic — check your API key and account ID');
+    } finally { setLoading(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+        <h2 className="text-lg font-semibold mb-1">Connect New Relic</h2>
+        <p className="text-sm text-gray-500 mb-4">Enter your New Relic User API key and Account ID to enable automated compliance monitoring.</p>
+        <form onSubmit={submit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              User API Key <span className="text-gray-400 font-normal">(starts with NRAK-…)</span>
+            </label>
+            <input
+              type="password"
+              value={apiKey}
+              onChange={e => setApiKey(e.target.value)}
+              placeholder="NRAK-XXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 font-mono"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Account ID</label>
+            <input
+              type="text"
+              value={accountId}
+              onChange={e => setAccountId(e.target.value)}
+              placeholder="1234567"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Region</label>
+            <select
+              value={region}
+              onChange={e => setRegion(e.target.value as 'US' | 'EU')}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+            >
+              <option value="US">US (api.newrelic.com)</option>
+              <option value="EU">EU (api.eu.newrelic.com)</option>
+            </select>
+          </div>
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          <div className="flex gap-2 pt-2">
+            <Button type="submit" disabled={loading} className="flex-1 bg-[#00AC69] hover:bg-[#009558] text-white">
+              {loading ? 'Connecting…' : 'Connect New Relic'}
+            </Button>
+            <Button type="button" variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ─── New Relic — full card ────────────────────────────────────────────────────
+
+function NewRelicCard({
+  nrStatus,
+  connected,
+  loadingStatus,
+  onConnected,
+  onDisconnected,
+  onToast,
+}: {
+  nrStatus: NewRelicStatus | null;
+  connected: boolean;
+  loadingStatus: boolean;
+  onConnected: (status: NewRelicStatus) => void;
+  onDisconnected: () => void;
+  onToast: (type: 'success' | 'error', msg: string) => void;
+}) {
+  const [showModal, setShowModal] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [showTests, setShowTests] = useState(false);
+  const [showLogs, setShowLogs] = useState(false);
+  const [tests, setTests] = useState<NewRelicTest[]>([]);
+  const [logs, setLogs] = useState<NewRelicSyncLog[]>([]);
+  const [testsLoading, setTestsLoading] = useState(false);
+  const [logsLoading, setLogsLoading] = useState(false);
+
+  async function handleDisconnect() {
+    if (!window.confirm('Disconnect New Relic? Automated tests will stop running.')) return;
+    setDisconnecting(true);
+    try {
+      await newRelicService.disconnect();
+      onDisconnected();
+      onToast('success', 'New Relic disconnected');
+    } catch {
+      onToast('error', 'Failed to disconnect New Relic');
+    } finally { setDisconnecting(false); }
+  }
+
+  async function handleScan() {
+    setScanning(true);
+    try {
+      await newRelicService.runScan();
+      onToast('success', 'New Relic scan started — results will appear in tests & logs shortly');
+    } catch {
+      onToast('error', 'Failed to start scan');
+    } finally { setScanning(false); }
+  }
+
+  async function handleToggleTests() {
+    const next = !showTests;
+    setShowTests(next);
+    if (next && tests.length === 0) {
+      setTestsLoading(true);
+      try {
+        const res = await newRelicService.getTests();
+        setTests(res.data ?? []);
+      } catch { /* ignore */ }
+      finally { setTestsLoading(false); }
+    }
+  }
+
+  async function handleToggleLogs() {
+    const next = !showLogs;
+    setShowLogs(next);
+    if (next && logs.length === 0) {
+      setLogsLoading(true);
+      try {
+        const res = await newRelicService.getLogs();
+        setLogs(res.data ?? []);
+      } catch { /* ignore */ }
+      finally { setLogsLoading(false); }
+    }
+  }
+
+  function testStatusBadge(status: string) {
+    switch (status) {
+      case 'Pass':    return <span className="inline-block bg-green-50 text-green-700 text-xs font-medium px-2 py-0.5 rounded-full">Pass</span>;
+      case 'Fail':    return <span className="inline-block bg-red-50 text-red-700 text-xs font-medium px-2 py-0.5 rounded-full">Fail</span>;
+      case 'Warning': return <span className="inline-block bg-yellow-50 text-yellow-700 text-xs font-medium px-2 py-0.5 rounded-full">Warning</span>;
+      default:        return <span className="inline-block bg-gray-100 text-gray-500 text-xs font-medium px-2 py-0.5 rounded-full">Not Run</span>;
+    }
+  }
+
+  function logStatusBadge(status: string) {
+    switch (status) {
+      case 'SUCCESS': return <span className="inline-block bg-green-50 text-green-700 text-xs font-medium px-2 py-0.5 rounded-full">Success</span>;
+      case 'FAILURE': return <span className="inline-block bg-red-50 text-red-700 text-xs font-medium px-2 py-0.5 rounded-full">Failure</span>;
+      case 'PARTIAL': return <span className="inline-block bg-yellow-50 text-yellow-700 text-xs font-medium px-2 py-0.5 rounded-full">Partial</span>;
+      default:        return <span className="inline-block bg-gray-100 text-gray-500 text-xs font-medium px-2 py-0.5 rounded-full">{status}</span>;
+    }
+  }
+
+  return (
+    <>
+      <Card className="p-6 md:col-span-2">
+        {/* Header */}
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center flex-shrink-0 p-1 overflow-hidden">
+              <NewRelicIcon className="w-7 h-7" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">New Relic</h3>
+              <p className="text-sm text-gray-500">Observability · Monitoring &amp; SLO compliance</p>
+            </div>
+          </div>
+          <Badge variant={connected ? 'default' : 'outline'}>
+            {loadingStatus ? 'Checking...' : connected ? 'Connected' : 'Available'}
+          </Badge>
+        </div>
+
+        <p className="text-sm text-gray-600 mb-4">
+          Automatically collect ISO 27001 evidence from New Relic — verify monitoring is active, critical
+          alerts are configured, incidents are tracked, uptime meets SLOs, and logs are retained for the
+          required period.
+        </p>
+
+        {/* ISO control tags */}
+        <div className="flex flex-wrap gap-2 mb-5">
+          {['A.8.16 Monitoring', 'A.5.24 Incident Mgmt', 'A.5.30 Availability', 'A.8.15 Log Retention'].map((l) => (
+            <span key={l} className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded-full border border-green-100 font-medium">{l}</span>
+          ))}
+        </div>
+
+        {/* Connected banner */}
+        {connected && nrStatus && (
+          <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2 mb-4">
+            Connected to account <strong>{nrStatus.accountId}</strong> ({nrStatus.region} region) since {new Date(nrStatus.connectedAt).toLocaleDateString()}.
+          </p>
+        )}
+
+        {/* Action buttons */}
+        <div className="flex flex-wrap gap-2">
+          {!loadingStatus && !connected && (
+            <button
+              onClick={() => setShowModal(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#00AC69] text-white text-sm font-medium hover:bg-[#009558]"
+            >
+              <NewRelicIcon className="w-4 h-4" />
+              Connect New Relic
+            </button>
+          )}
+          {connected && (
+            <>
+              <Button variant="outline" size="sm" onClick={handleScan} disabled={scanning}>
+                {scanning ? 'Scanning…' : 'Run Scan Now'}
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleToggleTests}>
+                {showTests ? 'Hide Tests' : 'Automated Tests'}
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleToggleLogs}>
+                {showLogs ? 'Hide Logs' : 'Sync Logs'}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDisconnect}
+                disabled={disconnecting}
+                className="text-red-600 border-red-200 hover:bg-red-50"
+              >
+                {disconnecting ? 'Disconnecting...' : 'Disconnect'}
+              </Button>
+            </>
+          )}
+        </div>
+
+        {/* Automated Tests section */}
+        {connected && showTests && (
+          <div className="mt-5 border-t border-gray-100 pt-4">
+            <h4 className="text-sm font-semibold text-gray-700 mb-3">Automated Tests</h4>
+            {testsLoading ? (
+              <p className="text-sm text-gray-400">Loading tests…</p>
+            ) : tests.length === 0 ? (
+              <p className="text-sm text-gray-400">No tests found. Run a scan to populate results.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-100 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
+                      <th className="py-2 pr-4">Test Name</th>
+                      <th className="py-2 pr-4">Status</th>
+                      <th className="py-2">Last Run</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {tests.map(t => (
+                      <tr key={t.id} className="hover:bg-gray-50">
+                        <td className="py-2 pr-4 text-gray-800">{t.name}</td>
+                        <td className="py-2 pr-4">{testStatusBadge(t.lastResult)}</td>
+                        <td className="py-2 text-xs text-gray-400">
+                          {t.lastRunAt ? new Date(t.lastRunAt).toLocaleString() : '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Sync Logs section */}
+        {connected && showLogs && (
+          <div className="mt-5 border-t border-gray-100 pt-4">
+            <h4 className="text-sm font-semibold text-gray-700 mb-3">Sync Logs</h4>
+            {logsLoading ? (
+              <p className="text-sm text-gray-400">Loading logs…</p>
+            ) : logs.length === 0 ? (
+              <p className="text-sm text-gray-400">No sync logs yet. Run a scan to see results here.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-100 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
+                      <th className="py-2 pr-4">Date</th>
+                      <th className="py-2 pr-4">Type</th>
+                      <th className="py-2 pr-4">Status</th>
+                      <th className="py-2">Message</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {logs.map(log => (
+                      <tr key={log.id} className="hover:bg-gray-50">
+                        <td className="py-2 pr-4 text-xs text-gray-500 whitespace-nowrap">
+                          {new Date(log.createdAt).toLocaleString()}
+                        </td>
+                        <td className="py-2 pr-4">
+                          <span className="inline-block bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">{log.syncType}</span>
+                        </td>
+                        <td className="py-2 pr-4">{logStatusBadge(log.status)}</td>
+                        <td className="py-2 text-xs text-gray-600">{log.message ?? '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+      </Card>
+
+      {showModal && (
+        <NewRelicConnectModal
+          onClose={() => setShowModal(false)}
+          onConnected={(status) => { onConnected(status); onToast('success', 'New Relic connected successfully!'); }}
+        />
+      )}
+    </>
+  );
+}
+
 // ─── Static cards (coming soon) ───────────────────────────────────────────────
 
 const STATIC_INTEGRATIONS = [
@@ -574,7 +906,6 @@ const STATIC_INTEGRATIONS = [
   { name: 'Google Workspace',   category: 'Identity & Access',  description: 'Audit user accounts, group memberships and MFA enforcement across Workspace.' },
   { name: 'Illow',              category: 'Privacy',            description: 'Import consent records and cookie-banner logs for privacy compliance.' },
   { name: 'Intercom',           category: 'Customer Support',   description: 'Link customer data-access requests to your privacy controls and DSARs.' },
-  { name: 'New Relic',          category: 'Observability',      description: 'Surface availability, error-rate and SLO data as security evidence.' },
   { name: 'Notion',             category: 'Knowledge Base',     description: 'Sync policy and procedure pages directly from your Notion workspace.' },
   { name: 'Redash',             category: 'Analytics',          description: 'Export compliance dashboards and audit queries as scheduled evidence.' },
 ];
@@ -755,6 +1086,8 @@ export function IntegrationsPage() {
   const [driveIntegration, setDriveIntegration] = useState<Integration | null>(null);
   const [slackIntegration, setSlackIntegration] = useState<SlackIntegration | null>(null);
   const [slackChannels, setSlackChannels] = useState<SlackChannel[]>([]);
+  const [nrConnected, setNrConnected] = useState(false);
+  const [nrStatus, setNrStatus] = useState<NewRelicStatus | null>(null);
   const [repos, setRepos] = useState<GitHubRepo[]>([]);
   const [loading, setLoading] = useState(true);
   const [disconnecting, setDisconnecting] = useState(false);
@@ -768,10 +1101,11 @@ export function IntegrationsPage() {
 
   const loadStatus = async () => {
     try {
-      const [{ integrations }, slackRes, channelsRes] = await Promise.all([
+      const [{ integrations }, slackRes, channelsRes, nrRes] = await Promise.all([
         integrationsService.getStatus(),
         slackService.getStatus().catch(() => ({ success: false, data: null })),
         slackService.getChannels().catch(() => ({ data: [] as SlackChannel[] })),
+        newRelicService.getStatus().catch(() => ({ connected: false, data: null })),
       ]);
       const gh = integrations.find((i) => i.provider === 'GITHUB' && i.status === 'ACTIVE') ?? null;
       const drive = integrations.find((i) => i.provider === 'GOOGLE_DRIVE' && i.status === 'ACTIVE') ?? null;
@@ -779,6 +1113,8 @@ export function IntegrationsPage() {
       setDriveIntegration(drive);
       setSlackIntegration(slackRes.data);
       setSlackChannels(channelsRes.data ?? []);
+      setNrConnected(nrRes.connected);
+      setNrStatus(nrRes.data);
       if (gh) setRepos(gh.repos);
     } catch {
       /* unauthenticated or network — treat as disconnected */
@@ -943,6 +1279,16 @@ export function IntegrationsPage() {
 
         {/* ── Manzen MDM Agent ─────────────────────────────────────────────── */}
         <MdmCard onToast={showToast} />
+
+        {/* ── New Relic ────────────────────────────────────────────────────── */}
+        <NewRelicCard
+          nrStatus={nrStatus}
+          connected={nrConnected}
+          loadingStatus={loading}
+          onConnected={(status) => { setNrConnected(true); setNrStatus(status); }}
+          onDisconnected={() => { setNrConnected(false); setNrStatus(null); }}
+          onToast={showToast}
+        />
 
         {/* ── Static coming-soon cards ─────────────────────────────────────── */}
         {STATIC_INTEGRATIONS.map((integration) => (
