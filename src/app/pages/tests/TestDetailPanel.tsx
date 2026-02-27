@@ -10,6 +10,7 @@ import { notionService, NotionAvailableDatabase } from '@/services/api/notion';
 import { awsService } from '@/services/api/aws';
 import { cloudflareService } from '@/services/api/cloudflare';
 import { bamboohrService } from '@/services/api/bamboohr';
+import { redashService } from '@/services/api/redash';
 import { usersService } from '@/services/api/users';
 import { authService } from '@/services/api/auth';
 import type { TestRecord, TestStatus, TestCategory, TestType, TestRunRecord } from '@/services/api/tests';
@@ -343,6 +344,11 @@ export function TestDetailPanel({ testId, onClose, onMutated }: TestDetailPanelP
         const hrIntegrationId = meta.hrIntegrationId ?? '';
         return bamboohrService.runScan(hrIntegrationId);
       }
+      if (provider.startsWith('REDASH_')) {
+        const meta = (test?.integration?.metadata ?? {}) as Record<string, string>;
+        const redashIntegrationId = meta.redashIntegrationId ?? '';
+        return redashService.runScan(redashIntegrationId);
+      }
       return integrationsService.runAutomatedTests();
     },
     onSuccess: () => {
@@ -522,6 +528,7 @@ export function TestDetailPanel({ testId, onClose, onMutated }: TestDetailPanelP
                         if (p.startsWith('AWS_')) return 'This test is system-driven via AWS. Results update automatically on every scan.';
                         if (p.startsWith('CLOUDFLARE_')) return 'This test is system-driven via Cloudflare. Results update automatically on every scan.';
                         if (p.startsWith('BAMBOOHR_')) return 'This test is system-driven via BambooHR. Results update automatically on every sync and scan.';
+                        if (p.startsWith('REDASH_')) return 'This test is system-driven via Redash. Results update automatically on every scan.';
                         return 'This test is system-driven via GitHub. Results update automatically on every scan.';
                       })()}
                     </p>
