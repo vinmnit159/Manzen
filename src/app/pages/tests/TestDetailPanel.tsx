@@ -8,6 +8,7 @@ import { integrationsService } from '@/services/api/integrations';
 import { newRelicService } from '@/services/api/newrelic';
 import { notionService, NotionAvailableDatabase } from '@/services/api/notion';
 import { awsService } from '@/services/api/aws';
+import { cloudflareService } from '@/services/api/cloudflare';
 import { usersService } from '@/services/api/users';
 import { authService } from '@/services/api/auth';
 import type { TestRecord, TestStatus, TestCategory, TestType, TestRunRecord } from '@/services/api/tests';
@@ -331,6 +332,11 @@ export function TestDetailPanel({ testId, onClose, onMutated }: TestDetailPanelP
         const awsAccountDbId = meta.awsAccountDbId ?? '';
         return awsService.runScan(awsAccountDbId);
       }
+      if (provider.startsWith('CLOUDFLARE_')) {
+        const meta = (test?.integration?.metadata ?? {}) as Record<string, string>;
+        const cfAccountDbId = meta.cfAccountDbId ?? '';
+        return cloudflareService.runScan(cfAccountDbId);
+      }
       return integrationsService.runAutomatedTests();
     },
     onSuccess: () => {
@@ -508,6 +514,7 @@ export function TestDetailPanel({ testId, onClose, onMutated }: TestDetailPanelP
                         if (p === 'NEWRELIC') return 'This test is system-driven via New Relic. Results update automatically on every scan.';
                         if (p === 'NOTION') return 'This test is system-driven via Notion. Results update automatically on every sync.';
                         if (p.startsWith('AWS_')) return 'This test is system-driven via AWS. Results update automatically on every scan.';
+                        if (p.startsWith('CLOUDFLARE_')) return 'This test is system-driven via Cloudflare. Results update automatically on every scan.';
                         return 'This test is system-driven via GitHub. Results update automatically on every scan.';
                       })()}
                     </p>
