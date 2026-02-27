@@ -11,6 +11,7 @@ import { newRelicService, NewRelicStatus, NewRelicSyncLog } from '@/services/api
 import { notionService, NotionStatus, NotionSyncLog, NotionAvailableDatabase } from '@/services/api/notion';
 import { awsService, AwsAccountRecord } from '@/services/api/aws';
 import { cloudflareService, CloudflareAccountRecord } from '@/services/api/cloudflare';
+import { bamboohrService, HRIntegrationRecord } from '@/services/api/bamboohr';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -1549,6 +1550,246 @@ function AwsCard({
   );
 }
 
+// ─── BambooHR — Connect Modal ─────────────────────────────────────────────────
+
+function BambooHRConnectModal({ onClose, onConnected }: {
+  onClose: () => void;
+  onConnected: (account: HRIntegrationRecord) => void;
+}) {
+  const [subdomain, setSubdomain] = useState('');
+  const [apiKey, setApiKey] = useState('');
+  const [label, setLabel] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!subdomain.trim() || !apiKey.trim()) { setError('Subdomain and API Key are required'); return; }
+    setLoading(true); setError('');
+    try {
+      const res = await bamboohrService.connect({ subdomain: subdomain.trim(), apiKey: apiKey.trim(), label: label.trim() || undefined });
+      if (res.success) {
+        const accountsRes = await bamboohrService.getAccounts();
+        const newAccount = (accountsRes.data ?? []).find(a => a.subdomain === subdomain.trim());
+        if (newAccount) onConnected(newAccount);
+        else onConnected({ id: res.data.id, subdomain: res.data.subdomain, label: res.data.label, status: res.data.status, lastSyncAt: null, createdAt: res.data.createdAt, personnel: [] });
+        onClose();
+      }
+    } catch (err: any) {
+      setError(err?.message ?? 'Failed to connect — check your subdomain and API key');
+    } finally { setLoading(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+        <h2 className="text-lg font-semibold mb-1">Connect BambooHR</h2>
+        <p className="text-sm text-gray-500 mb-3">
+          Generate a read-only API key in <strong>BambooHR → Account → API Keys</strong>.
+          Use your company subdomain (e.g. <code className="bg-gray-100 px-1 rounded text-xs">mycompany</code> from{' '}
+          <code className="bg-gray-100 px-1 rounded text-xs">mycompany.bamboohr.com</code>).
+        </p>
+        <form onSubmit={submit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Company Subdomain <span className="text-gray-400 font-normal">(e.g. mycompany)</span>
+            </label>
+            <input
+              type="text"
+              value={subdomain}
+              onChange={e => setSubdomain(e.target.value)}
+              placeholder="mycompany"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#73AC27]"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              API Key <span className="text-gray-400 font-normal">(read-only)</span>
+            </label>
+            <input
+              type="password"
+              value={apiKey}
+              onChange={e => setApiKey(e.target.value)}
+              placeholder="BambooHR API Key"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#73AC27] font-mono"
+              autoComplete="off"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Label <span className="text-gray-400 font-normal">(optional)</span>
+            </label>
+            <input
+              type="text"
+              value={label}
+              onChange={e => setLabel(e.target.value)}
+              placeholder="e.g. Production HR"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#73AC27]"
+            />
+          </div>
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          <div className="flex gap-2 pt-2">
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-[#73AC27] hover:bg-[#5e8e1f] text-white text-sm font-medium shadow-sm transition-colors disabled:opacity-50"
+            >
+              {loading ? 'Connecting…' : 'Connect BambooHR'}
+            </button>
+            <button type="button" onClick={onClose}
+              className="flex-1 inline-flex items-center justify-center px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50">
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ─── BambooHR — full card ─────────────────────────────────────────────────────
+
+function BambooHRCard({
+  accounts,
+  loadingStatus,
+  onAccountAdded,
+  onAccountRemoved,
+  onToast,
+}: {
+  accounts: HRIntegrationRecord[];
+  loadingStatus: boolean;
+  onAccountAdded: (account: HRIntegrationRecord) => void;
+  onAccountRemoved: (integrationId: string) => void;
+  onToast: (type: 'success' | 'error', msg: string) => void;
+}) {
+  const [showModal, setShowModal] = useState(false);
+  const [syncingId, setSyncingId] = useState<string | null>(null);
+  const [scanningId, setScanningId] = useState<string | null>(null);
+  const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
+
+  const isConnected = accounts.length > 0;
+
+  async function handleSync(integrationId: string) {
+    setSyncingId(integrationId);
+    try {
+      await bamboohrService.syncEmployees(integrationId);
+      onToast('success', 'Employee sync started — roster will update shortly');
+    } catch {
+      onToast('error', 'Failed to start sync');
+    } finally { setSyncingId(null); }
+  }
+
+  async function handleScan(integrationId: string) {
+    setScanningId(integrationId);
+    try {
+      await bamboohrService.runScan(integrationId);
+      onToast('success', 'BambooHR compliance scan started — results will appear in tests shortly');
+    } catch {
+      onToast('error', 'Failed to start scan');
+    } finally { setScanningId(null); }
+  }
+
+  async function handleDisconnect(integrationId: string, label: string | null) {
+    if (!window.confirm(`Disconnect BambooHR${label ? ` (${label})` : ''}? Automated HR tests will stop running.`)) return;
+    setDisconnectingId(integrationId);
+    try {
+      await bamboohrService.disconnect(integrationId);
+      onAccountRemoved(integrationId);
+      onToast('success', 'BambooHR disconnected');
+    } catch {
+      onToast('error', 'Failed to disconnect BambooHR');
+    } finally { setDisconnectingId(null); }
+  }
+
+  return (
+    <>
+      <Card className="p-6 md:col-span-2">
+        {/* Header */}
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center flex-shrink-0 p-1 overflow-hidden">
+              <BambooHRIcon className="w-8 h-8" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">BambooHR</h3>
+              <p className="text-sm text-gray-500">HR · Employee lifecycle & personnel compliance</p>
+            </div>
+          </div>
+          <Badge variant={isConnected ? 'default' : 'outline'}>
+            {loadingStatus ? 'Checking...' : isConnected ? `${accounts.length} connected` : 'Available'}
+          </Badge>
+        </div>
+
+        <p className="text-sm text-gray-600 mb-4">
+          Sync your employee roster from BambooHR to automate HR compliance checks — detect new hires
+          needing onboarding, terminated employees with outstanding access, missing managers, incomplete
+          policy acceptance, and MDM enrollment gaps. All results appear in the Tests page.
+        </p>
+
+        {/* ISO control tags */}
+        <div className="flex flex-wrap gap-2 mb-5">
+          {['A.6.1 HR Policies', 'A.6.3 Security Awareness', 'A.6.5 Termination', 'A.8.1 Asset Responsibility'].map((l) => (
+            <span key={l} className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded-full border border-green-100 font-medium">{l}</span>
+          ))}
+        </div>
+
+        {/* Connected accounts */}
+        {isConnected && accounts.map(account => {
+          const active = account.personnel.filter(p => p.status === 'ACTIVE').length;
+          const total = account.personnel.length;
+          return (
+            <div key={account.id} className="mb-3 flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-lg">
+              <div>
+                <p className="text-sm font-medium text-gray-900">{account.label ?? account.subdomain}</p>
+                <p className="text-xs text-gray-400 font-mono">
+                  {account.subdomain}.bamboohr.com
+                  {total > 0 && ` · ${active} active / ${total} total employees`}
+                  {account.lastSyncAt && ` · Last sync: ${new Date(account.lastSyncAt).toLocaleString()}`}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <Button variant="outline" size="sm" onClick={() => handleSync(account.id)} disabled={syncingId === account.id}>
+                  {syncingId === account.id ? 'Syncing…' : 'Sync'}
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => handleScan(account.id)} disabled={scanningId === account.id}>
+                  {scanningId === account.id ? 'Scanning…' : 'Run Scan'}
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => handleDisconnect(account.id, account.label)} disabled={disconnectingId === account.id}
+                  className="text-red-600 border-red-200 hover:bg-red-50">
+                  {disconnectingId === account.id ? 'Disconnecting...' : 'Disconnect'}
+                </Button>
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Action button */}
+        <div className="flex flex-wrap gap-2">
+          {!loadingStatus && (
+            <button
+              onClick={() => setShowModal(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#73AC27] hover:bg-[#5e8e1f] text-white text-sm font-medium"
+            >
+              <BambooHRIcon className="w-4 h-4" />
+              {isConnected ? '+ Add BambooHR Account' : 'Connect BambooHR'}
+            </button>
+          )}
+        </div>
+      </Card>
+
+      {showModal && (
+        <BambooHRConnectModal
+          onClose={() => setShowModal(false)}
+          onConnected={(account) => {
+            onAccountAdded(account);
+            onToast('success', 'BambooHR connected! Employee sync started and 6 automated tests are being seeded.');
+          }}
+        />
+      )}
+    </>
+  );
+}
+
 // ─── Cloudflare — Connect Modal ──────────────────────────────────────────────
 
 function CloudflareConnectModal({ onClose, onConnected }: {
@@ -1779,7 +2020,6 @@ function CloudflareCard({
 // ─── Static cards (coming soon) ───────────────────────────────────────────────
 
 const STATIC_INTEGRATIONS = [
-  { name: 'BambooHR',           category: 'HR',                 description: 'Sync employee records for personnel compliance and onboarding tracking.' },
   { name: 'Fleet',              category: 'Endpoint',           description: 'Collect device inventory and vulnerability data from Fleet-managed endpoints.' },
   { name: 'Google Workspace',   category: 'Identity & Access',  description: 'Audit user accounts, group memberships and MFA enforcement across Workspace.' },
   { name: 'Illow',              category: 'Privacy',            description: 'Import consent records and cookie-banner logs for privacy compliance.' },
@@ -1969,6 +2209,7 @@ export function IntegrationsPage() {
   const [notionStatus, setNotionStatus] = useState<NotionStatus | null>(null);
   const [awsAccounts, setAwsAccounts] = useState<AwsAccountRecord[]>([]);
   const [cloudflareAccounts, setCloudflareAccounts] = useState<CloudflareAccountRecord[]>([]);
+  const [bamboohrAccounts, setBamboohrAccounts] = useState<HRIntegrationRecord[]>([]);
   const [repos, setRepos] = useState<GitHubRepo[]>([]);
   const [loading, setLoading] = useState(true);
   const [disconnecting, setDisconnecting] = useState(false);
@@ -1982,7 +2223,7 @@ export function IntegrationsPage() {
 
   const loadStatus = async () => {
     try {
-      const [{ integrations }, slackRes, channelsRes, nrRes, notionRes, awsRes, cfRes] = await Promise.all([
+      const [{ integrations }, slackRes, channelsRes, nrRes, notionRes, awsRes, cfRes, bambooRes] = await Promise.all([
         integrationsService.getStatus(),
         slackService.getStatus().catch(() => ({ success: false, data: null })),
         slackService.getChannels().catch(() => ({ data: [] as SlackChannel[] })),
@@ -1990,6 +2231,7 @@ export function IntegrationsPage() {
         notionService.getStatus().catch(() => ({ connected: false, data: null })),
         awsService.getAccounts().catch(() => ({ success: true, data: [] as AwsAccountRecord[] })),
         cloudflareService.getAccounts().catch(() => ({ success: true, data: [] as CloudflareAccountRecord[] })),
+        bamboohrService.getAccounts().catch(() => ({ success: true, data: [] as HRIntegrationRecord[] })),
       ]);
       const gh = integrations.find((i) => i.provider === 'GITHUB' && i.status === 'ACTIVE') ?? null;
       const drive = integrations.find((i) => i.provider === 'GOOGLE_DRIVE' && i.status === 'ACTIVE') ?? null;
@@ -2003,6 +2245,7 @@ export function IntegrationsPage() {
       setNotionStatus(notionRes.data);
       setAwsAccounts(awsRes.data ?? []);
       setCloudflareAccounts(cfRes.data ?? []);
+      setBamboohrAccounts(bambooRes.data ?? []);
       if (gh) setRepos(gh.repos);
     } catch {
       /* unauthenticated or network — treat as disconnected */
@@ -2167,6 +2410,15 @@ export function IntegrationsPage() {
 
         {/* ── Manzen MDM Agent ─────────────────────────────────────────────── */}
         <MdmCard onToast={showToast} />
+
+        {/* ── BambooHR ─────────────────────────────────────────────────────── */}
+        <BambooHRCard
+          accounts={bamboohrAccounts}
+          loadingStatus={loading}
+          onAccountAdded={(account) => setBamboohrAccounts(prev => [...prev.filter(a => a.id !== account.id), account])}
+          onAccountRemoved={(id) => setBamboohrAccounts(prev => prev.filter(a => a.id !== id))}
+          onToast={showToast}
+        />
 
         {/* ── Notion ───────────────────────────────────────────────────────── */}
         <NotionCard
