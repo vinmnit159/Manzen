@@ -7,6 +7,7 @@ import { testsService } from '@/services/api/tests';
 import { integrationsService } from '@/services/api/integrations';
 import { newRelicService } from '@/services/api/newrelic';
 import { notionService, NotionAvailableDatabase } from '@/services/api/notion';
+import { awsService } from '@/services/api/aws';
 import { usersService } from '@/services/api/users';
 import { authService } from '@/services/api/auth';
 import type { TestRecord, TestStatus, TestCategory, TestType, TestRunRecord } from '@/services/api/tests';
@@ -325,6 +326,11 @@ export function TestDetailPanel({ testId, onClose, onMutated }: TestDetailPanelP
     mutationFn: () => {
       const provider = test?.integration?.provider ?? '';
       if (provider === 'NEWRELIC') return newRelicService.runScan();
+      if (provider.startsWith('AWS_')) {
+        const meta = (test?.integration?.metadata ?? {}) as Record<string, string>;
+        const awsAccountDbId = meta.awsAccountDbId ?? '';
+        return awsService.runScan(awsAccountDbId);
+      }
       return integrationsService.runAutomatedTests();
     },
     onSuccess: () => {
@@ -497,7 +503,13 @@ export function TestDetailPanel({ testId, onClose, onMutated }: TestDetailPanelP
                       <p className="text-xs text-gray-500">{runMsg}</p>
                     )}
                     <p className="text-xs text-gray-400">
-                      This test is system-driven via {test.integration?.provider === 'NEWRELIC' ? 'New Relic' : test.integration?.provider === 'NOTION' ? 'Notion' : 'GitHub'}. Results update automatically on every scan.
+                      {(() => {
+                        const p = test.integration?.provider ?? '';
+                        if (p === 'NEWRELIC') return 'This test is system-driven via New Relic. Results update automatically on every scan.';
+                        if (p === 'NOTION') return 'This test is system-driven via Notion. Results update automatically on every sync.';
+                        if (p.startsWith('AWS_')) return 'This test is system-driven via AWS. Results update automatically on every scan.';
+                        return 'This test is system-driven via GitHub. Results update automatically on every scan.';
+                      })()}
                     </p>
                   </div>
                 ) : (
