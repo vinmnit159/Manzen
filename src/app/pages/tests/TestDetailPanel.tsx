@@ -30,6 +30,9 @@ import { checkmarxService } from '@/services/api/checkmarx';
 import { vaultService } from '@/services/api/vault';
 import { secretsManagerService } from '@/services/api/secretsmanager';
 import { certManagerService } from '@/services/api/certmanager';
+import { oktaService } from '@/services/api/okta';
+import { azureAdService } from '@/services/api/azuread';
+import { jumpCloudService } from '@/services/api/jumpcloud';
 import { usersService } from '@/services/api/users';
 import { authService } from '@/services/api/auth';
 import type { TestRecord, TestStatus, TestCategory, TestType, TestRunRecord } from '@/services/api/tests';
@@ -463,6 +466,18 @@ export function TestDetailPanel({ testId, onClose, onMutated }: TestDetailPanelP
         const certManagerIntegrationId = meta.certManagerIntegrationId ?? '';
         return certManagerService.runScan(certManagerIntegrationId);
       }
+      if (provider.startsWith('OKTA_')) {
+        const meta = (test?.integration?.metadata ?? {}) as Record<string, string>;
+        return oktaService.runScan(meta.oktaIntegrationId ?? '');
+      }
+      if (provider.startsWith('AZURE_AD_')) {
+        const meta = (test?.integration?.metadata ?? {}) as Record<string, string>;
+        return azureAdService.runScan(meta.azureAdIntegrationId ?? '');
+      }
+      if (provider.startsWith('JUMPCLOUD_')) {
+        const meta = (test?.integration?.metadata ?? {}) as Record<string, string>;
+        return jumpCloudService.runScan(meta.jumpCloudIntegrationId ?? '');
+      }
       return integrationsService.runAutomatedTests();
     },
     onSuccess: () => {
@@ -662,6 +677,9 @@ export function TestDetailPanel({ testId, onClose, onMutated }: TestDetailPanelP
                          if (p.startsWith('VAULT_')) return 'This test is system-driven via HashiCorp Vault. Results update automatically on every secrets scan.';
                          if (p.startsWith('SECRETS_MANAGER_')) return 'This test is system-driven via AWS Secrets Manager. Results update automatically on every secrets scan.';
                          if (p.startsWith('CERT_MANAGER_')) return 'This test is system-driven via Certificate Manager. Results update automatically on every certificate scan.';
+                         if (p.startsWith('OKTA_')) return 'This test is system-driven via Okta. Results update automatically on every identity scan.';
+                         if (p.startsWith('AZURE_AD_')) return 'This test is system-driven via Azure AD. Results update automatically on every identity scan.';
+                         if (p.startsWith('JUMPCLOUD_')) return 'This test is system-driven via JumpCloud. Results update automatically on every identity scan.';
                          return 'This test is system-driven via GitHub. Results update automatically on every scan.';
                       })()}
                     </p>
