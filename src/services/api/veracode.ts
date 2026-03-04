@@ -1,0 +1,75 @@
+import { apiClient } from './client';
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+export interface VeracodeIntegrationRecord {
+  id: string;
+  label: string | null;
+  status: string;
+  lastSyncAt: string | null;
+  createdAt: string;
+  findingCount: number;
+}
+
+export interface CodeFindingRecord {
+  id: string;
+  provider: string;
+  externalId: string;
+  title: string;
+  severity: string;
+  category: string | null;
+  filePath: string | null;
+  packageName: string | null;
+  cveId: string | null;
+  status: string;
+  hasRemediation: boolean;
+  remediationUrl: string | null;
+  createdAt: string;
+  syncedAt: string;
+}
+
+export interface CodeSyncLogRecord {
+  id: string;
+  provider: string;
+  status: string;
+  findingsFound: number;
+  criticalCount: number;
+  message: string | null;
+  createdAt: string;
+}
+
+// ─── Service ──────────────────────────────────────────────────────────────────
+
+export const veracodeService = {
+  async getAccounts(): Promise<{ success: boolean; data: VeracodeIntegrationRecord[] }> {
+    return apiClient.get('/integrations/veracode/accounts');
+  },
+
+  async connect(data: {
+    apiId: string;
+    apiKey: string;
+    label?: string;
+  }): Promise<{ success: boolean; data: VeracodeIntegrationRecord }> {
+    return apiClient.post('/integrations/veracode/connect', data);
+  },
+
+  async disconnect(integrationId: string): Promise<{ success: boolean }> {
+    return apiClient.delete(`/integrations/veracode/${integrationId}`);
+  },
+
+  async runScan(integrationId: string): Promise<{ success: boolean; message: string }> {
+    return apiClient.post(`/integrations/veracode/${integrationId}/scan`, {});
+  },
+
+  async getFindings(integrationId: string): Promise<{ success: boolean; data: CodeFindingRecord[] }> {
+    return apiClient.get(`/integrations/veracode/${integrationId}/findings`);
+  },
+
+  async getLogs(integrationId: string): Promise<{ success: boolean; data: CodeSyncLogRecord[] }> {
+    return apiClient.get(`/integrations/veracode/${integrationId}/logs`);
+  },
+
+  async getTests(integrationId: string): Promise<{ success: boolean; data: any[]; seeded: boolean }> {
+    return apiClient.get(`/integrations/veracode/${integrationId}/tests`);
+  },
+};

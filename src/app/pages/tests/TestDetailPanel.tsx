@@ -23,6 +23,10 @@ import { gcpService } from '@/services/api/gcp';
 import { azureService } from '@/services/api/azure';
 import { wizService } from '@/services/api/wiz';
 import { laceworkService } from '@/services/api/lacework';
+import { snykService } from '@/services/api/snyk';
+import { sonarqubeService } from '@/services/api/sonarqube';
+import { veracodeService } from '@/services/api/veracode';
+import { checkmarxService } from '@/services/api/checkmarx';
 import { usersService } from '@/services/api/users';
 import { authService } from '@/services/api/auth';
 import type { TestRecord, TestStatus, TestCategory, TestType, TestRunRecord } from '@/services/api/tests';
@@ -421,6 +425,26 @@ export function TestDetailPanel({ testId, onClose, onMutated }: TestDetailPanelP
         const laceworkIntegrationId = meta.laceworkIntegrationId ?? '';
         return laceworkService.runScan(laceworkIntegrationId);
       }
+      if (provider.startsWith('SNYK_')) {
+        const meta = (test?.integration?.metadata ?? {}) as Record<string, string>;
+        const snykIntegrationId = meta.snykIntegrationId ?? '';
+        return snykService.runScan(snykIntegrationId);
+      }
+      if (provider.startsWith('SONARQUBE_')) {
+        const meta = (test?.integration?.metadata ?? {}) as Record<string, string>;
+        const sonarQubeIntegrationId = meta.sonarQubeIntegrationId ?? '';
+        return sonarqubeService.runScan(sonarQubeIntegrationId);
+      }
+      if (provider.startsWith('VERACODE_')) {
+        const meta = (test?.integration?.metadata ?? {}) as Record<string, string>;
+        const veracodeIntegrationId = meta.veracodeIntegrationId ?? '';
+        return veracodeService.runScan(veracodeIntegrationId);
+      }
+      if (provider.startsWith('CHECKMARX_')) {
+        const meta = (test?.integration?.metadata ?? {}) as Record<string, string>;
+        const checkmarxIntegrationId = meta.checkmarxIntegrationId ?? '';
+        return checkmarxService.runScan(checkmarxIntegrationId);
+      }
       return integrationsService.runAutomatedTests();
     },
     onSuccess: () => {
@@ -613,6 +637,10 @@ export function TestDetailPanel({ testId, onClose, onMutated }: TestDetailPanelP
                          if (p.startsWith('AZURE_')) return 'This test is system-driven via Azure. Results update automatically on every cloud scan.';
                          if (p.startsWith('WIZ_')) return 'This test is system-driven via Wiz. Results update automatically on every cloud scan.';
                          if (p.startsWith('LACEWORK_')) return 'This test is system-driven via Lacework. Results update automatically on every cloud scan.';
+                         if (p.startsWith('SNYK_')) return 'This test is system-driven via Snyk. Results update automatically on every code security scan.';
+                         if (p.startsWith('SONARQUBE_')) return 'This test is system-driven via SonarQube. Results update automatically on every code security scan.';
+                         if (p.startsWith('VERACODE_')) return 'This test is system-driven via Veracode. Results update automatically on every code security scan.';
+                         if (p.startsWith('CHECKMARX_')) return 'This test is system-driven via Checkmarx. Results update automatically on every code security scan.';
                          return 'This test is system-driven via GitHub. Results update automatically on every scan.';
                       })()}
                     </p>
