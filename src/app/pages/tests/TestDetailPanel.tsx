@@ -27,6 +27,9 @@ import { snykService } from '@/services/api/snyk';
 import { sonarqubeService } from '@/services/api/sonarqube';
 import { veracodeService } from '@/services/api/veracode';
 import { checkmarxService } from '@/services/api/checkmarx';
+import { vaultService } from '@/services/api/vault';
+import { secretsManagerService } from '@/services/api/secretsmanager';
+import { certManagerService } from '@/services/api/certmanager';
 import { usersService } from '@/services/api/users';
 import { authService } from '@/services/api/auth';
 import type { TestRecord, TestStatus, TestCategory, TestType, TestRunRecord } from '@/services/api/tests';
@@ -445,6 +448,21 @@ export function TestDetailPanel({ testId, onClose, onMutated }: TestDetailPanelP
         const checkmarxIntegrationId = meta.checkmarxIntegrationId ?? '';
         return checkmarxService.runScan(checkmarxIntegrationId);
       }
+      if (provider.startsWith('VAULT_')) {
+        const meta = (test?.integration?.metadata ?? {}) as Record<string, string>;
+        const vaultIntegrationId = meta.vaultIntegrationId ?? '';
+        return vaultService.runScan(vaultIntegrationId);
+      }
+      if (provider.startsWith('SECRETS_MANAGER_')) {
+        const meta = (test?.integration?.metadata ?? {}) as Record<string, string>;
+        const secretsManagerIntegrationId = meta.secretsManagerIntegrationId ?? '';
+        return secretsManagerService.runScan(secretsManagerIntegrationId);
+      }
+      if (provider.startsWith('CERT_MANAGER_')) {
+        const meta = (test?.integration?.metadata ?? {}) as Record<string, string>;
+        const certManagerIntegrationId = meta.certManagerIntegrationId ?? '';
+        return certManagerService.runScan(certManagerIntegrationId);
+      }
       return integrationsService.runAutomatedTests();
     },
     onSuccess: () => {
@@ -641,6 +659,9 @@ export function TestDetailPanel({ testId, onClose, onMutated }: TestDetailPanelP
                          if (p.startsWith('SONARQUBE_')) return 'This test is system-driven via SonarQube. Results update automatically on every code security scan.';
                          if (p.startsWith('VERACODE_')) return 'This test is system-driven via Veracode. Results update automatically on every code security scan.';
                          if (p.startsWith('CHECKMARX_')) return 'This test is system-driven via Checkmarx. Results update automatically on every code security scan.';
+                         if (p.startsWith('VAULT_')) return 'This test is system-driven via HashiCorp Vault. Results update automatically on every secrets scan.';
+                         if (p.startsWith('SECRETS_MANAGER_')) return 'This test is system-driven via AWS Secrets Manager. Results update automatically on every secrets scan.';
+                         if (p.startsWith('CERT_MANAGER_')) return 'This test is system-driven via Certificate Manager. Results update automatically on every certificate scan.';
                          return 'This test is system-driven via GitHub. Results update automatically on every scan.';
                       })()}
                     </p>

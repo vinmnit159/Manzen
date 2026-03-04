@@ -29,6 +29,9 @@ import { snykService, SnykIntegrationRecord } from '@/services/api/snyk';
 import { sonarqubeService, SonarQubeIntegrationRecord } from '@/services/api/sonarqube';
 import { veracodeService, VeracodeIntegrationRecord } from '@/services/api/veracode';
 import { checkmarxService, CheckmarxIntegrationRecord } from '@/services/api/checkmarx';
+import { vaultService, VaultIntegrationRecord } from '@/services/api/vault';
+import { secretsManagerService, SecretsManagerIntegrationRecord } from '@/services/api/secretsmanager';
+import { certManagerService, CertManagerIntegrationRecord } from '@/services/api/certmanager';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -5035,6 +5038,542 @@ function CheckmarxCard({
   );
 }
 
+// ─── Vault — Connect Modal ────────────────────────────────────────────────────
+
+function VaultConnectModal({
+  onClose,
+  onConnected,
+}: {
+  onClose: () => void;
+  onConnected: (account: VaultIntegrationRecord) => void;
+}) {
+  const [vaultAddr, setVaultAddr] = useState('');
+  const [token, setToken] = useState('');
+  const [namespace, setNamespace] = useState('');
+  const [label, setLabel] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true); setError(null);
+    try {
+      const res = await vaultService.connect({ vaultAddr: vaultAddr.trim(), token: token.trim(), namespace: namespace.trim() || undefined, label: label.trim() || undefined });
+      onConnected(res.data);
+    } catch (err: any) {
+      setError(err?.message ?? 'Failed to connect to Vault. Check the address and token.');
+    } finally { setLoading(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md mx-4">
+        <h2 className="text-lg font-semibold mb-1">Connect HashiCorp Vault</h2>
+        <p className="text-sm text-gray-500 mb-4">Enter your Vault address and a token with list/read permissions on your KV secrets engine.</p>
+        <div className="space-y-3">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Vault Address</label>
+            <input type="url" value={vaultAddr} onChange={e => setVaultAddr(e.target.value)} placeholder="https://vault.example.com" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" required />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Vault Token</label>
+            <input type="password" value={token} onChange={e => setToken(e.target.value)} placeholder="hvs.XXXXXXXXXXXX" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 font-mono" required autoComplete="off" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Namespace <span className="text-gray-400 font-normal">(optional — Vault Enterprise)</span></label>
+            <input type="text" value={namespace} onChange={e => setNamespace(e.target.value)} placeholder="admin/team" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Label <span className="text-gray-400 font-normal">(optional)</span></label>
+            <input type="text" value={label} onChange={e => setLabel(e.target.value)} placeholder="e.g. Production Vault" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
+          </div>
+        </div>
+        {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+        <div className="mt-5 flex justify-end gap-2">
+          <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+          <Button type="submit" disabled={loading} className="bg-[#1C1C1C] hover:bg-black text-white">
+            {loading ? 'Connecting…' : 'Connect Vault'}
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function VaultCard({
+  accounts,
+  loadingStatus,
+  onAccountAdded,
+  onAccountRemoved,
+  onToast,
+}: {
+  accounts: VaultIntegrationRecord[];
+  loadingStatus: boolean;
+  onAccountAdded: (account: VaultIntegrationRecord) => void;
+  onAccountRemoved: (id: string) => void;
+  onToast: (type: 'success' | 'error', msg: string) => void;
+}) {
+  const [scanningId, setScanningId] = useState<string | null>(null);
+  const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
+  const [showConnectModal, setShowConnectModal] = useState(false);
+  const isConnected = accounts.length > 0;
+
+  async function handleScan(id: string) {
+    setScanningId(id);
+    try { await vaultService.runScan(id); onToast('success', 'Vault scan started — results will appear in Tests shortly'); }
+    catch { onToast('error', 'Failed to start scan'); }
+    finally { setScanningId(null); }
+  }
+
+  async function handleDisconnect(id: string, label: string | null) {
+    if (!window.confirm(`Disconnect Vault (${label ?? id})? Automated secrets tests will stop running.`)) return;
+    setDisconnectingId(id);
+    try { await vaultService.disconnect(id); onAccountRemoved(id); onToast('success', 'Vault disconnected'); }
+    catch { onToast('error', 'Failed to disconnect Vault'); }
+    finally { setDisconnectingId(null); }
+  }
+
+  return (
+    <>
+      <Card className="p-6">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-[#1C1C1C] flex items-center justify-center flex-shrink-0">
+              <svg className="w-6 h-6" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 4l5 2.18V11c0 3.5-2.33 6.79-5 7.93C9.33 17.79 7 14.5 7 11V7.18L12 5z" opacity="0.9"/>
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">HashiCorp Vault</h3>
+              <p className="text-sm text-gray-500">Secrets Management · KV secrets &amp; rotation</p>
+            </div>
+          </div>
+          <Badge variant={isConnected ? 'default' : 'outline'}>
+            {loadingStatus ? 'Checking...' : isConnected ? `${accounts.length} instance${accounts.length !== 1 ? 's' : ''} connected` : 'Available'}
+          </Badge>
+        </div>
+        <p className="text-sm text-gray-600 mb-4">
+          Connect HashiCorp Vault to verify secrets are stored in an approved manager, rotation policies are met, and audit logging is enabled. All 5 results appear in the Tests page.
+        </p>
+        <div className="flex flex-wrap gap-2 mb-5">
+          {['A.8.24 Secrets Storage', 'A.8.24 Rotation Policy', 'A.8.15 Audit Logging', 'A.8.25 No Plaintext', 'A.5.14 Certificates'].map((l) => (
+            <span key={l} className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full border border-gray-200 font-medium">{l}</span>
+          ))}
+        </div>
+        {isConnected && accounts.map(account => (
+          <div key={account.id} className="mb-3 flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-lg">
+            <div>
+              <p className="text-sm font-medium text-gray-900">{account.label ?? account.vaultAddr}</p>
+              <p className="text-xs text-gray-400 font-mono">
+                {account.vaultAddr}
+                {account.namespace && ` · ns: ${account.namespace}`}
+                {` · ${account.findingCount} finding${account.findingCount !== 1 ? 's' : ''}`}
+                {account.lastSyncAt && ` · Last sync: ${new Date(account.lastSyncAt).toLocaleString()}`}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Button variant="outline" size="sm" onClick={() => handleScan(account.id)} disabled={scanningId === account.id}>
+                {scanningId === account.id ? 'Scanning…' : 'Scan Now'}
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => handleDisconnect(account.id, account.label)} disabled={disconnectingId === account.id} className="text-red-600 border-red-200 hover:bg-red-50">
+                {disconnectingId === account.id ? 'Disconnecting...' : 'Disconnect'}
+              </Button>
+            </div>
+          </div>
+        ))}
+        <div className="flex flex-wrap gap-2">
+          {!loadingStatus && (
+            <button onClick={() => setShowConnectModal(true)} className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#1C1C1C] hover:bg-black text-white text-sm font-medium">
+              {isConnected ? '+ Connect Another Instance' : 'Connect Vault'}
+            </button>
+          )}
+        </div>
+      </Card>
+      {showConnectModal && (
+        <VaultConnectModal
+          onClose={() => setShowConnectModal(false)}
+          onConnected={(account) => { onAccountAdded(account); onToast('success', 'HashiCorp Vault connected! 5 automated secrets tests are being seeded.'); setShowConnectModal(false); }}
+        />
+      )}
+    </>
+  );
+}
+
+// ─── AWS Secrets Manager — Connect Modal ──────────────────────────────────────
+
+function SecretsManagerConnectModal({
+  onClose,
+  onConnected,
+}: {
+  onClose: () => void;
+  onConnected: (account: SecretsManagerIntegrationRecord) => void;
+}) {
+  const [awsRegion, setAwsRegion] = useState('us-east-1');
+  const [accessKeyId, setAccessKeyId] = useState('');
+  const [secretAccessKey, setSecretAccessKey] = useState('');
+  const [label, setLabel] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const AWS_REGIONS = [
+    'us-east-1', 'us-east-2', 'us-west-1', 'us-west-2',
+    'eu-west-1', 'eu-west-2', 'eu-west-3', 'eu-central-1', 'eu-north-1',
+    'ap-southeast-1', 'ap-southeast-2', 'ap-northeast-1', 'ap-south-1',
+    'ca-central-1', 'sa-east-1',
+  ];
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true); setError(null);
+    try {
+      const res = await secretsManagerService.connect({ awsRegion, accessKeyId: accessKeyId.trim(), secretAccessKey: secretAccessKey.trim(), label: label.trim() || undefined });
+      onConnected(res.data);
+    } catch (err: any) {
+      setError(err?.message ?? 'Failed to connect to AWS Secrets Manager. Check your region and credentials.');
+    } finally { setLoading(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md mx-4">
+        <h2 className="text-lg font-semibold mb-1">Connect AWS Secrets Manager</h2>
+        <p className="text-sm text-gray-500 mb-4">Provide IAM credentials with <code className="bg-gray-100 px-1 rounded text-xs">secretsmanager:ListSecrets</code> and <code className="bg-gray-100 px-1 rounded text-xs">secretsmanager:DescribeSecret</code> permissions.</p>
+        <div className="space-y-3">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">AWS Region</label>
+            <select value={awsRegion} onChange={e => setAwsRegion(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF9900]">
+              {AWS_REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Access Key ID</label>
+            <input type="text" value={accessKeyId} onChange={e => setAccessKeyId(e.target.value)} placeholder="AKIAIOSFODNN7EXAMPLE" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF9900] font-mono" required autoComplete="off" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Secret Access Key</label>
+            <input type="password" value={secretAccessKey} onChange={e => setSecretAccessKey(e.target.value)} placeholder="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF9900] font-mono" required autoComplete="off" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Label <span className="text-gray-400 font-normal">(optional)</span></label>
+            <input type="text" value={label} onChange={e => setLabel(e.target.value)} placeholder="e.g. Production" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF9900]" />
+          </div>
+        </div>
+        {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+        <div className="mt-5 flex justify-end gap-2">
+          <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+          <Button type="submit" disabled={loading} className="bg-[#FF9900] hover:bg-[#e68a00] text-white">
+            {loading ? 'Connecting…' : 'Connect Secrets Manager'}
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function SecretsManagerCard({
+  accounts,
+  loadingStatus,
+  onAccountAdded,
+  onAccountRemoved,
+  onToast,
+}: {
+  accounts: SecretsManagerIntegrationRecord[];
+  loadingStatus: boolean;
+  onAccountAdded: (account: SecretsManagerIntegrationRecord) => void;
+  onAccountRemoved: (id: string) => void;
+  onToast: (type: 'success' | 'error', msg: string) => void;
+}) {
+  const [scanningId, setScanningId] = useState<string | null>(null);
+  const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
+  const [showConnectModal, setShowConnectModal] = useState(false);
+  const isConnected = accounts.length > 0;
+
+  async function handleScan(id: string) {
+    setScanningId(id);
+    try { await secretsManagerService.runScan(id); onToast('success', 'AWS Secrets Manager scan started — results will appear in Tests shortly'); }
+    catch { onToast('error', 'Failed to start scan'); }
+    finally { setScanningId(null); }
+  }
+
+  async function handleDisconnect(id: string, label: string | null) {
+    if (!window.confirm(`Disconnect AWS Secrets Manager (${label ?? id})? Automated secrets tests will stop running.`)) return;
+    setDisconnectingId(id);
+    try { await secretsManagerService.disconnect(id); onAccountRemoved(id); onToast('success', 'AWS Secrets Manager disconnected'); }
+    catch { onToast('error', 'Failed to disconnect AWS Secrets Manager'); }
+    finally { setDisconnectingId(null); }
+  }
+
+  return (
+    <>
+      <Card className="p-6">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-[#FF9900] flex items-center justify-center flex-shrink-0">
+              <svg className="w-6 h-6" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2z" opacity="0.9"/>
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">AWS Secrets Manager</h3>
+              <p className="text-sm text-gray-500">Secrets Management · AWS secret lifecycle</p>
+            </div>
+          </div>
+          <Badge variant={isConnected ? 'default' : 'outline'}>
+            {loadingStatus ? 'Checking...' : isConnected ? `${accounts.length} region${accounts.length !== 1 ? 's' : ''} connected` : 'Available'}
+          </Badge>
+        </div>
+        <p className="text-sm text-gray-600 mb-4">
+          Connect AWS Secrets Manager to audit secret rotation, expiry, and audit logging. All 5 results appear in the Tests page.
+        </p>
+        <div className="flex flex-wrap gap-2 mb-5">
+          {['A.8.24 Secrets Storage', 'A.8.24 Rotation Policy', 'A.8.15 Audit Logging', 'A.8.25 No Plaintext', 'A.5.14 Certificates'].map((l) => (
+            <span key={l} className="text-xs bg-orange-50 text-orange-700 px-2 py-1 rounded-full border border-orange-100 font-medium">{l}</span>
+          ))}
+        </div>
+        {isConnected && accounts.map(account => (
+          <div key={account.id} className="mb-3 flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-lg">
+            <div>
+              <p className="text-sm font-medium text-gray-900">{account.label ?? account.awsRegion}</p>
+              <p className="text-xs text-gray-400 font-mono">
+                {account.awsRegion}
+                {` · ${account.findingCount} finding${account.findingCount !== 1 ? 's' : ''}`}
+                {account.lastSyncAt && ` · Last sync: ${new Date(account.lastSyncAt).toLocaleString()}`}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Button variant="outline" size="sm" onClick={() => handleScan(account.id)} disabled={scanningId === account.id}>
+                {scanningId === account.id ? 'Scanning…' : 'Scan Now'}
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => handleDisconnect(account.id, account.label)} disabled={disconnectingId === account.id} className="text-red-600 border-red-200 hover:bg-red-50">
+                {disconnectingId === account.id ? 'Disconnecting...' : 'Disconnect'}
+              </Button>
+            </div>
+          </div>
+        ))}
+        <div className="flex flex-wrap gap-2">
+          {!loadingStatus && (
+            <button onClick={() => setShowConnectModal(true)} className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#FF9900] hover:bg-[#e68a00] text-white text-sm font-medium">
+              {isConnected ? '+ Connect Another Region' : 'Connect Secrets Manager'}
+            </button>
+          )}
+        </div>
+      </Card>
+      {showConnectModal && (
+        <SecretsManagerConnectModal
+          onClose={() => setShowConnectModal(false)}
+          onConnected={(account) => { onAccountAdded(account); onToast('success', 'AWS Secrets Manager connected! 5 automated secrets tests are being seeded.'); setShowConnectModal(false); }}
+        />
+      )}
+    </>
+  );
+}
+
+// ─── Certificate Manager — Connect Modal ──────────────────────────────────────
+
+function CertManagerConnectModal({
+  onClose,
+  onConnected,
+}: {
+  onClose: () => void;
+  onConnected: (account: CertManagerIntegrationRecord) => void;
+}) {
+  const [providerType, setProviderType] = useState('AWS_ACM');
+  const [instanceUrl, setInstanceUrl] = useState('');
+  const [apiKey, setApiKey] = useState('');
+  const [accessKeyId, setAccessKeyId] = useState('');
+  const [secretAccessKey, setSecretAccessKey] = useState('');
+  const [region, setRegion] = useState('us-east-1');
+  const [label, setLabel] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const AWS_REGIONS = [
+    'us-east-1', 'us-east-2', 'us-west-1', 'us-west-2',
+    'eu-west-1', 'eu-west-2', 'eu-west-3', 'eu-central-1', 'eu-north-1',
+    'ap-southeast-1', 'ap-southeast-2', 'ap-northeast-1', 'ap-south-1',
+    'ca-central-1', 'sa-east-1',
+  ];
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true); setError(null);
+    try {
+      const payload: Parameters<typeof certManagerService.connect>[0] = {
+        instanceUrl: providerType === 'AWS_ACM' ? `https://acm.${region}.amazonaws.com` : instanceUrl.trim(),
+        providerType,
+        label: label.trim() || undefined,
+      };
+      if (providerType === 'AWS_ACM') {
+        payload.accessKeyId = accessKeyId.trim();
+        payload.secretAccessKey = secretAccessKey.trim();
+        payload.region = region;
+      } else {
+        payload.apiKey = apiKey.trim();
+      }
+      const res = await certManagerService.connect(payload);
+      onConnected(res.data);
+    } catch (err: any) {
+      setError(err?.message ?? 'Failed to connect Certificate Manager. Check the credentials.');
+    } finally { setLoading(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+        <h2 className="text-lg font-semibold mb-1">Connect Certificate Manager</h2>
+        <p className="text-sm text-gray-500 mb-4">Monitor TLS/SSL certificate expiry and compliance.</p>
+        <div className="space-y-3">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Provider</label>
+            <select value={providerType} onChange={e => setProviderType(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0052CC]">
+              <option value="AWS_ACM">AWS Certificate Manager (ACM)</option>
+              <option value="GENERIC">Generic / REST API</option>
+            </select>
+          </div>
+          {providerType === 'AWS_ACM' ? (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">AWS Region</label>
+                <select value={region} onChange={e => setRegion(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0052CC]">
+                  {AWS_REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Access Key ID</label>
+                <input type="text" value={accessKeyId} onChange={e => setAccessKeyId(e.target.value)} placeholder="AKIAIOSFODNN7EXAMPLE" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0052CC] font-mono" required autoComplete="off" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Secret Access Key</label>
+                <input type="password" value={secretAccessKey} onChange={e => setSecretAccessKey(e.target.value)} placeholder="Secret access key" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0052CC] font-mono" required autoComplete="off" />
+              </div>
+            </>
+          ) : (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Instance URL</label>
+                <input type="url" value={instanceUrl} onChange={e => setInstanceUrl(e.target.value)} placeholder="https://certmanager.example.com" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0052CC]" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">API Key</label>
+                <input type="password" value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder="API key or Bearer token" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0052CC] font-mono" required autoComplete="off" />
+              </div>
+            </>
+          )}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Label <span className="text-gray-400 font-normal">(optional)</span></label>
+            <input type="text" value={label} onChange={e => setLabel(e.target.value)} placeholder="e.g. Production ACM" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0052CC]" />
+          </div>
+        </div>
+        {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+        <div className="mt-5 flex justify-end gap-2">
+          <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+          <Button type="submit" disabled={loading} className="bg-[#0052CC] hover:bg-[#0041a8] text-white">
+            {loading ? 'Connecting…' : 'Connect Cert Manager'}
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function CertManagerCard({
+  accounts,
+  loadingStatus,
+  onAccountAdded,
+  onAccountRemoved,
+  onToast,
+}: {
+  accounts: CertManagerIntegrationRecord[];
+  loadingStatus: boolean;
+  onAccountAdded: (account: CertManagerIntegrationRecord) => void;
+  onAccountRemoved: (id: string) => void;
+  onToast: (type: 'success' | 'error', msg: string) => void;
+}) {
+  const [scanningId, setScanningId] = useState<string | null>(null);
+  const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
+  const [showConnectModal, setShowConnectModal] = useState(false);
+  const isConnected = accounts.length > 0;
+
+  async function handleScan(id: string) {
+    setScanningId(id);
+    try { await certManagerService.runScan(id); onToast('success', 'Certificate Manager scan started — results will appear in Tests shortly'); }
+    catch { onToast('error', 'Failed to start scan'); }
+    finally { setScanningId(null); }
+  }
+
+  async function handleDisconnect(id: string, label: string | null) {
+    if (!window.confirm(`Disconnect Certificate Manager (${label ?? id})? Automated certificate tests will stop running.`)) return;
+    setDisconnectingId(id);
+    try { await certManagerService.disconnect(id); onAccountRemoved(id); onToast('success', 'Certificate Manager disconnected'); }
+    catch { onToast('error', 'Failed to disconnect Certificate Manager'); }
+    finally { setDisconnectingId(null); }
+  }
+
+  return (
+    <>
+      <Card className="p-6">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-[#0052CC] flex items-center justify-center flex-shrink-0">
+              <svg className="w-6 h-6" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-1 14l-4-4 1.41-1.41L11 12.17l6.59-6.59L19 7l-8 8z" opacity="0.9"/>
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Certificate Manager</h3>
+              <p className="text-sm text-gray-500">Secrets &amp; Certs · TLS/SSL certificate lifecycle</p>
+            </div>
+          </div>
+          <Badge variant={isConnected ? 'default' : 'outline'}>
+            {loadingStatus ? 'Checking...' : isConnected ? `${accounts.length} instance${accounts.length !== 1 ? 's' : ''} connected` : 'Available'}
+          </Badge>
+        </div>
+        <p className="text-sm text-gray-600 mb-4">
+          Connect AWS ACM or a generic certificate manager to detect expired or soon-to-expire TLS/SSL certificates. All 5 results appear in the Tests page.
+        </p>
+        <div className="flex flex-wrap gap-2 mb-5">
+          {['A.5.14 No Expired Certs', 'A.8.24 Secrets Storage', 'A.8.24 Rotation Policy', 'A.8.15 Audit Logging', 'A.8.25 No Plaintext'].map((l) => (
+            <span key={l} className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full border border-blue-100 font-medium">{l}</span>
+          ))}
+        </div>
+        {isConnected && accounts.map(account => (
+          <div key={account.id} className="mb-3 flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-lg">
+            <div>
+              <p className="text-sm font-medium text-gray-900">{account.label ?? account.instanceUrl}</p>
+              <p className="text-xs text-gray-400 font-mono">
+                {account.providerType}
+                {` · ${account.findingCount} finding${account.findingCount !== 1 ? 's' : ''}`}
+                {account.lastSyncAt && ` · Last sync: ${new Date(account.lastSyncAt).toLocaleString()}`}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Button variant="outline" size="sm" onClick={() => handleScan(account.id)} disabled={scanningId === account.id}>
+                {scanningId === account.id ? 'Scanning…' : 'Scan Now'}
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => handleDisconnect(account.id, account.label)} disabled={disconnectingId === account.id} className="text-red-600 border-red-200 hover:bg-red-50">
+                {disconnectingId === account.id ? 'Disconnecting...' : 'Disconnect'}
+              </Button>
+            </div>
+          </div>
+        ))}
+        <div className="flex flex-wrap gap-2">
+          {!loadingStatus && (
+            <button onClick={() => setShowConnectModal(true)} className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#0052CC] hover:bg-[#0041a8] text-white text-sm font-medium">
+              {isConnected ? '+ Connect Another Instance' : 'Connect Cert Manager'}
+            </button>
+          )}
+        </div>
+      </Card>
+      {showConnectModal && (
+        <CertManagerConnectModal
+          onClose={() => setShowConnectModal(false)}
+          onConnected={(account) => { onAccountAdded(account); onToast('success', 'Certificate Manager connected! 5 automated certificate tests are being seeded.'); setShowConnectModal(false); }}
+        />
+      )}
+    </>
+  );
+}
+
 // ─── Static cards (coming soon) ───────────────────────────────────────────────
 
 const STATIC_INTEGRATIONS: { name: string; category: string; description: string }[] = [];
@@ -5239,6 +5778,9 @@ export function IntegrationsPage() {
   const [sonarqubeAccounts, setSonarqubeAccounts] = useState<SonarQubeIntegrationRecord[]>([]);
   const [veracodeAccounts, setVeracodeAccounts] = useState<VeracodeIntegrationRecord[]>([]);
   const [checkmarxAccounts, setCheckmarxAccounts] = useState<CheckmarxIntegrationRecord[]>([]);
+  const [vaultAccounts, setVaultAccounts] = useState<VaultIntegrationRecord[]>([]);
+  const [secretsManagerAccounts, setSecretsManagerAccounts] = useState<SecretsManagerIntegrationRecord[]>([]);
+  const [certManagerAccounts, setCertManagerAccounts] = useState<CertManagerIntegrationRecord[]>([]);
   const [repos, setRepos] = useState<GitHubRepo[]>([]);
   const [loading, setLoading] = useState(true);
   const [disconnecting, setDisconnecting] = useState(false);
@@ -5252,7 +5794,7 @@ export function IntegrationsPage() {
 
   const loadStatus = async () => {
     try {
-      const [{ integrations }, slackRes, channelsRes, nrRes, notionRes, awsRes, cfRes, bambooRes, redashRes, workspaceRes, fleetRes, intercomRes, bigIdRes, pdRes, ogRes, snRes, ddRes, gcpRes, azureRes, wizRes, laceworkRes, snykRes, sonarqubeRes, veracodeRes, checkmarxRes] = await Promise.all([
+      const [{ integrations }, slackRes, channelsRes, nrRes, notionRes, awsRes, cfRes, bambooRes, redashRes, workspaceRes, fleetRes, intercomRes, bigIdRes, pdRes, ogRes, snRes, ddRes, gcpRes, azureRes, wizRes, laceworkRes, snykRes, sonarqubeRes, veracodeRes, checkmarxRes, vaultRes, secretsManagerRes, certManagerRes] = await Promise.all([
         integrationsService.getStatus(),
         slackService.getStatus().catch(() => ({ success: false, data: null })),
         slackService.getChannels().catch(() => ({ data: [] as SlackChannel[] })),
@@ -5278,6 +5820,9 @@ export function IntegrationsPage() {
         sonarqubeService.getAccounts().catch(() => ({ success: true, data: [] as SonarQubeIntegrationRecord[] })),
         veracodeService.getAccounts().catch(() => ({ success: true, data: [] as VeracodeIntegrationRecord[] })),
         checkmarxService.getAccounts().catch(() => ({ success: true, data: [] as CheckmarxIntegrationRecord[] })),
+        vaultService.getAccounts().catch(() => ({ success: true, data: [] as VaultIntegrationRecord[] })),
+        secretsManagerService.getAccounts().catch(() => ({ success: true, data: [] as SecretsManagerIntegrationRecord[] })),
+        certManagerService.getAccounts().catch(() => ({ success: true, data: [] as CertManagerIntegrationRecord[] })),
       ]);
       const gh = integrations.find((i) => i.provider === 'GITHUB' && i.status === 'ACTIVE') ?? null;
       const drive = integrations.find((i) => i.provider === 'GOOGLE_DRIVE' && i.status === 'ACTIVE') ?? null;
@@ -5309,6 +5854,9 @@ export function IntegrationsPage() {
       setSonarqubeAccounts(sonarqubeRes.data ?? []);
       setVeracodeAccounts(veracodeRes.data ?? []);
       setCheckmarxAccounts(checkmarxRes.data ?? []);
+      setVaultAccounts(vaultRes.data ?? []);
+      setSecretsManagerAccounts(secretsManagerRes.data ?? []);
+      setCertManagerAccounts(certManagerRes.data ?? []);
       if (gh) setRepos(gh.repos);
     } catch {
       /* unauthenticated or network — treat as disconnected */
@@ -5672,6 +6220,33 @@ export function IntegrationsPage() {
           loadingStatus={loading}
           onAccountAdded={(account) => setCheckmarxAccounts(prev => [...prev.filter(a => a.id !== account.id), account])}
           onAccountRemoved={(id) => setCheckmarxAccounts(prev => prev.filter(a => a.id !== id))}
+          onToast={showToast}
+        />
+
+        {/* ── HashiCorp Vault ──────────────────────────────────────────────── */}
+        <VaultCard
+          accounts={vaultAccounts}
+          loadingStatus={loading}
+          onAccountAdded={(account) => setVaultAccounts(prev => [...prev.filter(a => a.id !== account.id), account])}
+          onAccountRemoved={(id) => setVaultAccounts(prev => prev.filter(a => a.id !== id))}
+          onToast={showToast}
+        />
+
+        {/* ── AWS Secrets Manager ──────────────────────────────────────────── */}
+        <SecretsManagerCard
+          accounts={secretsManagerAccounts}
+          loadingStatus={loading}
+          onAccountAdded={(account) => setSecretsManagerAccounts(prev => [...prev.filter(a => a.id !== account.id), account])}
+          onAccountRemoved={(id) => setSecretsManagerAccounts(prev => prev.filter(a => a.id !== id))}
+          onToast={showToast}
+        />
+
+        {/* ── Certificate Manager ──────────────────────────────────────────── */}
+        <CertManagerCard
+          accounts={certManagerAccounts}
+          loadingStatus={loading}
+          onAccountAdded={(account) => setCertManagerAccounts(prev => [...prev.filter(a => a.id !== account.id), account])}
+          onAccountRemoved={(id) => setCertManagerAccounts(prev => prev.filter(a => a.id !== id))}
           onToast={showToast}
         />
 
