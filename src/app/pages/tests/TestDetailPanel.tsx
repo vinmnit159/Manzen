@@ -15,6 +15,10 @@ import { workspaceService } from '@/services/api/workspace';
 import { fleetService } from '@/services/api/fleet';
 import { intercomService } from '@/services/api/intercom';
 import { bigIdService } from '@/services/api/bigid';
+import { pagerdutyService } from '@/services/api/pagerduty';
+import { opsgenieService } from '@/services/api/opsgenie';
+import { servicenowIncidentService } from '@/services/api/servicenow-incident';
+import { datadogIncidentsService } from '@/services/api/datadog-incidents';
 import { usersService } from '@/services/api/users';
 import { authService } from '@/services/api/auth';
 import type { TestRecord, TestStatus, TestCategory, TestType, TestRunRecord } from '@/services/api/tests';
@@ -373,6 +377,26 @@ export function TestDetailPanel({ testId, onClose, onMutated }: TestDetailPanelP
         const bigIdIntegrationId = meta.bigIdIntegrationId ?? '';
         return bigIdService.runScan(bigIdIntegrationId);
       }
+      if (provider.startsWith('PAGERDUTY_')) {
+        const meta = (test?.integration?.metadata ?? {}) as Record<string, string>;
+        const pagerdutyIntegrationId = meta.pagerdutyIntegrationId ?? '';
+        return pagerdutyService.runScan(pagerdutyIntegrationId);
+      }
+      if (provider.startsWith('OPSGENIE_')) {
+        const meta = (test?.integration?.metadata ?? {}) as Record<string, string>;
+        const opsgenieIntegrationId = meta.opsgenieIntegrationId ?? '';
+        return opsgenieService.runScan(opsgenieIntegrationId);
+      }
+      if (provider.startsWith('SERVICENOW_INCIDENT_')) {
+        const meta = (test?.integration?.metadata ?? {}) as Record<string, string>;
+        const servicenowIntegrationId = meta.servicenowIntegrationId ?? '';
+        return servicenowIncidentService.runScan(servicenowIntegrationId);
+      }
+      if (provider.startsWith('DATADOG_INCIDENTS_')) {
+        const meta = (test?.integration?.metadata ?? {}) as Record<string, string>;
+        const datadogIntegrationId = meta.datadogIntegrationId ?? '';
+        return datadogIncidentsService.runScan(datadogIntegrationId);
+      }
       return integrationsService.runAutomatedTests();
     },
     onSuccess: () => {
@@ -556,6 +580,11 @@ export function TestDetailPanel({ testId, onClose, onMutated }: TestDetailPanelP
                         if (p.startsWith('GOOGLE_WORKSPACE_')) return 'This test is system-driven via Google Workspace. Results update automatically on every scan.';
                         if (p.startsWith('FLEET_')) return 'This test is system-driven via Fleet. Results update automatically on every endpoint scan.';
                         if (p.startsWith('INTERCOM_')) return 'This test is system-driven via Intercom. Results update automatically on every scan.';
+                        if (p.startsWith('BIGID_')) return 'This test is system-driven via BigID. Results update automatically on every scan.';
+                        if (p.startsWith('PAGERDUTY_')) return 'This test is system-driven via PagerDuty. Results update automatically on every scan.';
+                        if (p.startsWith('OPSGENIE_')) return 'This test is system-driven via Opsgenie. Results update automatically on every scan.';
+                        if (p.startsWith('SERVICENOW_INCIDENT_')) return 'This test is system-driven via ServiceNow. Results update automatically on every scan.';
+                        if (p.startsWith('DATADOG_INCIDENTS_')) return 'This test is system-driven via Datadog. Results update automatically on every scan.';
                         return 'This test is system-driven via GitHub. Results update automatically on every scan.';
                       })()}
                     </p>

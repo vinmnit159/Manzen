@@ -17,6 +17,10 @@ import { workspaceService, WorkspaceIntegrationRecord } from '@/services/api/wor
 import { fleetService, FleetIntegrationRecord } from '@/services/api/fleet';
 import { intercomService, IntercomIntegrationRecord } from '@/services/api/intercom';
 import { bigIdService, BigIdIntegrationRecord } from '@/services/api/bigid';
+import { pagerdutyService, PagerDutyIntegrationRecord } from '@/services/api/pagerduty';
+import { opsgenieService, OpsgenieIntegrationRecord } from '@/services/api/opsgenie';
+import { servicenowIncidentService, ServiceNowIntegrationRecord } from '@/services/api/servicenow-incident';
+import { datadogIncidentsService, DatadogIntegrationRecord } from '@/services/api/datadog-incidents';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -3083,6 +3087,688 @@ function BigIdCard({
   );
 }
 
+// ─── PagerDuty — Connect Modal ────────────────────────────────────────────────
+
+function PagerDutyConnectModal({
+  onClose,
+  onConnected,
+}: {
+  onClose: () => void;
+  onConnected: (account: PagerDutyIntegrationRecord) => void;
+}) {
+  const [apiKey, setApiKey] = useState('');
+  const [label, setLabel] = useState('');
+  const [slaHours, setSlaHours] = useState('4');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!apiKey.trim()) { setError('API key is required'); return; }
+    setLoading(true); setError('');
+    try {
+      const res = await pagerdutyService.connect({ apiKey: apiKey.trim(), label: label.trim() || undefined, slaHours: Number(slaHours) || 4 });
+      onConnected(res.data);
+      onClose();
+    } catch (err: any) {
+      setError(err?.message ?? 'Failed to connect to PagerDuty. Check the API key.');
+    } finally { setLoading(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+        <h2 className="text-lg font-semibold mb-1">Connect PagerDuty</h2>
+        <p className="text-sm text-gray-500 mb-4">Enter your PagerDuty API key (User or Account API key) to start incident compliance scanning.</p>
+        <form onSubmit={submit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">API Key</label>
+            <input type="password" value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder="y_NbAkKc66ryYTWUXYEu" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">SLA Hours <span className="text-gray-400 font-normal">(acknowledgement target)</span></label>
+            <input type="number" min="1" max="72" value={slaHours} onChange={e => setSlaHours(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Label <span className="text-gray-400 font-normal">(optional)</span></label>
+            <input type="text" value={label} onChange={e => setLabel(e.target.value)} placeholder="e.g. Production PagerDuty" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
+          </div>
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          <div className="flex gap-2 pt-2">
+            <button type="submit" disabled={loading} className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium shadow-sm transition-colors disabled:opacity-50">
+              {loading ? 'Connecting…' : 'Connect PagerDuty'}
+            </button>
+            <button type="button" onClick={onClose} className="flex-1 inline-flex items-center justify-center px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function PagerDutyCard({
+  accounts,
+  loadingStatus,
+  onAccountAdded,
+  onAccountRemoved,
+  onToast,
+}: {
+  accounts: PagerDutyIntegrationRecord[];
+  loadingStatus: boolean;
+  onAccountAdded: (account: PagerDutyIntegrationRecord) => void;
+  onAccountRemoved: (id: string) => void;
+  onToast: (type: 'success' | 'error', msg: string) => void;
+}) {
+  const [scanningId, setScanningId] = useState<string | null>(null);
+  const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
+  const [showConnectModal, setShowConnectModal] = useState(false);
+  const isConnected = accounts.length > 0;
+
+  async function handleScan(id: string) {
+    setScanningId(id);
+    try { await pagerdutyService.runScan(id); onToast('success', 'PagerDuty scan started — results will appear in Tests shortly'); }
+    catch { onToast('error', 'Failed to start scan'); }
+    finally { setScanningId(null); }
+  }
+
+  async function handleDisconnect(id: string, label: string | null) {
+    if (!window.confirm(`Disconnect PagerDuty (${label ?? id})? Automated incident tests will stop running.`)) return;
+    setDisconnectingId(id);
+    try { await pagerdutyService.disconnect(id); onAccountRemoved(id); onToast('success', 'PagerDuty disconnected'); }
+    catch { onToast('error', 'Failed to disconnect PagerDuty'); }
+    finally { setDisconnectingId(null); }
+  }
+
+  return (
+    <>
+      <Card className="p-6 md:col-span-2">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-[#06AC38] flex items-center justify-center flex-shrink-0">
+              <svg className="w-6 h-6" viewBox="0 0 32 32" fill="white" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18 4h-6v10h6c2.8 0 5-2.2 5-5s-2.2-5-5-5zM12 16v12h4v-8h2c4.4 0 8-3.6 8-8s-3.6-8-8-8h-6v12z" fill="white"/>
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">PagerDuty</h3>
+              <p className="text-sm text-gray-500">Incident Management · On-call &amp; escalation policies</p>
+            </div>
+          </div>
+          <Badge variant={isConnected ? 'default' : 'outline'}>
+            {loadingStatus ? 'Checking...' : isConnected ? `${accounts.length} instance${accounts.length !== 1 ? 's' : ''} connected` : 'Available'}
+          </Badge>
+        </div>
+        <p className="text-sm text-gray-600 mb-4">
+          Monitor incident response SLAs, track open incidents, and verify on-call escalation policies against ISO 27001 A.5.24–A.5.27 controls. All 5 results appear in the Tests page.
+        </p>
+        <div className="flex flex-wrap gap-2 mb-5">
+          {['A.5.24 Incident Planning', 'A.5.25 Event Assessment', 'A.5.26 Incident Response', 'A.5.27 RCA Learning'].map((l) => (
+            <span key={l} className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded-full border border-green-100 font-medium">{l}</span>
+          ))}
+        </div>
+        {isConnected && accounts.map(account => (
+          <div key={account.id} className="mb-3 flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-lg">
+            <div>
+              <p className="text-sm font-medium text-gray-900">{account.label ?? `PagerDuty Account`}</p>
+              <p className="text-xs text-gray-400 font-mono">
+                {account.incidentCount} incident{account.incidentCount !== 1 ? 's' : ''}
+                {account.lastSyncAt && ` · Last sync: ${new Date(account.lastSyncAt).toLocaleString()}`}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Button variant="outline" size="sm" onClick={() => handleScan(account.id)} disabled={scanningId === account.id}>
+                {scanningId === account.id ? 'Scanning…' : 'Scan Now'}
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => handleDisconnect(account.id, account.label)} disabled={disconnectingId === account.id} className="text-red-600 border-red-200 hover:bg-red-50">
+                {disconnectingId === account.id ? 'Disconnecting...' : 'Disconnect'}
+              </Button>
+            </div>
+          </div>
+        ))}
+        <div className="flex flex-wrap gap-2">
+          {!loadingStatus && (
+            <button onClick={() => setShowConnectModal(true)} className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#06AC38] hover:bg-[#058f2e] text-white text-sm font-medium">
+              {isConnected ? '+ Connect Another Account' : 'Connect PagerDuty'}
+            </button>
+          )}
+        </div>
+      </Card>
+      {showConnectModal && (
+        <PagerDutyConnectModal
+          onClose={() => setShowConnectModal(false)}
+          onConnected={(account) => { onAccountAdded(account); onToast('success', 'PagerDuty connected! 5 automated incident tests are being seeded.'); }}
+        />
+      )}
+    </>
+  );
+}
+
+// ─── Opsgenie — Connect Modal ─────────────────────────────────────────────────
+
+function OpsgenieConnectModal({
+  onClose,
+  onConnected,
+}: {
+  onClose: () => void;
+  onConnected: (account: OpsgenieIntegrationRecord) => void;
+}) {
+  const [apiKey, setApiKey] = useState('');
+  const [region, setRegion] = useState('us');
+  const [label, setLabel] = useState('');
+  const [slaHours, setSlaHours] = useState('4');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!apiKey.trim()) { setError('API key is required'); return; }
+    setLoading(true); setError('');
+    try {
+      const res = await opsgenieService.connect({ apiKey: apiKey.trim(), region, label: label.trim() || undefined, slaHours: Number(slaHours) || 4 });
+      onConnected(res.data);
+      onClose();
+    } catch (err: any) {
+      setError(err?.message ?? 'Failed to connect to Opsgenie. Check the API key.');
+    } finally { setLoading(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+        <h2 className="text-lg font-semibold mb-1">Connect Opsgenie</h2>
+        <p className="text-sm text-gray-500 mb-4">Enter your Opsgenie API key to start alert compliance scanning.</p>
+        <form onSubmit={submit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">API Key</label>
+            <input type="password" value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Region</label>
+            <select value={region} onChange={e => setRegion(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900">
+              <option value="us">US</option>
+              <option value="eu">EU</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">SLA Hours <span className="text-gray-400 font-normal">(acknowledgement target)</span></label>
+            <input type="number" min="1" max="72" value={slaHours} onChange={e => setSlaHours(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Label <span className="text-gray-400 font-normal">(optional)</span></label>
+            <input type="text" value={label} onChange={e => setLabel(e.target.value)} placeholder="e.g. Production Opsgenie" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
+          </div>
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          <div className="flex gap-2 pt-2">
+            <button type="submit" disabled={loading} className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium shadow-sm transition-colors disabled:opacity-50">
+              {loading ? 'Connecting…' : 'Connect Opsgenie'}
+            </button>
+            <button type="button" onClick={onClose} className="flex-1 inline-flex items-center justify-center px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function OpsgenieCard({
+  accounts,
+  loadingStatus,
+  onAccountAdded,
+  onAccountRemoved,
+  onToast,
+}: {
+  accounts: OpsgenieIntegrationRecord[];
+  loadingStatus: boolean;
+  onAccountAdded: (account: OpsgenieIntegrationRecord) => void;
+  onAccountRemoved: (id: string) => void;
+  onToast: (type: 'success' | 'error', msg: string) => void;
+}) {
+  const [scanningId, setScanningId] = useState<string | null>(null);
+  const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
+  const [showConnectModal, setShowConnectModal] = useState(false);
+  const isConnected = accounts.length > 0;
+
+  async function handleScan(id: string) {
+    setScanningId(id);
+    try { await opsgenieService.runScan(id); onToast('success', 'Opsgenie scan started — results will appear in Tests shortly'); }
+    catch { onToast('error', 'Failed to start scan'); }
+    finally { setScanningId(null); }
+  }
+
+  async function handleDisconnect(id: string, label: string | null) {
+    if (!window.confirm(`Disconnect Opsgenie (${label ?? id})? Automated incident tests will stop running.`)) return;
+    setDisconnectingId(id);
+    try { await opsgenieService.disconnect(id); onAccountRemoved(id); onToast('success', 'Opsgenie disconnected'); }
+    catch { onToast('error', 'Failed to disconnect Opsgenie'); }
+    finally { setDisconnectingId(null); }
+  }
+
+  return (
+    <>
+      <Card className="p-6 md:col-span-2">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-[#2D6AE7] flex items-center justify-center flex-shrink-0">
+              <svg className="w-6 h-6" viewBox="0 0 32 32" fill="white" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="16" cy="16" r="8" fill="white" opacity="0.9"/>
+                <path d="M16 8a8 8 0 1 0 0 16A8 8 0 0 0 16 8zm0 14a6 6 0 1 1 0-12 6 6 0 0 1 0 12z" fill="#2D6AE7"/>
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Opsgenie</h3>
+              <p className="text-sm text-gray-500">Alert Management · On-call schedules &amp; SLA tracking</p>
+            </div>
+          </div>
+          <Badge variant={isConnected ? 'default' : 'outline'}>
+            {loadingStatus ? 'Checking...' : isConnected ? `${accounts.length} instance${accounts.length !== 1 ? 's' : ''} connected` : 'Available'}
+          </Badge>
+        </div>
+        <p className="text-sm text-gray-600 mb-4">
+          Track alert response SLAs, verify on-call schedule coverage, and ensure critical alerts are actively managed. All 5 results appear in the Tests page.
+        </p>
+        <div className="flex flex-wrap gap-2 mb-5">
+          {['A.5.24 Incident Planning', 'A.5.25 Event Assessment', 'A.5.26 Incident Response', 'A.5.27 RCA Learning'].map((l) => (
+            <span key={l} className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full border border-blue-100 font-medium">{l}</span>
+          ))}
+        </div>
+        {isConnected && accounts.map(account => (
+          <div key={account.id} className="mb-3 flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-lg">
+            <div>
+              <p className="text-sm font-medium text-gray-900">{account.label ?? `Opsgenie (${account.region.toUpperCase()})`}</p>
+              <p className="text-xs text-gray-400 font-mono">
+                {account.incidentCount} alert{account.incidentCount !== 1 ? 's' : ''}
+                {account.lastSyncAt && ` · Last sync: ${new Date(account.lastSyncAt).toLocaleString()}`}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Button variant="outline" size="sm" onClick={() => handleScan(account.id)} disabled={scanningId === account.id}>
+                {scanningId === account.id ? 'Scanning…' : 'Scan Now'}
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => handleDisconnect(account.id, account.label)} disabled={disconnectingId === account.id} className="text-red-600 border-red-200 hover:bg-red-50">
+                {disconnectingId === account.id ? 'Disconnecting...' : 'Disconnect'}
+              </Button>
+            </div>
+          </div>
+        ))}
+        <div className="flex flex-wrap gap-2">
+          {!loadingStatus && (
+            <button onClick={() => setShowConnectModal(true)} className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#2D6AE7] hover:bg-[#2158c4] text-white text-sm font-medium">
+              {isConnected ? '+ Connect Another Account' : 'Connect Opsgenie'}
+            </button>
+          )}
+        </div>
+      </Card>
+      {showConnectModal && (
+        <OpsgenieConnectModal
+          onClose={() => setShowConnectModal(false)}
+          onConnected={(account) => { onAccountAdded(account); onToast('success', 'Opsgenie connected! 5 automated incident tests are being seeded.'); }}
+        />
+      )}
+    </>
+  );
+}
+
+// ─── ServiceNow Incident — Connect Modal ──────────────────────────────────────
+
+function ServiceNowConnectModal({
+  onClose,
+  onConnected,
+}: {
+  onClose: () => void;
+  onConnected: (account: ServiceNowIntegrationRecord) => void;
+}) {
+  const [instanceUrl, setInstanceUrl] = useState('');
+  const [authMethod, setAuthMethod] = useState('basic');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [token, setToken] = useState('');
+  const [label, setLabel] = useState('');
+  const [slaHours, setSlaHours] = useState('4');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!instanceUrl.trim()) { setError('Instance URL is required'); return; }
+    setLoading(true); setError('');
+    try {
+      const payload: any = { instanceUrl: instanceUrl.trim(), authMethod, label: label.trim() || undefined, slaHours: Number(slaHours) || 4 };
+      if (authMethod === 'token') payload.token = token;
+      else { payload.username = username; payload.password = password; }
+      const res = await servicenowIncidentService.connect(payload);
+      onConnected(res.data);
+      onClose();
+    } catch (err: any) {
+      setError(err?.message ?? 'Failed to connect to ServiceNow. Check credentials.');
+    } finally { setLoading(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6 overflow-y-auto max-h-[90vh]">
+        <h2 className="text-lg font-semibold mb-1">Connect ServiceNow</h2>
+        <p className="text-sm text-gray-500 mb-4">Connect your ServiceNow instance to track incident compliance.</p>
+        <form onSubmit={submit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Instance URL</label>
+            <input type="url" value={instanceUrl} onChange={e => setInstanceUrl(e.target.value)} placeholder="https://yourinstance.service-now.com" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Auth Method</label>
+            <select value={authMethod} onChange={e => setAuthMethod(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900">
+              <option value="basic">Basic (username/password)</option>
+              <option value="token">Bearer Token</option>
+            </select>
+          </div>
+          {authMethod === 'basic' ? (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                <input type="text" value={username} onChange={e => setUsername(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
+              </div>
+            </>
+          ) : (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Bearer Token</label>
+              <input type="password" value={token} onChange={e => setToken(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
+            </div>
+          )}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">SLA Hours <span className="text-gray-400 font-normal">(acknowledgement target)</span></label>
+            <input type="number" min="1" max="72" value={slaHours} onChange={e => setSlaHours(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Label <span className="text-gray-400 font-normal">(optional)</span></label>
+            <input type="text" value={label} onChange={e => setLabel(e.target.value)} placeholder="e.g. Production ServiceNow" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
+          </div>
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          <div className="flex gap-2 pt-2">
+            <button type="submit" disabled={loading} className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium shadow-sm transition-colors disabled:opacity-50">
+              {loading ? 'Connecting…' : 'Connect ServiceNow'}
+            </button>
+            <button type="button" onClick={onClose} className="flex-1 inline-flex items-center justify-center px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function ServiceNowIncidentCard({
+  accounts,
+  loadingStatus,
+  onAccountAdded,
+  onAccountRemoved,
+  onToast,
+}: {
+  accounts: ServiceNowIntegrationRecord[];
+  loadingStatus: boolean;
+  onAccountAdded: (account: ServiceNowIntegrationRecord) => void;
+  onAccountRemoved: (id: string) => void;
+  onToast: (type: 'success' | 'error', msg: string) => void;
+}) {
+  const [scanningId, setScanningId] = useState<string | null>(null);
+  const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
+  const [showConnectModal, setShowConnectModal] = useState(false);
+  const isConnected = accounts.length > 0;
+
+  async function handleScan(id: string) {
+    setScanningId(id);
+    try { await servicenowIncidentService.runScan(id); onToast('success', 'ServiceNow scan started — results will appear in Tests shortly'); }
+    catch { onToast('error', 'Failed to start scan'); }
+    finally { setScanningId(null); }
+  }
+
+  async function handleDisconnect(id: string, label: string | null, instanceUrl: string) {
+    const name = label ?? instanceUrl;
+    if (!window.confirm(`Disconnect ServiceNow (${name})? Automated incident tests will stop running.`)) return;
+    setDisconnectingId(id);
+    try { await servicenowIncidentService.disconnect(id); onAccountRemoved(id); onToast('success', 'ServiceNow disconnected'); }
+    catch { onToast('error', 'Failed to disconnect ServiceNow'); }
+    finally { setDisconnectingId(null); }
+  }
+
+  return (
+    <>
+      <Card className="p-6 md:col-span-2">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-[#81B5A1] flex items-center justify-center flex-shrink-0">
+              <svg className="w-6 h-6" viewBox="0 0 32 32" fill="white" xmlns="http://www.w3.org/2000/svg">
+                <path d="M4 8h24v4H4zM4 14h18v4H4zM4 20h20v4H4z" fill="white"/>
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">ServiceNow</h3>
+              <p className="text-sm text-gray-500">Incident Management · ITSM &amp; SLA compliance</p>
+            </div>
+          </div>
+          <Badge variant={isConnected ? 'default' : 'outline'}>
+            {loadingStatus ? 'Checking...' : isConnected ? `${accounts.length} instance${accounts.length !== 1 ? 's' : ''} connected` : 'Available'}
+          </Badge>
+        </div>
+        <p className="text-sm text-gray-600 mb-4">
+          Sync incidents from ServiceNow, monitor SLA compliance, and verify that critical incidents have resolution notes. All 5 results appear in the Tests page.
+        </p>
+        <div className="flex flex-wrap gap-2 mb-5">
+          {['A.5.24 Incident Planning', 'A.5.25 Event Assessment', 'A.5.26 Incident Response', 'A.5.27 RCA Learning'].map((l) => (
+            <span key={l} className="text-xs bg-teal-50 text-teal-700 px-2 py-1 rounded-full border border-teal-100 font-medium">{l}</span>
+          ))}
+        </div>
+        {isConnected && accounts.map(account => (
+          <div key={account.id} className="mb-3 flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-lg">
+            <div>
+              <p className="text-sm font-medium text-gray-900">{account.label ?? account.instanceUrl}</p>
+              <p className="text-xs text-gray-400 font-mono">
+                {account.incidentCount} incident{account.incidentCount !== 1 ? 's' : ''}
+                {account.lastSyncAt && ` · Last sync: ${new Date(account.lastSyncAt).toLocaleString()}`}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Button variant="outline" size="sm" onClick={() => handleScan(account.id)} disabled={scanningId === account.id}>
+                {scanningId === account.id ? 'Scanning…' : 'Scan Now'}
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => handleDisconnect(account.id, account.label, account.instanceUrl)} disabled={disconnectingId === account.id} className="text-red-600 border-red-200 hover:bg-red-50">
+                {disconnectingId === account.id ? 'Disconnecting...' : 'Disconnect'}
+              </Button>
+            </div>
+          </div>
+        ))}
+        <div className="flex flex-wrap gap-2">
+          {!loadingStatus && (
+            <button onClick={() => setShowConnectModal(true)} className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#62A0A0] hover:bg-[#4f8686] text-white text-sm font-medium">
+              {isConnected ? '+ Connect Another Instance' : 'Connect ServiceNow'}
+            </button>
+          )}
+        </div>
+      </Card>
+      {showConnectModal && (
+        <ServiceNowConnectModal
+          onClose={() => setShowConnectModal(false)}
+          onConnected={(account) => { onAccountAdded(account); onToast('success', 'ServiceNow connected! 5 automated incident tests are being seeded.'); }}
+        />
+      )}
+    </>
+  );
+}
+
+// ─── Datadog Incidents — Connect Modal ────────────────────────────────────────
+
+function DatadogConnectModal({
+  onClose,
+  onConnected,
+}: {
+  onClose: () => void;
+  onConnected: (account: DatadogIntegrationRecord) => void;
+}) {
+  const [apiKey, setApiKey] = useState('');
+  const [appKey, setAppKey] = useState('');
+  const [datadogSite, setDatadogSite] = useState('datadoghq.com');
+  const [label, setLabel] = useState('');
+  const [slaHours, setSlaHours] = useState('4');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!apiKey.trim() || !appKey.trim()) { setError('API key and App key are required'); return; }
+    setLoading(true); setError('');
+    try {
+      const res = await datadogIncidentsService.connect({ apiKey: apiKey.trim(), appKey: appKey.trim(), datadogSite, label: label.trim() || undefined, slaHours: Number(slaHours) || 4 });
+      onConnected(res.data);
+      onClose();
+    } catch (err: any) {
+      setError(err?.message ?? 'Failed to connect to Datadog. Check credentials.');
+    } finally { setLoading(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+        <h2 className="text-lg font-semibold mb-1">Connect Datadog Incidents</h2>
+        <p className="text-sm text-gray-500 mb-4">Enter your Datadog API key and Application key to begin incident compliance scanning.</p>
+        <form onSubmit={submit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">API Key</label>
+            <input type="password" value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder="Datadog API key" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Application Key</label>
+            <input type="password" value={appKey} onChange={e => setAppKey(e.target.value)} placeholder="Datadog Application key" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Datadog Site</label>
+            <select value={datadogSite} onChange={e => setDatadogSite(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900">
+              <option value="datadoghq.com">US1 (datadoghq.com)</option>
+              <option value="us3.datadoghq.com">US3 (us3.datadoghq.com)</option>
+              <option value="us5.datadoghq.com">US5 (us5.datadoghq.com)</option>
+              <option value="datadoghq.eu">EU (datadoghq.eu)</option>
+              <option value="ap1.datadoghq.com">AP1 (ap1.datadoghq.com)</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">SLA Hours <span className="text-gray-400 font-normal">(acknowledgement target)</span></label>
+            <input type="number" min="1" max="72" value={slaHours} onChange={e => setSlaHours(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Label <span className="text-gray-400 font-normal">(optional)</span></label>
+            <input type="text" value={label} onChange={e => setLabel(e.target.value)} placeholder="e.g. Production Datadog" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
+          </div>
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          <div className="flex gap-2 pt-2">
+            <button type="submit" disabled={loading} className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium shadow-sm transition-colors disabled:opacity-50">
+              {loading ? 'Connecting…' : 'Connect Datadog'}
+            </button>
+            <button type="button" onClick={onClose} className="flex-1 inline-flex items-center justify-center px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function DatadogIncidentsCard({
+  accounts,
+  loadingStatus,
+  onAccountAdded,
+  onAccountRemoved,
+  onToast,
+}: {
+  accounts: DatadogIntegrationRecord[];
+  loadingStatus: boolean;
+  onAccountAdded: (account: DatadogIntegrationRecord) => void;
+  onAccountRemoved: (id: string) => void;
+  onToast: (type: 'success' | 'error', msg: string) => void;
+}) {
+  const [scanningId, setScanningId] = useState<string | null>(null);
+  const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
+  const [showConnectModal, setShowConnectModal] = useState(false);
+  const isConnected = accounts.length > 0;
+
+  async function handleScan(id: string) {
+    setScanningId(id);
+    try { await datadogIncidentsService.runScan(id); onToast('success', 'Datadog scan started — results will appear in Tests shortly'); }
+    catch { onToast('error', 'Failed to start scan'); }
+    finally { setScanningId(null); }
+  }
+
+  async function handleDisconnect(id: string, label: string | null) {
+    if (!window.confirm(`Disconnect Datadog (${label ?? id})? Automated incident tests will stop running.`)) return;
+    setDisconnectingId(id);
+    try { await datadogIncidentsService.disconnect(id); onAccountRemoved(id); onToast('success', 'Datadog disconnected'); }
+    catch { onToast('error', 'Failed to disconnect Datadog'); }
+    finally { setDisconnectingId(null); }
+  }
+
+  return (
+    <>
+      <Card className="p-6 md:col-span-2">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-[#632CA6] flex items-center justify-center flex-shrink-0">
+              <svg className="w-6 h-6" viewBox="0 0 32 32" fill="white" xmlns="http://www.w3.org/2000/svg">
+                <path d="M26.3 19.4l-2.8-1.9V6.8L16 3 8.5 6.8v10.7L5.7 19.4l1.6 7.3L16 29l8.7-2.3 1.6-7.3z" fill="white" opacity="0.9"/>
+                <path d="M16 7l-5.5 3.2v6.4l5.5 3.2 5.5-3.2v-6.4L16 7z" fill="#632CA6"/>
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Datadog Incidents</h3>
+              <p className="text-sm text-gray-500">Observability · Incident tracking &amp; postmortems</p>
+            </div>
+          </div>
+          <Badge variant={isConnected ? 'default' : 'outline'}>
+            {loadingStatus ? 'Checking...' : isConnected ? `${accounts.length} instance${accounts.length !== 1 ? 's' : ''} connected` : 'Available'}
+          </Badge>
+        </div>
+        <p className="text-sm text-gray-600 mb-4">
+          Monitor Datadog incident response, track SEV-1/SEV-2 SLA compliance, and verify postmortem coverage for critical incidents. All 5 results appear in the Tests page.
+        </p>
+        <div className="flex flex-wrap gap-2 mb-5">
+          {['A.5.24 Incident Planning', 'A.5.25 Event Assessment', 'A.5.26 Incident Response', 'A.5.27 RCA Learning'].map((l) => (
+            <span key={l} className="text-xs bg-purple-50 text-purple-700 px-2 py-1 rounded-full border border-purple-100 font-medium">{l}</span>
+          ))}
+        </div>
+        {isConnected && accounts.map(account => (
+          <div key={account.id} className="mb-3 flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-lg">
+            <div>
+              <p className="text-sm font-medium text-gray-900">{account.label ?? account.datadogSite}</p>
+              <p className="text-xs text-gray-400 font-mono">
+                {account.incidentCount} incident{account.incidentCount !== 1 ? 's' : ''}
+                {account.lastSyncAt && ` · Last sync: ${new Date(account.lastSyncAt).toLocaleString()}`}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Button variant="outline" size="sm" onClick={() => handleScan(account.id)} disabled={scanningId === account.id}>
+                {scanningId === account.id ? 'Scanning…' : 'Scan Now'}
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => handleDisconnect(account.id, account.label)} disabled={disconnectingId === account.id} className="text-red-600 border-red-200 hover:bg-red-50">
+                {disconnectingId === account.id ? 'Disconnecting...' : 'Disconnect'}
+              </Button>
+            </div>
+          </div>
+        ))}
+        <div className="flex flex-wrap gap-2">
+          {!loadingStatus && (
+            <button onClick={() => setShowConnectModal(true)} className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#632CA6] hover:bg-[#4f2285] text-white text-sm font-medium">
+              {isConnected ? '+ Connect Another Account' : 'Connect Datadog'}
+            </button>
+          )}
+        </div>
+      </Card>
+      {showConnectModal && (
+        <DatadogConnectModal
+          onClose={() => setShowConnectModal(false)}
+          onConnected={(account) => { onAccountAdded(account); onToast('success', 'Datadog connected! 5 automated incident tests are being seeded.'); }}
+        />
+      )}
+    </>
+  );
+}
+
 // ─── Static cards (coming soon) ───────────────────────────────────────────────
 
 const STATIC_INTEGRATIONS: { name: string; category: string; description: string }[] = [];
@@ -3275,6 +3961,10 @@ export function IntegrationsPage() {
   const [fleetAccounts, setFleetAccounts] = useState<FleetIntegrationRecord[]>([]);
   const [intercomAccounts, setIntercomAccounts] = useState<IntercomIntegrationRecord[]>([]);
   const [bigIdAccounts, setBigIdAccounts] = useState<BigIdIntegrationRecord[]>([]);
+  const [pagerdutyAccounts, setPagerdutyAccounts] = useState<PagerDutyIntegrationRecord[]>([]);
+  const [opsgenieAccounts, setOpsgenieAccounts] = useState<OpsgenieIntegrationRecord[]>([]);
+  const [servicenowAccounts, setServicenowAccounts] = useState<ServiceNowIntegrationRecord[]>([]);
+  const [datadogAccounts, setDatadogAccounts] = useState<DatadogIntegrationRecord[]>([]);
   const [repos, setRepos] = useState<GitHubRepo[]>([]);
   const [loading, setLoading] = useState(true);
   const [disconnecting, setDisconnecting] = useState(false);
@@ -3288,7 +3978,7 @@ export function IntegrationsPage() {
 
   const loadStatus = async () => {
     try {
-      const [{ integrations }, slackRes, channelsRes, nrRes, notionRes, awsRes, cfRes, bambooRes, redashRes, workspaceRes, fleetRes, intercomRes, bigIdRes] = await Promise.all([
+      const [{ integrations }, slackRes, channelsRes, nrRes, notionRes, awsRes, cfRes, bambooRes, redashRes, workspaceRes, fleetRes, intercomRes, bigIdRes, pdRes, ogRes, snRes, ddRes] = await Promise.all([
         integrationsService.getStatus(),
         slackService.getStatus().catch(() => ({ success: false, data: null })),
         slackService.getChannels().catch(() => ({ data: [] as SlackChannel[] })),
@@ -3302,6 +3992,10 @@ export function IntegrationsPage() {
         fleetService.getAccounts().catch(() => ({ success: true, data: [] as FleetIntegrationRecord[] })),
         intercomService.getAccounts().catch(() => ({ success: true, data: [] as IntercomIntegrationRecord[] })),
         bigIdService.getAccounts().catch(() => ({ success: true, data: [] as BigIdIntegrationRecord[] })),
+        pagerdutyService.getAccounts().catch(() => ({ success: true, data: [] as PagerDutyIntegrationRecord[] })),
+        opsgenieService.getAccounts().catch(() => ({ success: true, data: [] as OpsgenieIntegrationRecord[] })),
+        servicenowIncidentService.getAccounts().catch(() => ({ success: true, data: [] as ServiceNowIntegrationRecord[] })),
+        datadogIncidentsService.getAccounts().catch(() => ({ success: true, data: [] as DatadogIntegrationRecord[] })),
       ]);
       const gh = integrations.find((i) => i.provider === 'GITHUB' && i.status === 'ACTIVE') ?? null;
       const drive = integrations.find((i) => i.provider === 'GOOGLE_DRIVE' && i.status === 'ACTIVE') ?? null;
@@ -3321,6 +4015,10 @@ export function IntegrationsPage() {
       setFleetAccounts(fleetRes.data ?? []);
       setIntercomAccounts(intercomRes.data ?? []);
       setBigIdAccounts(bigIdRes.data ?? []);
+      setPagerdutyAccounts(pdRes.data ?? []);
+      setOpsgenieAccounts(ogRes.data ?? []);
+      setServicenowAccounts(snRes.data ?? []);
+      setDatadogAccounts(ddRes.data ?? []);
       if (gh) setRepos(gh.repos);
     } catch {
       /* unauthenticated or network — treat as disconnected */
@@ -3576,6 +4274,42 @@ export function IntegrationsPage() {
           loadingStatus={loading}
           onAccountAdded={(account) => setBigIdAccounts(prev => [...prev.filter(a => a.id !== account.id), account])}
           onAccountRemoved={(id) => setBigIdAccounts(prev => prev.filter(a => a.id !== id))}
+          onToast={showToast}
+        />
+
+        {/* ── PagerDuty ─────────────────────────────────────────────────────── */}
+        <PagerDutyCard
+          accounts={pagerdutyAccounts}
+          loadingStatus={loading}
+          onAccountAdded={(account) => setPagerdutyAccounts(prev => [...prev.filter(a => a.id !== account.id), account])}
+          onAccountRemoved={(id) => setPagerdutyAccounts(prev => prev.filter(a => a.id !== id))}
+          onToast={showToast}
+        />
+
+        {/* ── Opsgenie ──────────────────────────────────────────────────────── */}
+        <OpsgenieCard
+          accounts={opsgenieAccounts}
+          loadingStatus={loading}
+          onAccountAdded={(account) => setOpsgenieAccounts(prev => [...prev.filter(a => a.id !== account.id), account])}
+          onAccountRemoved={(id) => setOpsgenieAccounts(prev => prev.filter(a => a.id !== id))}
+          onToast={showToast}
+        />
+
+        {/* ── ServiceNow Incident ───────────────────────────────────────────── */}
+        <ServiceNowIncidentCard
+          accounts={servicenowAccounts}
+          loadingStatus={loading}
+          onAccountAdded={(account) => setServicenowAccounts(prev => [...prev.filter(a => a.id !== account.id), account])}
+          onAccountRemoved={(id) => setServicenowAccounts(prev => prev.filter(a => a.id !== id))}
+          onToast={showToast}
+        />
+
+        {/* ── Datadog Incidents ─────────────────────────────────────────────── */}
+        <DatadogIncidentsCard
+          accounts={datadogAccounts}
+          loadingStatus={loading}
+          onAccountAdded={(account) => setDatadogAccounts(prev => [...prev.filter(a => a.id !== account.id), account])}
+          onAccountRemoved={(id) => setDatadogAccounts(prev => prev.filter(a => a.id !== id))}
           onToast={showToast}
         />
 
