@@ -21,6 +21,10 @@ import { pagerdutyService, PagerDutyIntegrationRecord } from '@/services/api/pag
 import { opsgenieService, OpsgenieIntegrationRecord } from '@/services/api/opsgenie';
 import { servicenowIncidentService, ServiceNowIntegrationRecord } from '@/services/api/servicenow-incident';
 import { datadogIncidentsService, DatadogIntegrationRecord } from '@/services/api/datadog-incidents';
+import { gcpService, GcpIntegrationRecord } from '@/services/api/gcp';
+import { azureService, AzureIntegrationRecord } from '@/services/api/azure';
+import { wizService, WizIntegrationRecord } from '@/services/api/wiz';
+import { laceworkService, LaceworkIntegrationRecord } from '@/services/api/lacework';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -3769,6 +3773,643 @@ function DatadogIncidentsCard({
   );
 }
 
+// ─── GCP — Connect Modal ──────────────────────────────────────────────────────
+
+function GcpConnectModal({
+  onClose,
+  onConnected,
+}: {
+  onClose: () => void;
+  onConnected: (account: GcpIntegrationRecord) => void;
+}) {
+  const [keyJson, setKeyJson] = useState('');
+  const [label, setLabel] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true); setError(null);
+    try {
+      const res = await gcpService.connect({ keyJson: keyJson.trim(), label: label.trim() || undefined });
+      onConnected(res.data);
+      onClose();
+    } catch (err: any) {
+      setError(err?.message ?? 'Failed to connect to GCP. Check the service account key.');
+    } finally { setLoading(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-6">
+        <h2 className="text-lg font-semibold mb-1">Connect GCP</h2>
+        <p className="text-sm text-gray-500 mb-4">Paste your GCP Service Account key JSON to enable cloud security scanning.</p>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div>
+            <label className="text-xs font-medium text-gray-600 mb-1 block">Label (optional)</label>
+            <input type="text" value={label} onChange={e => setLabel(e.target.value)} placeholder="e.g. Production GCP" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-600 mb-1 block">Service Account Key JSON *</label>
+            <textarea value={keyJson} onChange={e => setKeyJson(e.target.value)} placeholder='{"type":"service_account","project_id":"...","private_key":"...","client_email":"..."}' rows={6} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-gray-900" required />
+          </div>
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          <div className="flex gap-2 justify-end pt-2">
+            <button type="button" onClick={onClose} className="px-4 py-2 text-sm rounded-md border border-gray-300 hover:bg-gray-50">Cancel</button>
+            <button type="submit" disabled={loading} className="px-4 py-2 text-sm rounded-md bg-gray-900 hover:bg-gray-800 text-white disabled:opacity-50">
+              {loading ? 'Connecting…' : 'Connect GCP'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function GcpCard({
+  accounts,
+  loadingStatus,
+  onAccountAdded,
+  onAccountRemoved,
+  onToast,
+}: {
+  accounts: GcpIntegrationRecord[];
+  loadingStatus: boolean;
+  onAccountAdded: (account: GcpIntegrationRecord) => void;
+  onAccountRemoved: (id: string) => void;
+  onToast: (type: 'success' | 'error', msg: string) => void;
+}) {
+  const [scanningId, setScanningId] = useState<string | null>(null);
+  const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
+  const [showConnectModal, setShowConnectModal] = useState(false);
+  const isConnected = accounts.length > 0;
+
+  async function handleScan(id: string) {
+    setScanningId(id);
+    try { await gcpService.runScan(id); onToast('success', 'GCP scan started — results will appear in Tests shortly'); }
+    catch { onToast('error', 'Failed to start scan'); }
+    finally { setScanningId(null); }
+  }
+
+  async function handleDisconnect(id: string, label: string | null) {
+    if (!window.confirm(`Disconnect GCP (${label ?? id})? Automated cloud security tests will stop running.`)) return;
+    setDisconnectingId(id);
+    try { await gcpService.disconnect(id); onAccountRemoved(id); onToast('success', 'GCP disconnected'); }
+    catch { onToast('error', 'Failed to disconnect GCP'); }
+    finally { setDisconnectingId(null); }
+  }
+
+  return (
+    <>
+      <Card className="p-6">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center flex-shrink-0">
+              <svg className="w-7 h-7" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 6.5l3 5.2-3 5.2-3-5.2z" fill="#EA4335"/>
+                <path d="M6.5 17.5h11L15 12.5l-3 5.2-3-5.2z" fill="#FBBC05"/>
+                <path d="M15 12.5l2.5-4.5H6.5L9 12.5z" fill="#4285F4"/>
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Google Cloud (GCP)</h3>
+              <p className="text-sm text-gray-500">Cloud Security · IAM, logging &amp; misconfigurations</p>
+            </div>
+          </div>
+          <Badge variant={isConnected ? 'default' : 'outline'}>
+            {loadingStatus ? 'Checking...' : isConnected ? `${accounts.length} project${accounts.length !== 1 ? 's' : ''} connected` : 'Available'}
+          </Badge>
+        </div>
+        <p className="text-sm text-gray-600 mb-4">
+          Scan GCP projects for IAM misconfigurations, audit logging gaps, encryption coverage, and network exposure using Security Command Center. All 5 results appear in the Tests page.
+        </p>
+        <div className="flex flex-wrap gap-2 mb-5">
+          {['A.5.15 IAM', 'A.8.15 Audit Logging', 'A.8.9 Misconfigs', 'A.8.24 Encryption', 'A.8.20 Network'].map((l) => (
+            <span key={l} className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full border border-blue-100 font-medium">{l}</span>
+          ))}
+        </div>
+        {isConnected && accounts.map(account => (
+          <div key={account.id} className="mb-3 flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-lg">
+            <div>
+              <p className="text-sm font-medium text-gray-900">{account.label ?? account.projectId}</p>
+              <p className="text-xs text-gray-400 font-mono">
+                {account.findingCount} finding{account.findingCount !== 1 ? 's' : ''}
+                {account.lastSyncAt && ` · Last sync: ${new Date(account.lastSyncAt).toLocaleString()}`}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Button variant="outline" size="sm" onClick={() => handleScan(account.id)} disabled={scanningId === account.id}>
+                {scanningId === account.id ? 'Scanning…' : 'Scan Now'}
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => handleDisconnect(account.id, account.label)} disabled={disconnectingId === account.id} className="text-red-600 border-red-200 hover:bg-red-50">
+                {disconnectingId === account.id ? 'Disconnecting...' : 'Disconnect'}
+              </Button>
+            </div>
+          </div>
+        ))}
+        <div className="flex flex-wrap gap-2">
+          {!loadingStatus && (
+            <button onClick={() => setShowConnectModal(true)} className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium">
+              {isConnected ? '+ Connect Another Project' : 'Connect GCP'}
+            </button>
+          )}
+        </div>
+      </Card>
+      {showConnectModal && (
+        <GcpConnectModal
+          onClose={() => setShowConnectModal(false)}
+          onConnected={(account) => { onAccountAdded(account); onToast('success', 'GCP connected! 5 automated cloud security tests are being seeded.'); setShowConnectModal(false); }}
+        />
+      )}
+    </>
+  );
+}
+
+// ─── Azure — Connect Modal ────────────────────────────────────────────────────
+
+function AzureConnectModal({
+  onClose,
+  onConnected,
+}: {
+  onClose: () => void;
+  onConnected: (account: AzureIntegrationRecord) => void;
+}) {
+  const [subscriptionId, setSubscriptionId] = useState('');
+  const [tenantId, setTenantId] = useState('');
+  const [clientId, setClientId] = useState('');
+  const [clientSecret, setClientSecret] = useState('');
+  const [label, setLabel] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true); setError(null);
+    try {
+      const res = await azureService.connect({ subscriptionId: subscriptionId.trim(), tenantId: tenantId.trim(), clientId: clientId.trim(), clientSecret: clientSecret.trim(), label: label.trim() || undefined });
+      onConnected(res.data);
+      onClose();
+    } catch (err: any) {
+      setError(err?.message ?? 'Failed to connect to Azure. Check the credentials.');
+    } finally { setLoading(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-6">
+        <h2 className="text-lg font-semibold mb-1">Connect Azure</h2>
+        <p className="text-sm text-gray-500 mb-4">Enter your Azure service principal credentials to enable cloud security scanning.</p>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div>
+            <label className="text-xs font-medium text-gray-600 mb-1 block">Subscription ID *</label>
+            <input type="text" value={subscriptionId} onChange={e => setSubscriptionId(e.target.value)} placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-gray-900" required />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-600 mb-1 block">Tenant ID *</label>
+            <input type="text" value={tenantId} onChange={e => setTenantId(e.target.value)} placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-gray-900" required />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-600 mb-1 block">Client ID *</label>
+            <input type="text" value={clientId} onChange={e => setClientId(e.target.value)} placeholder="App registration client ID" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-gray-900" required />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-600 mb-1 block">Client Secret *</label>
+            <input type="password" value={clientSecret} onChange={e => setClientSecret(e.target.value)} placeholder="App registration client secret" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" required />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-600 mb-1 block">Label (optional)</label>
+            <input type="text" value={label} onChange={e => setLabel(e.target.value)} placeholder="e.g. Production Azure" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
+          </div>
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          <div className="flex gap-2 justify-end pt-2">
+            <button type="button" onClick={onClose} className="px-4 py-2 text-sm rounded-md border border-gray-300 hover:bg-gray-50">Cancel</button>
+            <button type="submit" disabled={loading} className="px-4 py-2 text-sm rounded-md bg-[#0078D4] hover:bg-[#006bc0] text-white disabled:opacity-50">
+              {loading ? 'Connecting…' : 'Connect Azure'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function AzureCard({
+  accounts,
+  loadingStatus,
+  onAccountAdded,
+  onAccountRemoved,
+  onToast,
+}: {
+  accounts: AzureIntegrationRecord[];
+  loadingStatus: boolean;
+  onAccountAdded: (account: AzureIntegrationRecord) => void;
+  onAccountRemoved: (id: string) => void;
+  onToast: (type: 'success' | 'error', msg: string) => void;
+}) {
+  const [scanningId, setScanningId] = useState<string | null>(null);
+  const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
+  const [showConnectModal, setShowConnectModal] = useState(false);
+  const isConnected = accounts.length > 0;
+
+  async function handleScan(id: string) {
+    setScanningId(id);
+    try { await azureService.runScan(id); onToast('success', 'Azure scan started — results will appear in Tests shortly'); }
+    catch { onToast('error', 'Failed to start scan'); }
+    finally { setScanningId(null); }
+  }
+
+  async function handleDisconnect(id: string, label: string | null) {
+    if (!window.confirm(`Disconnect Azure (${label ?? id})? Automated cloud security tests will stop running.`)) return;
+    setDisconnectingId(id);
+    try { await azureService.disconnect(id); onAccountRemoved(id); onToast('success', 'Azure disconnected'); }
+    catch { onToast('error', 'Failed to disconnect Azure'); }
+    finally { setDisconnectingId(null); }
+  }
+
+  return (
+    <>
+      <Card className="p-6">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-[#0078D4] flex items-center justify-center flex-shrink-0">
+              <svg className="w-6 h-6" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
+                <path d="M13.5 2L6 13.5h5.25L8.25 22 22 8.5H16.5L20.25 2z" fill="white" opacity="0.9"/>
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Microsoft Azure</h3>
+              <p className="text-sm text-gray-500">Cloud Security · Defender for Cloud &amp; NSG analysis</p>
+            </div>
+          </div>
+          <Badge variant={isConnected ? 'default' : 'outline'}>
+            {loadingStatus ? 'Checking...' : isConnected ? `${accounts.length} subscription${accounts.length !== 1 ? 's' : ''} connected` : 'Available'}
+          </Badge>
+        </div>
+        <p className="text-sm text-gray-600 mb-4">
+          Scan Azure subscriptions for security recommendations from Defender for Cloud, NSG exposure, encryption gaps, and IAM issues. All 5 results appear in the Tests page.
+        </p>
+        <div className="flex flex-wrap gap-2 mb-5">
+          {['A.5.15 IAM', 'A.8.15 Audit Logging', 'A.8.9 Misconfigs', 'A.8.24 Encryption', 'A.8.20 Network'].map((l) => (
+            <span key={l} className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full border border-blue-100 font-medium">{l}</span>
+          ))}
+        </div>
+        {isConnected && accounts.map(account => (
+          <div key={account.id} className="mb-3 flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-lg">
+            <div>
+              <p className="text-sm font-medium text-gray-900">{account.label ?? account.subscriptionId}</p>
+              <p className="text-xs text-gray-400 font-mono">
+                {account.findingCount} finding{account.findingCount !== 1 ? 's' : ''}
+                {account.lastSyncAt && ` · Last sync: ${new Date(account.lastSyncAt).toLocaleString()}`}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Button variant="outline" size="sm" onClick={() => handleScan(account.id)} disabled={scanningId === account.id}>
+                {scanningId === account.id ? 'Scanning…' : 'Scan Now'}
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => handleDisconnect(account.id, account.label)} disabled={disconnectingId === account.id} className="text-red-600 border-red-200 hover:bg-red-50">
+                {disconnectingId === account.id ? 'Disconnecting...' : 'Disconnect'}
+              </Button>
+            </div>
+          </div>
+        ))}
+        <div className="flex flex-wrap gap-2">
+          {!loadingStatus && (
+            <button onClick={() => setShowConnectModal(true)} className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#0078D4] hover:bg-[#006bc0] text-white text-sm font-medium">
+              {isConnected ? '+ Connect Another Subscription' : 'Connect Azure'}
+            </button>
+          )}
+        </div>
+      </Card>
+      {showConnectModal && (
+        <AzureConnectModal
+          onClose={() => setShowConnectModal(false)}
+          onConnected={(account) => { onAccountAdded(account); onToast('success', 'Azure connected! 5 automated cloud security tests are being seeded.'); setShowConnectModal(false); }}
+        />
+      )}
+    </>
+  );
+}
+
+// ─── Wiz — Connect Modal ──────────────────────────────────────────────────────
+
+function WizConnectModal({
+  onClose,
+  onConnected,
+}: {
+  onClose: () => void;
+  onConnected: (account: WizIntegrationRecord) => void;
+}) {
+  const [clientId, setClientId] = useState('');
+  const [clientSecret, setClientSecret] = useState('');
+  const [wizApiEndpoint, setWizApiEndpoint] = useState('');
+  const [label, setLabel] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true); setError(null);
+    try {
+      const res = await wizService.connect({ clientId: clientId.trim(), clientSecret: clientSecret.trim(), wizApiEndpoint: wizApiEndpoint.trim() || undefined, label: label.trim() || undefined });
+      onConnected(res.data);
+      onClose();
+    } catch (err: any) {
+      setError(err?.message ?? 'Failed to connect to Wiz. Check the client credentials.');
+    } finally { setLoading(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-6">
+        <h2 className="text-lg font-semibold mb-1">Connect Wiz</h2>
+        <p className="text-sm text-gray-500 mb-4">Enter your Wiz Service Account credentials to enable CSPM scanning.</p>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div>
+            <label className="text-xs font-medium text-gray-600 mb-1 block">Client ID *</label>
+            <input type="text" value={clientId} onChange={e => setClientId(e.target.value)} placeholder="Wiz service account client ID" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" required />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-600 mb-1 block">Client Secret *</label>
+            <input type="password" value={clientSecret} onChange={e => setClientSecret(e.target.value)} placeholder="Wiz service account client secret" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" required />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-600 mb-1 block">API Endpoint (optional)</label>
+            <input type="text" value={wizApiEndpoint} onChange={e => setWizApiEndpoint(e.target.value)} placeholder="https://api.app.wiz.io/graphql" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-gray-900" />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-600 mb-1 block">Label (optional)</label>
+            <input type="text" value={label} onChange={e => setLabel(e.target.value)} placeholder="e.g. Production Wiz" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
+          </div>
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          <div className="flex gap-2 justify-end pt-2">
+            <button type="button" onClick={onClose} className="px-4 py-2 text-sm rounded-md border border-gray-300 hover:bg-gray-50">Cancel</button>
+            <button type="submit" disabled={loading} className="px-4 py-2 text-sm rounded-md bg-[#3B1FDB] hover:bg-[#2e18b0] text-white disabled:opacity-50">
+              {loading ? 'Connecting…' : 'Connect Wiz'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function WizCard({
+  accounts,
+  loadingStatus,
+  onAccountAdded,
+  onAccountRemoved,
+  onToast,
+}: {
+  accounts: WizIntegrationRecord[];
+  loadingStatus: boolean;
+  onAccountAdded: (account: WizIntegrationRecord) => void;
+  onAccountRemoved: (id: string) => void;
+  onToast: (type: 'success' | 'error', msg: string) => void;
+}) {
+  const [scanningId, setScanningId] = useState<string | null>(null);
+  const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
+  const [showConnectModal, setShowConnectModal] = useState(false);
+  const isConnected = accounts.length > 0;
+
+  async function handleScan(id: string) {
+    setScanningId(id);
+    try { await wizService.runScan(id); onToast('success', 'Wiz scan started — results will appear in Tests shortly'); }
+    catch { onToast('error', 'Failed to start scan'); }
+    finally { setScanningId(null); }
+  }
+
+  async function handleDisconnect(id: string, label: string | null) {
+    if (!window.confirm(`Disconnect Wiz (${label ?? id})? Automated cloud security tests will stop running.`)) return;
+    setDisconnectingId(id);
+    try { await wizService.disconnect(id); onAccountRemoved(id); onToast('success', 'Wiz disconnected'); }
+    catch { onToast('error', 'Failed to disconnect Wiz'); }
+    finally { setDisconnectingId(null); }
+  }
+
+  return (
+    <>
+      <Card className="p-6">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-[#3B1FDB] flex items-center justify-center flex-shrink-0">
+              <svg className="w-6 h-6" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2L4 9l8 4 8-4-8-7zM4 15l8 7 8-7-8-4-8 4z" fill="white" opacity="0.9"/>
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Wiz</h3>
+              <p className="text-sm text-gray-500">CSPM · Multi-cloud security posture management</p>
+            </div>
+          </div>
+          <Badge variant={isConnected ? 'default' : 'outline'}>
+            {loadingStatus ? 'Checking...' : isConnected ? `${accounts.length} tenant${accounts.length !== 1 ? 's' : ''} connected` : 'Available'}
+          </Badge>
+        </div>
+        <p className="text-sm text-gray-600 mb-4">
+          Pull open Wiz issues across your cloud environments to monitor IAM posture, misconfiguration risks, encryption gaps, and network exposure. All 5 results appear in the Tests page.
+        </p>
+        <div className="flex flex-wrap gap-2 mb-5">
+          {['A.5.15 IAM', 'A.8.15 Audit Logging', 'A.8.9 Misconfigs', 'A.8.24 Encryption', 'A.8.20 Network'].map((l) => (
+            <span key={l} className="text-xs bg-purple-50 text-purple-700 px-2 py-1 rounded-full border border-purple-100 font-medium">{l}</span>
+          ))}
+        </div>
+        {isConnected && accounts.map(account => (
+          <div key={account.id} className="mb-3 flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-lg">
+            <div>
+              <p className="text-sm font-medium text-gray-900">{account.label ?? 'Wiz Tenant'}</p>
+              <p className="text-xs text-gray-400 font-mono">
+                {account.findingCount} finding{account.findingCount !== 1 ? 's' : ''}
+                {account.lastSyncAt && ` · Last sync: ${new Date(account.lastSyncAt).toLocaleString()}`}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Button variant="outline" size="sm" onClick={() => handleScan(account.id)} disabled={scanningId === account.id}>
+                {scanningId === account.id ? 'Scanning…' : 'Scan Now'}
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => handleDisconnect(account.id, account.label)} disabled={disconnectingId === account.id} className="text-red-600 border-red-200 hover:bg-red-50">
+                {disconnectingId === account.id ? 'Disconnecting...' : 'Disconnect'}
+              </Button>
+            </div>
+          </div>
+        ))}
+        <div className="flex flex-wrap gap-2">
+          {!loadingStatus && (
+            <button onClick={() => setShowConnectModal(true)} className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#3B1FDB] hover:bg-[#2e18b0] text-white text-sm font-medium">
+              {isConnected ? '+ Connect Another Tenant' : 'Connect Wiz'}
+            </button>
+          )}
+        </div>
+      </Card>
+      {showConnectModal && (
+        <WizConnectModal
+          onClose={() => setShowConnectModal(false)}
+          onConnected={(account) => { onAccountAdded(account); onToast('success', 'Wiz connected! 5 automated cloud security tests are being seeded.'); setShowConnectModal(false); }}
+        />
+      )}
+    </>
+  );
+}
+
+// ─── Lacework — Connect Modal ─────────────────────────────────────────────────
+
+function LaceworkConnectModal({
+  onClose,
+  onConnected,
+}: {
+  onClose: () => void;
+  onConnected: (account: LaceworkIntegrationRecord) => void;
+}) {
+  const [accountName, setAccountName] = useState('');
+  const [keyId, setKeyId] = useState('');
+  const [secret, setSecret] = useState('');
+  const [label, setLabel] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true); setError(null);
+    try {
+      const res = await laceworkService.connect({ accountName: accountName.trim(), keyId: keyId.trim(), secret: secret.trim(), label: label.trim() || undefined });
+      onConnected(res.data);
+      onClose();
+    } catch (err: any) {
+      setError(err?.message ?? 'Failed to connect to Lacework. Check the credentials.');
+    } finally { setLoading(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-6">
+        <h2 className="text-lg font-semibold mb-1">Connect Lacework</h2>
+        <p className="text-sm text-gray-500 mb-4">Enter your Lacework API credentials to enable compliance scanning.</p>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div>
+            <label className="text-xs font-medium text-gray-600 mb-1 block">Account Name *</label>
+            <input type="text" value={accountName} onChange={e => setAccountName(e.target.value)} placeholder="e.g. mycompany (subdomain before .lacework.net)" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" required />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-600 mb-1 block">Key ID *</label>
+            <input type="text" value={keyId} onChange={e => setKeyId(e.target.value)} placeholder="API key ID" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-gray-900" required />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-600 mb-1 block">Secret *</label>
+            <input type="password" value={secret} onChange={e => setSecret(e.target.value)} placeholder="API key secret" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" required />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-600 mb-1 block">Label (optional)</label>
+            <input type="text" value={label} onChange={e => setLabel(e.target.value)} placeholder="e.g. Production Lacework" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
+          </div>
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          <div className="flex gap-2 justify-end pt-2">
+            <button type="button" onClick={onClose} className="px-4 py-2 text-sm rounded-md border border-gray-300 hover:bg-gray-50">Cancel</button>
+            <button type="submit" disabled={loading} className="px-4 py-2 text-sm rounded-md bg-[#2B8ACB] hover:bg-[#2274b0] text-white disabled:opacity-50">
+              {loading ? 'Connecting…' : 'Connect Lacework'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function LaceworkCard({
+  accounts,
+  loadingStatus,
+  onAccountAdded,
+  onAccountRemoved,
+  onToast,
+}: {
+  accounts: LaceworkIntegrationRecord[];
+  loadingStatus: boolean;
+  onAccountAdded: (account: LaceworkIntegrationRecord) => void;
+  onAccountRemoved: (id: string) => void;
+  onToast: (type: 'success' | 'error', msg: string) => void;
+}) {
+  const [scanningId, setScanningId] = useState<string | null>(null);
+  const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
+  const [showConnectModal, setShowConnectModal] = useState(false);
+  const isConnected = accounts.length > 0;
+
+  async function handleScan(id: string) {
+    setScanningId(id);
+    try { await laceworkService.runScan(id); onToast('success', 'Lacework scan started — results will appear in Tests shortly'); }
+    catch { onToast('error', 'Failed to start scan'); }
+    finally { setScanningId(null); }
+  }
+
+  async function handleDisconnect(id: string, label: string | null) {
+    if (!window.confirm(`Disconnect Lacework (${label ?? id})? Automated cloud security tests will stop running.`)) return;
+    setDisconnectingId(id);
+    try { await laceworkService.disconnect(id); onAccountRemoved(id); onToast('success', 'Lacework disconnected'); }
+    catch { onToast('error', 'Failed to disconnect Lacework'); }
+    finally { setDisconnectingId(null); }
+  }
+
+  return (
+    <>
+      <Card className="p-6">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-[#2B8ACB] flex items-center justify-center flex-shrink-0">
+              <svg className="w-6 h-6" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z" fill="white" opacity="0.9"/>
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Lacework</h3>
+              <p className="text-sm text-gray-500">Cloud Security · Compliance &amp; threat detection</p>
+            </div>
+          </div>
+          <Badge variant={isConnected ? 'default' : 'outline'}>
+            {loadingStatus ? 'Checking...' : isConnected ? `${accounts.length} account${accounts.length !== 1 ? 's' : ''} connected` : 'Available'}
+          </Badge>
+        </div>
+        <p className="text-sm text-gray-600 mb-4">
+          Pull Lacework compliance evaluations and alerts to track IAM posture, audit logging, encryption, and network security across your cloud infrastructure. All 5 results appear in the Tests page.
+        </p>
+        <div className="flex flex-wrap gap-2 mb-5">
+          {['A.5.15 IAM', 'A.8.15 Audit Logging', 'A.8.9 Misconfigs', 'A.8.24 Encryption', 'A.8.20 Network'].map((l) => (
+            <span key={l} className="text-xs bg-cyan-50 text-cyan-700 px-2 py-1 rounded-full border border-cyan-100 font-medium">{l}</span>
+          ))}
+        </div>
+        {isConnected && accounts.map(account => (
+          <div key={account.id} className="mb-3 flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-lg">
+            <div>
+              <p className="text-sm font-medium text-gray-900">{account.label ?? account.accountName}</p>
+              <p className="text-xs text-gray-400 font-mono">
+                {account.findingCount} finding{account.findingCount !== 1 ? 's' : ''}
+                {account.lastSyncAt && ` · Last sync: ${new Date(account.lastSyncAt).toLocaleString()}`}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Button variant="outline" size="sm" onClick={() => handleScan(account.id)} disabled={scanningId === account.id}>
+                {scanningId === account.id ? 'Scanning…' : 'Scan Now'}
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => handleDisconnect(account.id, account.label)} disabled={disconnectingId === account.id} className="text-red-600 border-red-200 hover:bg-red-50">
+                {disconnectingId === account.id ? 'Disconnecting...' : 'Disconnect'}
+              </Button>
+            </div>
+          </div>
+        ))}
+        <div className="flex flex-wrap gap-2">
+          {!loadingStatus && (
+            <button onClick={() => setShowConnectModal(true)} className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#2B8ACB] hover:bg-[#2274b0] text-white text-sm font-medium">
+              {isConnected ? '+ Connect Another Account' : 'Connect Lacework'}
+            </button>
+          )}
+        </div>
+      </Card>
+      {showConnectModal && (
+        <LaceworkConnectModal
+          onClose={() => setShowConnectModal(false)}
+          onConnected={(account) => { onAccountAdded(account); onToast('success', 'Lacework connected! 5 automated cloud security tests are being seeded.'); setShowConnectModal(false); }}
+        />
+      )}
+    </>
+  );
+}
+
 // ─── Static cards (coming soon) ───────────────────────────────────────────────
 
 const STATIC_INTEGRATIONS: { name: string; category: string; description: string }[] = [];
@@ -3965,6 +4606,10 @@ export function IntegrationsPage() {
   const [opsgenieAccounts, setOpsgenieAccounts] = useState<OpsgenieIntegrationRecord[]>([]);
   const [servicenowAccounts, setServicenowAccounts] = useState<ServiceNowIntegrationRecord[]>([]);
   const [datadogAccounts, setDatadogAccounts] = useState<DatadogIntegrationRecord[]>([]);
+  const [gcpAccounts, setGcpAccounts] = useState<GcpIntegrationRecord[]>([]);
+  const [azureAccounts, setAzureAccounts] = useState<AzureIntegrationRecord[]>([]);
+  const [wizAccounts, setWizAccounts] = useState<WizIntegrationRecord[]>([]);
+  const [laceworkAccounts, setLaceworkAccounts] = useState<LaceworkIntegrationRecord[]>([]);
   const [repos, setRepos] = useState<GitHubRepo[]>([]);
   const [loading, setLoading] = useState(true);
   const [disconnecting, setDisconnecting] = useState(false);
@@ -3978,7 +4623,7 @@ export function IntegrationsPage() {
 
   const loadStatus = async () => {
     try {
-      const [{ integrations }, slackRes, channelsRes, nrRes, notionRes, awsRes, cfRes, bambooRes, redashRes, workspaceRes, fleetRes, intercomRes, bigIdRes, pdRes, ogRes, snRes, ddRes] = await Promise.all([
+      const [{ integrations }, slackRes, channelsRes, nrRes, notionRes, awsRes, cfRes, bambooRes, redashRes, workspaceRes, fleetRes, intercomRes, bigIdRes, pdRes, ogRes, snRes, ddRes, gcpRes, azureRes, wizRes, laceworkRes] = await Promise.all([
         integrationsService.getStatus(),
         slackService.getStatus().catch(() => ({ success: false, data: null })),
         slackService.getChannels().catch(() => ({ data: [] as SlackChannel[] })),
@@ -3996,6 +4641,10 @@ export function IntegrationsPage() {
         opsgenieService.getAccounts().catch(() => ({ success: true, data: [] as OpsgenieIntegrationRecord[] })),
         servicenowIncidentService.getAccounts().catch(() => ({ success: true, data: [] as ServiceNowIntegrationRecord[] })),
         datadogIncidentsService.getAccounts().catch(() => ({ success: true, data: [] as DatadogIntegrationRecord[] })),
+        gcpService.getAccounts().catch(() => ({ success: true, data: [] as GcpIntegrationRecord[] })),
+        azureService.getAccounts().catch(() => ({ success: true, data: [] as AzureIntegrationRecord[] })),
+        wizService.getAccounts().catch(() => ({ success: true, data: [] as WizIntegrationRecord[] })),
+        laceworkService.getAccounts().catch(() => ({ success: true, data: [] as LaceworkIntegrationRecord[] })),
       ]);
       const gh = integrations.find((i) => i.provider === 'GITHUB' && i.status === 'ACTIVE') ?? null;
       const drive = integrations.find((i) => i.provider === 'GOOGLE_DRIVE' && i.status === 'ACTIVE') ?? null;
@@ -4019,6 +4668,10 @@ export function IntegrationsPage() {
       setOpsgenieAccounts(ogRes.data ?? []);
       setServicenowAccounts(snRes.data ?? []);
       setDatadogAccounts(ddRes.data ?? []);
+      setGcpAccounts(gcpRes.data ?? []);
+      setAzureAccounts(azureRes.data ?? []);
+      setWizAccounts(wizRes.data ?? []);
+      setLaceworkAccounts(laceworkRes.data ?? []);
       if (gh) setRepos(gh.repos);
     } catch {
       /* unauthenticated or network — treat as disconnected */
@@ -4310,6 +4963,42 @@ export function IntegrationsPage() {
           loadingStatus={loading}
           onAccountAdded={(account) => setDatadogAccounts(prev => [...prev.filter(a => a.id !== account.id), account])}
           onAccountRemoved={(id) => setDatadogAccounts(prev => prev.filter(a => a.id !== id))}
+          onToast={showToast}
+        />
+
+        {/* ── GCP ───────────────────────────────────────────────────────────── */}
+        <GcpCard
+          accounts={gcpAccounts}
+          loadingStatus={loading}
+          onAccountAdded={(account) => setGcpAccounts(prev => [...prev.filter(a => a.id !== account.id), account])}
+          onAccountRemoved={(id) => setGcpAccounts(prev => prev.filter(a => a.id !== id))}
+          onToast={showToast}
+        />
+
+        {/* ── Azure ─────────────────────────────────────────────────────────── */}
+        <AzureCard
+          accounts={azureAccounts}
+          loadingStatus={loading}
+          onAccountAdded={(account) => setAzureAccounts(prev => [...prev.filter(a => a.id !== account.id), account])}
+          onAccountRemoved={(id) => setAzureAccounts(prev => prev.filter(a => a.id !== id))}
+          onToast={showToast}
+        />
+
+        {/* ── Wiz ───────────────────────────────────────────────────────────── */}
+        <WizCard
+          accounts={wizAccounts}
+          loadingStatus={loading}
+          onAccountAdded={(account) => setWizAccounts(prev => [...prev.filter(a => a.id !== account.id), account])}
+          onAccountRemoved={(id) => setWizAccounts(prev => prev.filter(a => a.id !== id))}
+          onToast={showToast}
+        />
+
+        {/* ── Lacework ──────────────────────────────────────────────────────── */}
+        <LaceworkCard
+          accounts={laceworkAccounts}
+          loadingStatus={loading}
+          onAccountAdded={(account) => setLaceworkAccounts(prev => [...prev.filter(a => a.id !== account.id), account])}
+          onAccountRemoved={(id) => setLaceworkAccounts(prev => prev.filter(a => a.id !== id))}
           onToast={showToast}
         />
 

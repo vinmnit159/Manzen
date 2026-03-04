@@ -19,6 +19,10 @@ import { pagerdutyService } from '@/services/api/pagerduty';
 import { opsgenieService } from '@/services/api/opsgenie';
 import { servicenowIncidentService } from '@/services/api/servicenow-incident';
 import { datadogIncidentsService } from '@/services/api/datadog-incidents';
+import { gcpService } from '@/services/api/gcp';
+import { azureService } from '@/services/api/azure';
+import { wizService } from '@/services/api/wiz';
+import { laceworkService } from '@/services/api/lacework';
 import { usersService } from '@/services/api/users';
 import { authService } from '@/services/api/auth';
 import type { TestRecord, TestStatus, TestCategory, TestType, TestRunRecord } from '@/services/api/tests';
@@ -397,6 +401,26 @@ export function TestDetailPanel({ testId, onClose, onMutated }: TestDetailPanelP
         const datadogIntegrationId = meta.datadogIntegrationId ?? '';
         return datadogIncidentsService.runScan(datadogIntegrationId);
       }
+      if (provider.startsWith('GCP_')) {
+        const meta = (test?.integration?.metadata ?? {}) as Record<string, string>;
+        const gcpIntegrationId = meta.gcpIntegrationId ?? '';
+        return gcpService.runScan(gcpIntegrationId);
+      }
+      if (provider.startsWith('AZURE_')) {
+        const meta = (test?.integration?.metadata ?? {}) as Record<string, string>;
+        const azureIntegrationId = meta.azureIntegrationId ?? '';
+        return azureService.runScan(azureIntegrationId);
+      }
+      if (provider.startsWith('WIZ_')) {
+        const meta = (test?.integration?.metadata ?? {}) as Record<string, string>;
+        const wizIntegrationId = meta.wizIntegrationId ?? '';
+        return wizService.runScan(wizIntegrationId);
+      }
+      if (provider.startsWith('LACEWORK_')) {
+        const meta = (test?.integration?.metadata ?? {}) as Record<string, string>;
+        const laceworkIntegrationId = meta.laceworkIntegrationId ?? '';
+        return laceworkService.runScan(laceworkIntegrationId);
+      }
       return integrationsService.runAutomatedTests();
     },
     onSuccess: () => {
@@ -585,7 +609,11 @@ export function TestDetailPanel({ testId, onClose, onMutated }: TestDetailPanelP
                         if (p.startsWith('OPSGENIE_')) return 'This test is system-driven via Opsgenie. Results update automatically on every scan.';
                         if (p.startsWith('SERVICENOW_INCIDENT_')) return 'This test is system-driven via ServiceNow. Results update automatically on every scan.';
                         if (p.startsWith('DATADOG_INCIDENTS_')) return 'This test is system-driven via Datadog. Results update automatically on every scan.';
-                        return 'This test is system-driven via GitHub. Results update automatically on every scan.';
+                         if (p.startsWith('GCP_')) return 'This test is system-driven via GCP. Results update automatically on every cloud scan.';
+                         if (p.startsWith('AZURE_')) return 'This test is system-driven via Azure. Results update automatically on every cloud scan.';
+                         if (p.startsWith('WIZ_')) return 'This test is system-driven via Wiz. Results update automatically on every cloud scan.';
+                         if (p.startsWith('LACEWORK_')) return 'This test is system-driven via Lacework. Results update automatically on every cloud scan.';
+                         return 'This test is system-driven via GitHub. Results update automatically on every scan.';
                       })()}
                     </p>
                   </div>
