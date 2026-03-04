@@ -12,6 +12,7 @@ import { cloudflareService } from '@/services/api/cloudflare';
 import { bamboohrService } from '@/services/api/bamboohr';
 import { redashService } from '@/services/api/redash';
 import { workspaceService } from '@/services/api/workspace';
+import { fleetService } from '@/services/api/fleet';
 import { usersService } from '@/services/api/users';
 import { authService } from '@/services/api/auth';
 import type { TestRecord, TestStatus, TestCategory, TestType, TestRunRecord } from '@/services/api/tests';
@@ -355,6 +356,11 @@ export function TestDetailPanel({ testId, onClose, onMutated }: TestDetailPanelP
         const workspaceIntegrationId = meta.workspaceIntegrationId ?? '';
         return workspaceService.runScan(workspaceIntegrationId);
       }
+      if (provider.startsWith('FLEET_')) {
+        const meta = (test?.integration?.metadata ?? {}) as Record<string, string>;
+        const fleetIntegrationId = meta.fleetIntegrationId ?? '';
+        return fleetService.runScan(fleetIntegrationId);
+      }
       return integrationsService.runAutomatedTests();
     },
     onSuccess: () => {
@@ -536,6 +542,7 @@ export function TestDetailPanel({ testId, onClose, onMutated }: TestDetailPanelP
                         if (p.startsWith('BAMBOOHR_')) return 'This test is system-driven via BambooHR. Results update automatically on every sync and scan.';
                         if (p.startsWith('REDASH_')) return 'This test is system-driven via Redash. Results update automatically on every scan.';
                         if (p.startsWith('GOOGLE_WORKSPACE_')) return 'This test is system-driven via Google Workspace. Results update automatically on every scan.';
+                        if (p.startsWith('FLEET_')) return 'This test is system-driven via Fleet. Results update automatically on every endpoint scan.';
                         return 'This test is system-driven via GitHub. Results update automatically on every scan.';
                       })()}
                     </p>
