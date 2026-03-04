@@ -14,6 +14,7 @@ import { redashService } from '@/services/api/redash';
 import { workspaceService } from '@/services/api/workspace';
 import { fleetService } from '@/services/api/fleet';
 import { intercomService } from '@/services/api/intercom';
+import { bigIdService } from '@/services/api/bigid';
 import { usersService } from '@/services/api/users';
 import { authService } from '@/services/api/auth';
 import type { TestRecord, TestStatus, TestCategory, TestType, TestRunRecord } from '@/services/api/tests';
@@ -366,6 +367,11 @@ export function TestDetailPanel({ testId, onClose, onMutated }: TestDetailPanelP
         const meta = (test?.integration?.metadata ?? {}) as Record<string, string>;
         const intercomIntegrationId = meta.intercomIntegrationId ?? '';
         return intercomService.runScan(intercomIntegrationId);
+      }
+      if (provider.startsWith('BIGID_')) {
+        const meta = (test?.integration?.metadata ?? {}) as Record<string, string>;
+        const bigIdIntegrationId = meta.bigIdIntegrationId ?? '';
+        return bigIdService.runScan(bigIdIntegrationId);
       }
       return integrationsService.runAutomatedTests();
     },
