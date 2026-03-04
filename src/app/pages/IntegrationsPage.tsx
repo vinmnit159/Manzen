@@ -15,6 +15,7 @@ import { bamboohrService, HRIntegrationRecord } from '@/services/api/bamboohr';
 import { redashService, RedashIntegrationRecord } from '@/services/api/redash';
 import { workspaceService, WorkspaceIntegrationRecord } from '@/services/api/workspace';
 import { fleetService, FleetIntegrationRecord } from '@/services/api/fleet';
+import { intercomService, IntercomIntegrationRecord } from '@/services/api/intercom';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -2733,11 +2734,139 @@ function FleetCard({
   );
 }
 
+// ─── Intercom — full card ─────────────────────────────────────────────────────
+
+function IntercomCard({
+  accounts,
+  loadingStatus,
+  onAccountRemoved,
+  onToast,
+}: {
+  accounts: IntercomIntegrationRecord[];
+  loadingStatus: boolean;
+  onAccountRemoved: (integrationId: string) => void;
+  onToast: (type: 'success' | 'error', msg: string) => void;
+}) {
+  const [scanningId, setScanningId] = useState<string | null>(null);
+  const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
+  const [syncingId, setSyncingId] = useState<string | null>(null);
+
+  const isConnected = accounts.length > 0;
+
+  async function handleScan(integrationId: string) {
+    setScanningId(integrationId);
+    try {
+      await intercomService.runScan(integrationId);
+      onToast('success', 'Intercom scan started — results will appear in tests shortly');
+    } catch {
+      onToast('error', 'Failed to start scan');
+    } finally { setScanningId(null); }
+  }
+
+  async function handleSync(integrationId: string) {
+    setSyncingId(integrationId);
+    try {
+      const res = await intercomService.sync(integrationId);
+      onToast('success', `Synced ${(res as any).synced ?? 0} conversation(s)`);
+    } catch {
+      onToast('error', 'Failed to sync conversations');
+    } finally { setSyncingId(null); }
+  }
+
+  async function handleDisconnect(integrationId: string, workspaceName: string | null) {
+    if (!window.confirm(`Disconnect Intercom${workspaceName ? ` (${workspaceName})` : ''}? Automated Policy tests will stop running.`)) return;
+    setDisconnectingId(integrationId);
+    try {
+      await intercomService.disconnect(integrationId);
+      onAccountRemoved(integrationId);
+      onToast('success', 'Intercom disconnected');
+    } catch {
+      onToast('error', 'Failed to disconnect Intercom');
+    } finally { setDisconnectingId(null); }
+  }
+
+  function handleConnect() {
+    // Redirect to backend OAuth initiation endpoint (which requires auth header via cookie won't work)
+    // Instead, navigate with the token in the URL via a redirect handled by the backend
+    window.location.href = intercomService.getConnectUrl();
+  }
+
+  return (
+    <Card className="p-6 md:col-span-2">
+      {/* Header */}
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center flex-shrink-0 p-1 overflow-hidden">
+            <IntercomIcon className="w-8 h-8" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">Intercom</h3>
+            <p className="text-sm text-gray-500">Customer Support · Trust request &amp; findings tracking</p>
+          </div>
+        </div>
+        <Badge variant={isConnected ? 'default' : 'outline'}>
+          {loadingStatus ? 'Checking...' : isConnected ? `${accounts.length} workspace${accounts.length !== 1 ? 's' : ''} connected` : 'Available'}
+        </Badge>
+      </div>
+
+      <p className="text-sm text-gray-600 mb-4">
+        Automatically track security requests via Intercom conversations — monitor SLA compliance for
+        trust centre requests, triage times, and audit finding acknowledgements. All 3 results appear in the Tests page.
+      </p>
+
+      {/* ISO control tags */}
+      <div className="flex flex-wrap gap-2 mb-5">
+        {['A.5.30 Availability', 'A.5.24 Incident Mgmt', 'SLA Tracking', 'Trust Requests'].map((l) => (
+          <span key={l} className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full border border-blue-100 font-medium">{l}</span>
+        ))}
+      </div>
+
+      {/* Connected workspace rows */}
+      {isConnected && accounts.map(account => (
+        <div key={account.id} className="mb-3 flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-lg">
+          <div>
+            <p className="text-sm font-medium text-gray-900">{account.workspaceName ?? account.workspaceId}</p>
+            <p className="text-xs text-gray-400 font-mono">
+              {account.ticketCount} ticket{account.ticketCount !== 1 ? 's' : ''}
+              {' · '}{account.openConversations} open
+              {account.lastSyncAt && ` · Last sync: ${new Date(account.lastSyncAt).toLocaleString()}`}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <Button variant="outline" size="sm" onClick={() => handleScan(account.id)} disabled={scanningId === account.id}>
+              {scanningId === account.id ? 'Scanning…' : 'Scan Now'}
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => handleSync(account.id)} disabled={syncingId === account.id}>
+              {syncingId === account.id ? 'Syncing…' : 'Sync'}
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => handleDisconnect(account.id, account.workspaceName)} disabled={disconnectingId === account.id}
+              className="text-red-600 border-red-200 hover:bg-red-50">
+              {disconnectingId === account.id ? 'Disconnecting...' : 'Disconnect'}
+            </Button>
+          </div>
+        </div>
+      ))}
+
+      {/* Action button */}
+      <div className="flex flex-wrap gap-2">
+        {!loadingStatus && (
+          <button
+            onClick={handleConnect}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#1F8DED] hover:bg-[#1a7acb] text-white text-sm font-medium"
+          >
+            <IntercomIcon className="w-4 h-4" />
+            {isConnected ? '+ Connect Another Workspace' : 'Connect Intercom'}
+          </button>
+        )}
+      </div>
+    </Card>
+  );
+}
+
 // ─── Static cards (coming soon) ───────────────────────────────────────────────
 
 const STATIC_INTEGRATIONS = [
   { name: 'Illow',              category: 'Privacy',            description: 'Import consent records and cookie-banner logs for privacy compliance.' },
-  { name: 'Intercom',           category: 'Customer Support',   description: 'Link customer data-access requests to your privacy controls and DSARs.' },
 ];
 
 // ─── MDM sub-component ────────────────────────────────────────────────────────
@@ -2926,6 +3055,7 @@ export function IntegrationsPage() {
   const [redashAccounts, setRedashAccounts] = useState<RedashIntegrationRecord[]>([]);
   const [workspaceAccounts, setWorkspaceAccounts] = useState<WorkspaceIntegrationRecord[]>([]);
   const [fleetAccounts, setFleetAccounts] = useState<FleetIntegrationRecord[]>([]);
+  const [intercomAccounts, setIntercomAccounts] = useState<IntercomIntegrationRecord[]>([]);
   const [repos, setRepos] = useState<GitHubRepo[]>([]);
   const [loading, setLoading] = useState(true);
   const [disconnecting, setDisconnecting] = useState(false);
@@ -2939,7 +3069,7 @@ export function IntegrationsPage() {
 
   const loadStatus = async () => {
     try {
-      const [{ integrations }, slackRes, channelsRes, nrRes, notionRes, awsRes, cfRes, bambooRes, redashRes, workspaceRes, fleetRes] = await Promise.all([
+      const [{ integrations }, slackRes, channelsRes, nrRes, notionRes, awsRes, cfRes, bambooRes, redashRes, workspaceRes, fleetRes, intercomRes] = await Promise.all([
         integrationsService.getStatus(),
         slackService.getStatus().catch(() => ({ success: false, data: null })),
         slackService.getChannels().catch(() => ({ data: [] as SlackChannel[] })),
@@ -2951,6 +3081,7 @@ export function IntegrationsPage() {
         redashService.getAccounts().catch(() => ({ success: true, data: [] as RedashIntegrationRecord[] })),
         workspaceService.getAccounts().catch(() => ({ success: true, data: [] as WorkspaceIntegrationRecord[] })),
         fleetService.getAccounts().catch(() => ({ success: true, data: [] as FleetIntegrationRecord[] })),
+        intercomService.getAccounts().catch(() => ({ success: true, data: [] as IntercomIntegrationRecord[] })),
       ]);
       const gh = integrations.find((i) => i.provider === 'GITHUB' && i.status === 'ACTIVE') ?? null;
       const drive = integrations.find((i) => i.provider === 'GOOGLE_DRIVE' && i.status === 'ACTIVE') ?? null;
@@ -2968,6 +3099,7 @@ export function IntegrationsPage() {
       setRedashAccounts(redashRes.data ?? []);
       setWorkspaceAccounts(workspaceRes.data ?? []);
       setFleetAccounts(fleetRes.data ?? []);
+      setIntercomAccounts(intercomRes.data ?? []);
       if (gh) setRepos(gh.repos);
     } catch {
       /* unauthenticated or network — treat as disconnected */
@@ -2982,6 +3114,8 @@ export function IntegrationsPage() {
     if (connected === 'github') showToast('success', 'GitHub connected successfully!');
     if (connected === 'google_drive') showToast('success', 'Google Drive connected! Folder structure is being created.');
     if (connected === 'slack') showToast('success', 'Slack connected successfully!');
+    const intercomConnected = searchParams.get('intercom');
+    if (intercomConnected === 'connected') showToast('success', 'Intercom connected! 3 automated Policy tests are being seeded.');
     if (error) showToast('error', decodeURIComponent(error));
     loadStatus();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -3204,6 +3338,14 @@ export function IntegrationsPage() {
           loadingStatus={loading}
           onAccountAdded={(account) => setFleetAccounts(prev => [...prev.filter(a => a.id !== account.id), account])}
           onAccountRemoved={(id) => setFleetAccounts(prev => prev.filter(a => a.id !== id))}
+          onToast={showToast}
+        />
+
+        {/* ── Intercom ──────────────────────────────────────────────────────── */}
+        <IntercomCard
+          accounts={intercomAccounts}
+          loadingStatus={loading}
+          onAccountRemoved={(id) => setIntercomAccounts(prev => prev.filter(a => a.id !== id))}
           onToast={showToast}
         />
 
