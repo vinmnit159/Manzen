@@ -6,14 +6,18 @@ import { Header } from "@/app/components/Header";
 // Shared context so Header can toggle the sidebar
 interface SidebarContextValue {
   open: boolean;
+  collapsed: boolean;
   toggle: () => void;
   close: () => void;
+  setCollapsed: (collapsed: boolean) => void;
 }
 
 export const SidebarContext = createContext<SidebarContextValue>({
   open: false,
+  collapsed: false,
   toggle: () => {},
   close: () => {},
+  setCollapsed: () => {},
 });
 
 export function useSidebar() {
@@ -22,11 +26,35 @@ export function useSidebar() {
 
 export function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem("manzen.sidebar.collapsed") === "1";
+    } catch {
+      return false;
+    }
+  });
+
+  const isDesktop = () => window.matchMedia("(min-width: 1024px)").matches;
 
   const ctx: SidebarContextValue = {
     open: sidebarOpen,
-    toggle: () => setSidebarOpen((v) => !v),
+    collapsed: sidebarCollapsed,
+    toggle: () => {
+      if (isDesktop()) {
+        setSidebarCollapsed((v) => {
+          const next = !v;
+          localStorage.setItem("manzen.sidebar.collapsed", next ? "1" : "0");
+          return next;
+        });
+        return;
+      }
+      setSidebarOpen((v) => !v);
+    },
     close: () => setSidebarOpen(false),
+    setCollapsed: (collapsed) => {
+      setSidebarCollapsed(collapsed);
+      localStorage.setItem("manzen.sidebar.collapsed", collapsed ? "1" : "0");
+    },
   };
 
   return (
@@ -49,7 +77,7 @@ export function Layout() {
             sidebarOpen ? "translate-x-0" : "-translate-x-full",
           ].join(" ")}
         >
-          <Sidebar />
+          <Sidebar collapsed={sidebarCollapsed} />
         </div>
 
         {/* Main content */}

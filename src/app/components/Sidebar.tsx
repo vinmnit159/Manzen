@@ -21,7 +21,7 @@ import {
   ClipboardCheck,
 } from "lucide-react";
 // ChevronDown and ChevronRight retained for other expandable nav groups
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { cn } from "@/app/components/ui/utils";
 import { authService } from "@/services/api/auth";
 import { useSidebar } from "@/app/components/Layout";
@@ -144,10 +144,21 @@ function formatRole(role?: string): string {
     .join(" ");
 }
 
-export function Sidebar() {
+export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
   const location = useLocation();
   const { close: closeSidebar } = useSidebar();
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
+  const [isDesktop, setIsDesktop] = useState(() => window.matchMedia("(min-width: 1024px)").matches);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const onChange = (event: MediaQueryListEvent) => setIsDesktop(event.matches);
+    setIsDesktop(mq.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+
+  const isCompact = collapsed && isDesktop;
 
   const user = authService.getCachedUser();
   const userRole = (user?.role ?? '') as AppRole;
@@ -174,11 +185,11 @@ export function Sidebar() {
     children.some((child) => location.pathname === child.href);
 
   return (
-    <aside className="w-64 h-full bg-slate-900 text-white flex flex-col">
+    <aside className={cn("h-full bg-slate-900 text-white flex flex-col w-64 lg:transition-[width] lg:duration-200", collapsed ? "lg:w-20" : "lg:w-64")}>
       <div className="p-4 border-b border-slate-800 flex items-center justify-between">
-        <div className="flex items-center gap-2">
+        <div className={cn("flex items-center gap-2", collapsed && "lg:justify-center lg:w-full") }>
           <Shield className="w-8 h-8 text-blue-400" />
-          <span className="text-xl font-semibold">Manzen</span>
+          <span className={cn("text-xl font-semibold", collapsed && "lg:hidden")}>Manzen</span>
         </div>
         {/* Close button — only visible on mobile */}
         <button
@@ -210,6 +221,27 @@ export function Sidebar() {
           if (hasChildren && visibleChildren.length === 0) return null;
 
           if (hasChildren) {
+            if (isCompact && visibleChildren.length > 0) {
+              const target = visibleChildren[0].href;
+              return (
+                <Link
+                  key={item.title}
+                  to={target}
+                  onClick={closeSidebar}
+                  title={item.title}
+                  className={cn(
+                    "w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors lg:justify-center",
+                    parentActive
+                      ? "bg-blue-600 text-white"
+                      : "hover:bg-slate-800 text-slate-200"
+                  )}
+                >
+                  <Icon className="w-4 h-4 flex-shrink-0" />
+                  <span className="lg:hidden">{item.title}</span>
+                </Link>
+              );
+            }
+
             return (
               <div key={item.title}>
                 <button
@@ -218,15 +250,17 @@ export function Sidebar() {
                     "w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors",
                     parentActive
                       ? "bg-blue-600 text-white"
-                      : "hover:bg-slate-800 text-slate-200"
+                      : "hover:bg-slate-800 text-slate-200",
+                    collapsed && "lg:justify-center"
                   )}
+                  title={item.title}
                 >
                   <Icon className="w-4 h-4 flex-shrink-0" />
-                  <span className="flex-1 text-left">{item.title}</span>
+                  <span className={cn("flex-1 text-left", collapsed && "lg:hidden")}>{item.title}</span>
                   {isExpanded ? (
-                    <ChevronDown className="w-4 h-4" />
+                    <ChevronDown className={cn("w-4 h-4", collapsed && "lg:hidden")} />
                   ) : (
-                    <ChevronRight className="w-4 h-4" />
+                    <ChevronRight className={cn("w-4 h-4", collapsed && "lg:hidden")} />
                   )}
                 </button>
                 {isExpanded && (
@@ -257,15 +291,17 @@ export function Sidebar() {
               key={item.title}
               to={item.href!}
               onClick={closeSidebar}
+              title={item.title}
               className={cn(
                 "flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors",
+                collapsed && "lg:justify-center",
                 isActive(item.href!)
                   ? "bg-blue-600 text-white"
                   : "hover:bg-slate-800 text-slate-200"
               )}
             >
               <Icon className="w-4 h-4 flex-shrink-0" />
-              <span>{item.title}</span>
+              <span className={cn(collapsed && "lg:hidden")}>{item.title}</span>
             </Link>
           );
         })}
@@ -278,21 +314,23 @@ export function Sidebar() {
           onClick={closeSidebar}
           className={cn(
             "flex items-center gap-2 px-3 py-2 rounded-md transition-colors",
+            collapsed && "lg:justify-center",
             isActive("/account-settings")
               ? "bg-blue-600 text-white"
               : "hover:bg-slate-800"
           )}
+          title="Account settings"
         >
           <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-sm font-semibold flex-shrink-0">
             {initials}
           </div>
-          <div className="flex-1 min-w-0">
+          <div className={cn("flex-1 min-w-0", collapsed && "lg:hidden")}>
             <p className="text-sm font-medium truncate">{displayName}</p>
             {roleLabel && (
               <p className="text-xs text-slate-400 truncate">{roleLabel}</p>
             )}
           </div>
-          <UserCog className="w-4 h-4 text-slate-400 flex-shrink-0" />
+          <UserCog className={cn("w-4 h-4 text-slate-400 flex-shrink-0", collapsed && "lg:hidden")} />
         </Link>
       </div>
     </aside>

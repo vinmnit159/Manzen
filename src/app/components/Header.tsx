@@ -56,7 +56,7 @@ export function Header() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const navigate = useNavigate();
   const searchRef = useRef<HTMLDivElement>(null);
-  const { toggle: toggleSidebar } = useSidebar();
+  const { toggle: toggleSidebar, collapsed } = useSidebar();
 
   const handleLogout = () => {
     authService.logout();
@@ -100,11 +100,12 @@ export function Header() {
   return (
     <header className="bg-white border-b border-gray-200 px-3 sm:px-6 py-3">
       <div className="flex items-center gap-2 sm:gap-3">
-        {/* Hamburger — only on mobile */}
+        {/* Navigation toggle — mobile drawer + desktop collapse */}
         <button
           onClick={toggleSidebar}
-          className="lg:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-md flex-shrink-0"
-          aria-label="Open menu"
+          className="p-2 text-gray-600 hover:bg-gray-100 rounded-md flex-shrink-0"
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           <Menu className="w-5 h-5" />
         </button>
