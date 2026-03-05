@@ -227,23 +227,36 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
 
           if (hasChildren) {
             if (isCompact && visibleChildren.length > 0) {
-              const target = visibleChildren[0].href;
               return (
-                <Link
-                  key={item.title}
-                  to={target}
-                  onClick={closeSidebar}
-                  title={item.title}
-                  className={cn(
-                    "w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors lg:justify-center",
-                    parentActive
-                      ? "bg-blue-600 text-white"
-                      : "hover:bg-slate-800 text-slate-200"
-                  )}
-                >
-                  <Icon className="w-4 h-4 flex-shrink-0" />
-                  <span className="lg:hidden">{item.title}</span>
-                </Link>
+                <div key={item.title} className="relative group/menu-flyout">
+                  <button
+                    type="button"
+                    title={item.title}
+                    className={cn(
+                      "w-full flex items-center justify-center px-3 py-2 rounded-md text-sm transition-colors",
+                      parentActive ? "bg-blue-600 text-white" : "hover:bg-slate-800 text-slate-200"
+                    )}
+                  >
+                    <Icon className="w-4 h-4 flex-shrink-0" />
+                  </button>
+
+                  <div className="hidden lg:group-hover/menu-flyout:block lg:absolute lg:left-full lg:top-0 lg:ml-2 lg:min-w-[220px] lg:rounded-md lg:border lg:border-slate-700 lg:bg-slate-900 lg:shadow-xl lg:p-1 z-50">
+                    <p className="px-3 py-2 text-xs font-semibold tracking-wide text-slate-300 border-b border-slate-700">{item.title}</p>
+                    {visibleChildren.map((child) => (
+                      <Link
+                        key={child.href}
+                        to={child.href}
+                        onClick={closeSidebar}
+                        className={cn(
+                          "block mt-1 px-3 py-2 rounded-md text-sm transition-colors",
+                          isActive(child.href) ? "bg-blue-600 text-white" : "text-slate-200 hover:bg-slate-800"
+                        )}
+                      >
+                        {child.title}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
               );
             }
 

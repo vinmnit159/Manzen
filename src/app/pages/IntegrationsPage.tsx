@@ -4,6 +4,7 @@ import { PageTemplate } from '@/app/components/PageTemplate';
 import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/tabs';
 import { integrationsService, Integration, GitHubRepo } from '@/services/api/integrations';
 import { mdmService, EnrollmentToken, CreatedToken, MdmOverview } from '@/services/api/mdm';
 import { slackService, SlackIntegration, SlackChannel, SLACK_EVENT_TYPES } from '@/services/api/slack';
@@ -6266,6 +6267,8 @@ export function IntegrationsPage() {
   const [azureAdAccounts, setAzureAdAccounts] = useState<AzureAdIntegrationRecord[]>([]);
   const [jumpCloudAccounts, setJumpCloudAccounts] = useState<JumpCloudIntegrationRecord[]>([]);
   const [repos, setRepos] = useState<GitHubRepo[]>([]);
+  const [mdmOverview, setMdmOverview] = useState<MdmOverview | null>(null);
+  const [activeTab, setActiveTab] = useState<'connected' | 'available'>('connected');
   const [loading, setLoading] = useState(true);
   const [disconnecting, setDisconnecting] = useState(false);
   const [showRepos, setShowRepos] = useState(false);
@@ -6278,10 +6281,11 @@ export function IntegrationsPage() {
 
   const loadStatus = async () => {
     try {
-      const [{ integrations }, slackRes, channelsRes, nrRes, notionRes, awsRes, cfRes, bambooRes, redashRes, workspaceRes, fleetRes, intercomRes, bigIdRes, pdRes, ogRes, snRes, ddRes, gcpRes, azureRes, wizRes, laceworkRes, snykRes, sonarqubeRes, veracodeRes, checkmarxRes, vaultRes, secretsManagerRes, certManagerRes, oktaRes, azureAdRes, jumpCloudRes] = await Promise.all([
+      const [{ integrations }, slackRes, channelsRes, mdmRes, nrRes, notionRes, awsRes, cfRes, bambooRes, redashRes, workspaceRes, fleetRes, intercomRes, bigIdRes, pdRes, ogRes, snRes, ddRes, gcpRes, azureRes, wizRes, laceworkRes, snykRes, sonarqubeRes, veracodeRes, checkmarxRes, vaultRes, secretsManagerRes, certManagerRes, oktaRes, azureAdRes, jumpCloudRes] = await Promise.all([
         integrationsService.getStatus(),
         slackService.getStatus().catch(() => ({ success: false, data: null })),
         slackService.getChannels().catch(() => ({ data: [] as SlackChannel[] })),
+        mdmService.getOverview().catch(() => ({ total: 0, compliant: 0, nonCompliant: 0, unknown: 0 } as MdmOverview)),
         newRelicService.getStatus().catch(() => ({ connected: false, data: null })),
         notionService.getStatus().catch(() => ({ connected: false, data: null })),
         awsService.getAccounts().catch(() => ({ success: true, data: [] as AwsAccountRecord[] })),
@@ -6317,6 +6321,7 @@ export function IntegrationsPage() {
       setDriveIntegration(drive);
       setSlackIntegration(slackRes.data);
       setSlackChannels(channelsRes.data ?? []);
+      setMdmOverview(mdmRes);
       setNrConnected(nrRes.connected);
       setNrStatus(nrRes.data);
       setNotionConnected(notionRes.connected);
@@ -6388,6 +6393,73 @@ export function IntegrationsPage() {
   };
 
   const isConnected = !!githubIntegration;
+  const driveConnected = !!driveIntegration;
+  const slackConnected = !!slackIntegration;
+  const mdmConnected = (mdmOverview?.total ?? 0) > 0;
+  const awsConnected = awsAccounts.length > 0;
+  const cloudflareConnected = cloudflareAccounts.length > 0;
+  const bamboohrConnected = bamboohrAccounts.length > 0;
+  const redashConnected = redashAccounts.length > 0;
+  const workspaceConnected = workspaceAccounts.length > 0;
+  const fleetConnected = fleetAccounts.length > 0;
+  const intercomConnected = intercomAccounts.length > 0;
+  const bigIdConnected = bigIdAccounts.length > 0;
+  const pagerdutyConnected = pagerdutyAccounts.length > 0;
+  const opsgenieConnected = opsgenieAccounts.length > 0;
+  const servicenowConnected = servicenowAccounts.length > 0;
+  const datadogConnected = datadogAccounts.length > 0;
+  const gcpConnected = gcpAccounts.length > 0;
+  const azureConnected = azureAccounts.length > 0;
+  const wizConnected = wizAccounts.length > 0;
+  const laceworkConnected = laceworkAccounts.length > 0;
+  const snykConnected = snykAccounts.length > 0;
+  const sonarqubeConnected = sonarqubeAccounts.length > 0;
+  const veracodeConnected = veracodeAccounts.length > 0;
+  const checkmarxConnected = checkmarxAccounts.length > 0;
+  const vaultConnected = vaultAccounts.length > 0;
+  const secretsManagerConnected = secretsManagerAccounts.length > 0;
+  const certManagerConnected = certManagerAccounts.length > 0;
+  const oktaConnected = oktaAccounts.length > 0;
+  const azureAdConnected = azureAdAccounts.length > 0;
+  const jumpCloudConnected = jumpCloudAccounts.length > 0;
+
+  const connectedCount = [
+    isConnected,
+    driveConnected,
+    slackConnected,
+    nrConnected,
+    notionConnected,
+    mdmConnected,
+    awsConnected,
+    cloudflareConnected,
+    bamboohrConnected,
+    redashConnected,
+    workspaceConnected,
+    fleetConnected,
+    intercomConnected,
+    bigIdConnected,
+    pagerdutyConnected,
+    opsgenieConnected,
+    servicenowConnected,
+    datadogConnected,
+    gcpConnected,
+    azureConnected,
+    wizConnected,
+    laceworkConnected,
+    snykConnected,
+    sonarqubeConnected,
+    veracodeConnected,
+    checkmarxConnected,
+    vaultConnected,
+    secretsManagerConnected,
+    certManagerConnected,
+    oktaConnected,
+    azureAdConnected,
+    jumpCloudConnected,
+  ].filter(Boolean).length;
+
+  const shouldShowTile = (connected: boolean) =>
+    activeTab === 'connected' ? connected : !connected;
 
   return (
     <PageTemplate title="Integrations" description="Connect third-party tools and services to your ISMS.">
@@ -6402,9 +6474,17 @@ export function IntegrationsPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'connected' | 'available')} className="gap-4">
+        <TabsList className="w-full sm:w-auto">
+          <TabsTrigger value="connected">Connected Tools ({connectedCount})</TabsTrigger>
+          <TabsTrigger value="available">Available Tools</TabsTrigger>
+        </TabsList>
 
-        {/* ── GitHub — full-width active card ─────────────────────────────── */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+      {/* ── GitHub — full-width active card ─────────────────────────────── */}
+      {shouldShowTile(isConnected) && (
+
         <Card className="p-6 md:col-span-2">
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-3">
@@ -6492,283 +6572,284 @@ export function IntegrationsPage() {
 
 
         </Card>
+      )}
 
         {/* ── Google Drive ──────────────────────────────────────────────────── */}
-        <GoogleDriveCard
+        {shouldShowTile(driveConnected) && <GoogleDriveCard
           driveIntegration={driveIntegration}
           loading={loading}
           onToast={showToast}
           onDisconnect={() => setDriveIntegration(null)}
-        />
+        />}
 
         {/* ── Slack ────────────────────────────────────────────────────────── */}
-        <SlackCard
+        {shouldShowTile(slackConnected) && <SlackCard
           slackIntegration={slackIntegration}
           channels={slackChannels}
           loadingStatus={loading}
           onDisconnect={() => { setSlackIntegration(null); setSlackChannels([]); }}
           onChannelsChange={setSlackChannels}
           onToast={showToast}
-        />
+        />}
 
         {/* ── Manzen MDM Agent ─────────────────────────────────────────────── */}
-        <MdmCard onToast={showToast} />
+        {shouldShowTile(mdmConnected) && <MdmCard onToast={showToast} />}
 
         {/* ── BambooHR ─────────────────────────────────────────────────────── */}
-        <BambooHRCard
+        {shouldShowTile(bamboohrConnected) && <BambooHRCard
           accounts={bamboohrAccounts}
           loadingStatus={loading}
           onAccountAdded={(account) => setBamboohrAccounts(prev => [...prev.filter(a => a.id !== account.id), account])}
           onAccountRemoved={(id) => setBamboohrAccounts(prev => prev.filter(a => a.id !== id))}
           onToast={showToast}
-        />
+        />}
 
         {/* ── Notion ───────────────────────────────────────────────────────── */}
-        <NotionCard
+        {shouldShowTile(notionConnected) && <NotionCard
           notionStatus={notionStatus}
           connected={notionConnected}
           loadingStatus={loading}
           onConnected={(status) => { setNotionConnected(true); setNotionStatus(status); }}
           onDisconnected={() => { setNotionConnected(false); setNotionStatus(null); }}
           onToast={showToast}
-        />
+        />}
 
         {/* ── AWS ──────────────────────────────────────────────────────────── */}
-        <AwsCard
+        {shouldShowTile(awsConnected) && <AwsCard
           accounts={awsAccounts}
           loadingStatus={loading}
           onAccountAdded={(account) => setAwsAccounts(prev => [...prev.filter(a => a.id !== account.id), account])}
           onAccountRemoved={(accountId) => setAwsAccounts(prev => prev.filter(a => a.id !== accountId))}
           onToast={showToast}
-        />
+        />}
 
         {/* ── Cloudflare ───────────────────────────────────────────────────── */}
-        <CloudflareCard
+        {shouldShowTile(cloudflareConnected) && <CloudflareCard
           accounts={cloudflareAccounts}
           loadingStatus={loading}
           onAccountAdded={(account) => setCloudflareAccounts(prev => [...prev.filter(a => a.id !== account.id), account])}
           onAccountRemoved={(accountId) => setCloudflareAccounts(prev => prev.filter(a => a.id !== accountId))}
           onToast={showToast}
-        />
+        />}
 
         {/* ── New Relic ────────────────────────────────────────────────────── */}
-        <NewRelicCard
+        {shouldShowTile(nrConnected) && <NewRelicCard
           nrStatus={nrStatus}
           connected={nrConnected}
           loadingStatus={loading}
           onConnected={(status) => { setNrConnected(true); setNrStatus(status); }}
           onDisconnected={() => { setNrConnected(false); setNrStatus(null); }}
           onToast={showToast}
-        />
+        />}
 
         {/* ── Redash ───────────────────────────────────────────────────────── */}
-        <RedashCard
+        {shouldShowTile(redashConnected) && <RedashCard
           accounts={redashAccounts}
           loadingStatus={loading}
           onAccountAdded={(account) => setRedashAccounts(prev => [...prev.filter(a => a.id !== account.id), account])}
           onAccountRemoved={(id) => setRedashAccounts(prev => prev.filter(a => a.id !== id))}
           onToast={showToast}
-        />
+        />}
 
         {/* ── Google Workspace ─────────────────────────────────────────────── */}
-        <WorkspaceCard
+        {shouldShowTile(workspaceConnected) && <WorkspaceCard
           accounts={workspaceAccounts}
           loadingStatus={loading}
           onAccountAdded={(account) => setWorkspaceAccounts(prev => [...prev.filter(a => a.id !== account.id), account])}
           onAccountRemoved={(id) => setWorkspaceAccounts(prev => prev.filter(a => a.id !== id))}
           onToast={showToast}
-        />
+        />}
 
         {/* ── Fleet ────────────────────────────────────────────────────────── */}
-        <FleetCard
+        {shouldShowTile(fleetConnected) && <FleetCard
           accounts={fleetAccounts}
           loadingStatus={loading}
           onAccountAdded={(account) => setFleetAccounts(prev => [...prev.filter(a => a.id !== account.id), account])}
           onAccountRemoved={(id) => setFleetAccounts(prev => prev.filter(a => a.id !== id))}
           onToast={showToast}
-        />
+        />}
 
         {/* ── Intercom ──────────────────────────────────────────────────────── */}
-        <IntercomCard
+        {shouldShowTile(intercomConnected) && <IntercomCard
           accounts={intercomAccounts}
           loadingStatus={loading}
           onAccountRemoved={(id) => setIntercomAccounts(prev => prev.filter(a => a.id !== id))}
           onToast={showToast}
-        />
+        />}
 
         {/* ── BigID ─────────────────────────────────────────────────────────── */}
-        <BigIdCard
+        {shouldShowTile(bigIdConnected) && <BigIdCard
           accounts={bigIdAccounts}
           loadingStatus={loading}
           onAccountAdded={(account) => setBigIdAccounts(prev => [...prev.filter(a => a.id !== account.id), account])}
           onAccountRemoved={(id) => setBigIdAccounts(prev => prev.filter(a => a.id !== id))}
           onToast={showToast}
-        />
+        />}
 
         {/* ── PagerDuty ─────────────────────────────────────────────────────── */}
-        <PagerDutyCard
+        {shouldShowTile(pagerdutyConnected) && <PagerDutyCard
           accounts={pagerdutyAccounts}
           loadingStatus={loading}
           onAccountAdded={(account) => setPagerdutyAccounts(prev => [...prev.filter(a => a.id !== account.id), account])}
           onAccountRemoved={(id) => setPagerdutyAccounts(prev => prev.filter(a => a.id !== id))}
           onToast={showToast}
-        />
+        />}
 
         {/* ── Opsgenie ──────────────────────────────────────────────────────── */}
-        <OpsgenieCard
+        {shouldShowTile(opsgenieConnected) && <OpsgenieCard
           accounts={opsgenieAccounts}
           loadingStatus={loading}
           onAccountAdded={(account) => setOpsgenieAccounts(prev => [...prev.filter(a => a.id !== account.id), account])}
           onAccountRemoved={(id) => setOpsgenieAccounts(prev => prev.filter(a => a.id !== id))}
           onToast={showToast}
-        />
+        />}
 
         {/* ── ServiceNow Incident ───────────────────────────────────────────── */}
-        <ServiceNowIncidentCard
+        {shouldShowTile(servicenowConnected) && <ServiceNowIncidentCard
           accounts={servicenowAccounts}
           loadingStatus={loading}
           onAccountAdded={(account) => setServicenowAccounts(prev => [...prev.filter(a => a.id !== account.id), account])}
           onAccountRemoved={(id) => setServicenowAccounts(prev => prev.filter(a => a.id !== id))}
           onToast={showToast}
-        />
+        />}
 
         {/* ── Datadog Incidents ─────────────────────────────────────────────── */}
-        <DatadogIncidentsCard
+        {shouldShowTile(datadogConnected) && <DatadogIncidentsCard
           accounts={datadogAccounts}
           loadingStatus={loading}
           onAccountAdded={(account) => setDatadogAccounts(prev => [...prev.filter(a => a.id !== account.id), account])}
           onAccountRemoved={(id) => setDatadogAccounts(prev => prev.filter(a => a.id !== id))}
           onToast={showToast}
-        />
+        />}
 
         {/* ── GCP ───────────────────────────────────────────────────────────── */}
-        <GcpCard
+        {shouldShowTile(gcpConnected) && <GcpCard
           accounts={gcpAccounts}
           loadingStatus={loading}
           onAccountAdded={(account) => setGcpAccounts(prev => [...prev.filter(a => a.id !== account.id), account])}
           onAccountRemoved={(id) => setGcpAccounts(prev => prev.filter(a => a.id !== id))}
           onToast={showToast}
-        />
+        />}
 
         {/* ── Azure ─────────────────────────────────────────────────────────── */}
-        <AzureCard
+        {shouldShowTile(azureConnected) && <AzureCard
           accounts={azureAccounts}
           loadingStatus={loading}
           onAccountAdded={(account) => setAzureAccounts(prev => [...prev.filter(a => a.id !== account.id), account])}
           onAccountRemoved={(id) => setAzureAccounts(prev => prev.filter(a => a.id !== id))}
           onToast={showToast}
-        />
+        />}
 
         {/* ── Wiz ───────────────────────────────────────────────────────────── */}
-        <WizCard
+        {shouldShowTile(wizConnected) && <WizCard
           accounts={wizAccounts}
           loadingStatus={loading}
           onAccountAdded={(account) => setWizAccounts(prev => [...prev.filter(a => a.id !== account.id), account])}
           onAccountRemoved={(id) => setWizAccounts(prev => prev.filter(a => a.id !== id))}
           onToast={showToast}
-        />
+        />}
 
         {/* ── Lacework ──────────────────────────────────────────────────────── */}
-        <LaceworkCard
+        {shouldShowTile(laceworkConnected) && <LaceworkCard
           accounts={laceworkAccounts}
           loadingStatus={loading}
           onAccountAdded={(account) => setLaceworkAccounts(prev => [...prev.filter(a => a.id !== account.id), account])}
           onAccountRemoved={(id) => setLaceworkAccounts(prev => prev.filter(a => a.id !== id))}
           onToast={showToast}
-        />
+        />}
 
         {/* ── Snyk ──────────────────────────────────────────────────────────── */}
-        <SnykCard
+        {shouldShowTile(snykConnected) && <SnykCard
           accounts={snykAccounts}
           loadingStatus={loading}
           onAccountAdded={(account) => setSnykAccounts(prev => [...prev.filter(a => a.id !== account.id), account])}
           onAccountRemoved={(id) => setSnykAccounts(prev => prev.filter(a => a.id !== id))}
           onToast={showToast}
-        />
+        />}
 
         {/* ── SonarQube ─────────────────────────────────────────────────────── */}
-        <SonarQubeCard
+        {shouldShowTile(sonarqubeConnected) && <SonarQubeCard
           accounts={sonarqubeAccounts}
           loadingStatus={loading}
           onAccountAdded={(account) => setSonarqubeAccounts(prev => [...prev.filter(a => a.id !== account.id), account])}
           onAccountRemoved={(id) => setSonarqubeAccounts(prev => prev.filter(a => a.id !== id))}
           onToast={showToast}
-        />
+        />}
 
         {/* ── Veracode ──────────────────────────────────────────────────────── */}
-        <VeracodeCard
+        {shouldShowTile(veracodeConnected) && <VeracodeCard
           accounts={veracodeAccounts}
           loadingStatus={loading}
           onAccountAdded={(account) => setVeracodeAccounts(prev => [...prev.filter(a => a.id !== account.id), account])}
           onAccountRemoved={(id) => setVeracodeAccounts(prev => prev.filter(a => a.id !== id))}
           onToast={showToast}
-        />
+        />}
 
         {/* ── Checkmarx ─────────────────────────────────────────────────────── */}
-        <CheckmarxCard
+        {shouldShowTile(checkmarxConnected) && <CheckmarxCard
           accounts={checkmarxAccounts}
           loadingStatus={loading}
           onAccountAdded={(account) => setCheckmarxAccounts(prev => [...prev.filter(a => a.id !== account.id), account])}
           onAccountRemoved={(id) => setCheckmarxAccounts(prev => prev.filter(a => a.id !== id))}
           onToast={showToast}
-        />
+        />}
 
         {/* ── HashiCorp Vault ──────────────────────────────────────────────── */}
-        <VaultCard
+        {shouldShowTile(vaultConnected) && <VaultCard
           accounts={vaultAccounts}
           loadingStatus={loading}
           onAccountAdded={(account) => setVaultAccounts(prev => [...prev.filter(a => a.id !== account.id), account])}
           onAccountRemoved={(id) => setVaultAccounts(prev => prev.filter(a => a.id !== id))}
           onToast={showToast}
-        />
+        />}
 
         {/* ── AWS Secrets Manager ──────────────────────────────────────────── */}
-        <SecretsManagerCard
+        {shouldShowTile(secretsManagerConnected) && <SecretsManagerCard
           accounts={secretsManagerAccounts}
           loadingStatus={loading}
           onAccountAdded={(account) => setSecretsManagerAccounts(prev => [...prev.filter(a => a.id !== account.id), account])}
           onAccountRemoved={(id) => setSecretsManagerAccounts(prev => prev.filter(a => a.id !== id))}
           onToast={showToast}
-        />
+        />}
 
         {/* ── Certificate Manager ──────────────────────────────────────────── */}
-        <CertManagerCard
+        {shouldShowTile(certManagerConnected) && <CertManagerCard
           accounts={certManagerAccounts}
           loadingStatus={loading}
           onAccountAdded={(account) => setCertManagerAccounts(prev => [...prev.filter(a => a.id !== account.id), account])}
           onAccountRemoved={(id) => setCertManagerAccounts(prev => prev.filter(a => a.id !== id))}
           onToast={showToast}
-        />
+        />}
 
         {/* ── Okta ─────────────────────────────────────────────────────────── */}
-        <OktaCard
+        {shouldShowTile(oktaConnected) && <OktaCard
           accounts={oktaAccounts}
           loadingStatus={loading}
           onAccountAdded={(account) => setOktaAccounts(prev => [...prev.filter(a => a.id !== account.id), account])}
           onAccountRemoved={(id) => setOktaAccounts(prev => prev.filter(a => a.id !== id))}
           onToast={showToast}
-        />
+        />}
 
         {/* ── Azure AD ─────────────────────────────────────────────────────── */}
-        <AzureAdCard
+        {shouldShowTile(azureAdConnected) && <AzureAdCard
           accounts={azureAdAccounts}
           loadingStatus={loading}
           onAccountAdded={(account) => setAzureAdAccounts(prev => [...prev.filter(a => a.id !== account.id), account])}
           onAccountRemoved={(id) => setAzureAdAccounts(prev => prev.filter(a => a.id !== id))}
           onToast={showToast}
-        />
+        />}
 
         {/* ── JumpCloud ────────────────────────────────────────────────────── */}
-        <JumpCloudCard
+        {shouldShowTile(jumpCloudConnected) && <JumpCloudCard
           accounts={jumpCloudAccounts}
           loadingStatus={loading}
           onAccountAdded={(account) => setJumpCloudAccounts(prev => [...prev.filter(a => a.id !== account.id), account])}
           onAccountRemoved={(id) => setJumpCloudAccounts(prev => prev.filter(a => a.id !== id))}
           onToast={showToast}
-        />
+        />}
 
         {/* ── Static coming-soon cards ─────────────────────────────────────── */}
-        {STATIC_INTEGRATIONS.map((integration) => (
+        {activeTab === 'available' && STATIC_INTEGRATIONS.map((integration) => (
           <Card key={integration.name} className="p-6 opacity-60 select-none">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
@@ -6789,6 +6870,7 @@ export function IntegrationsPage() {
           </Card>
         ))}
       </div>
+      </Tabs>
     </PageTemplate>
   );
 }
