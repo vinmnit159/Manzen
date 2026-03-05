@@ -4,7 +4,7 @@ import { PageTemplate } from '@/app/components/PageTemplate';
 import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/app/components/ui/tabs';
 import { integrationsService, Integration, GitHubRepo } from '@/services/api/integrations';
 import { mdmService, EnrollmentToken, CreatedToken, MdmOverview } from '@/services/api/mdm';
 import { slackService, SlackIntegration, SlackChannel, SLACK_EVENT_TYPES } from '@/services/api/slack';
@@ -36,6 +36,16 @@ import { certManagerService, CertManagerIntegrationRecord } from '@/services/api
 import { oktaService, OktaIntegrationRecord } from '@/services/api/okta';
 import { azureAdService, AzureAdIntegrationRecord } from '@/services/api/azuread';
 import { jumpCloudService, JumpCloudIntegrationRecord } from '@/services/api/jumpcloud';
+import { EngineerAIntegrationRecord } from '@/services/api/engineer-a-factory';
+import { workspaceDirectoryService } from '@/services/api/workspace-directory';
+import { oneLoginService } from '@/services/api/onelogin';
+import { jamfService } from '@/services/api/jamf';
+import { kandjiService } from '@/services/api/kandji';
+import { intuneService } from '@/services/api/intune';
+import { crowdstrikeService } from '@/services/api/crowdstrike';
+import { workdayService } from '@/services/api/workday';
+import { ripplingService } from '@/services/api/rippling';
+import { hiBobService } from '@/services/api/hibob';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -5582,6 +5592,170 @@ function CertManagerCard({
 
 const STATIC_INTEGRATIONS: { name: string; category: string; description: string }[] = [];
 
+type EngineerACardConfig = {
+  key: string;
+  name: string;
+  category: string;
+  description: string;
+  service: {
+    getAccounts: () => Promise<{ success: boolean; data: EngineerAIntegrationRecord[] }>;
+    connect: (payload: { apiKey: string; accountId?: string; tenant?: string; baseUrl?: string; region?: string; label?: string }) => Promise<{ success: boolean; data: EngineerAIntegrationRecord }>;
+    disconnect: (integrationId: string) => Promise<{ success: boolean }>;
+    runScan: (integrationId: string) => Promise<{ success: boolean; jobId: string; status: string }>;
+  };
+};
+
+const ENGINEER_A_CARDS: EngineerACardConfig[] = [
+  { key: 'workspace-directory', name: 'Google Workspace Directory', category: 'Identity', description: 'Directory posture, admin controls, and account lifecycle checks.', service: workspaceDirectoryService as any },
+  { key: 'onelogin', name: 'OneLogin', category: 'Identity', description: 'Identity and SSO governance checks for OneLogin tenants.', service: oneLoginService as any },
+  { key: 'jamf', name: 'Jamf Pro', category: 'Endpoint / MDM', description: 'macOS fleet security baseline and endpoint policy coverage.', service: jamfService as any },
+  { key: 'kandji', name: 'Kandji', category: 'Endpoint / MDM', description: 'Device posture controls and compliance blueprint monitoring.', service: kandjiService as any },
+  { key: 'intune', name: 'Microsoft Intune', category: 'Endpoint / MDM', description: 'Windows and mobile compliance baseline verification.', service: intuneService as any },
+  { key: 'crowdstrike', name: 'CrowdStrike Falcon', category: 'Endpoint Security', description: 'EDR coverage, detections, and host hygiene posture checks.', service: crowdstrikeService as any },
+  { key: 'workday', name: 'Workday', category: 'HRIS', description: 'Employee lifecycle sync and HR access governance checks.', service: workdayService as any },
+  { key: 'rippling', name: 'Rippling', category: 'HRIS', description: 'Onboarding/offboarding and HR data governance controls.', service: ripplingService as any },
+  { key: 'hibob', name: 'HiBob', category: 'HRIS', description: 'People operations lifecycle and privacy controls.', service: hiBobService as any },
+];
+
+function EngineerAIntegrationCard({
+  config,
+  loading,
+  onToast,
+  activeTab,
+}: {
+  config: EngineerACardConfig;
+  loading: boolean;
+  onToast: (type: 'success' | 'error', msg: string) => void;
+  activeTab: 'connected' | 'available';
+}) {
+  const [accounts, setAccounts] = useState<EngineerAIntegrationRecord[]>([]);
+  const [showConnect, setShowConnect] = useState(false);
+  const [apiKey, setApiKey] = useState('');
+  const [accountId, setAccountId] = useState('');
+  const [tenant, setTenant] = useState('');
+  const [baseUrl, setBaseUrl] = useState('');
+  const [label, setLabel] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const connected = accounts.length > 0;
+
+  const load = async () => {
+    try {
+      const res = await config.service.getAccounts();
+      setAccounts(res.data ?? []);
+    } catch {
+      setAccounts([]);
+    }
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  async function handleConnect(e: React.FormEvent) {
+    e.preventDefault();
+    if (!apiKey.trim()) {
+      onToast('error', 'API key is required');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await config.service.connect({
+        apiKey: apiKey.trim(),
+        accountId: accountId.trim() || undefined,
+        tenant: tenant.trim() || undefined,
+        baseUrl: baseUrl.trim() || undefined,
+        label: label.trim() || undefined,
+      });
+      setShowConnect(false);
+      setApiKey('');
+      setAccountId('');
+      setTenant('');
+      setBaseUrl('');
+      setLabel('');
+      await load();
+      onToast('success', `${config.name} connected`);
+    } catch (error: any) {
+      onToast('error', error?.message ?? `Failed to connect ${config.name}`);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleDisconnect(integrationId: string) {
+    try {
+      await config.service.disconnect(integrationId);
+      await load();
+      onToast('success', `${config.name} disconnected`);
+    } catch {
+      onToast('error', `Failed to disconnect ${config.name}`);
+    }
+  }
+
+  async function handleScan(integrationId: string) {
+    try {
+      await config.service.runScan(integrationId);
+      onToast('success', `${config.name} scan queued`);
+    } catch {
+      onToast('error', `Failed to queue ${config.name} scan`);
+    }
+  }
+
+  const visible = activeTab === 'connected' ? connected : !connected;
+  if (!visible) return null;
+
+  return (
+    <Card className="p-6">
+      <div className="flex items-start justify-between mb-4">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900">{config.name}</h3>
+          <p className="text-sm text-gray-500">{config.category}</p>
+        </div>
+        <Badge variant={connected ? 'default' : 'outline'}>
+          {loading ? 'Checking...' : connected ? `${accounts.length} connected` : 'Available'}
+        </Badge>
+      </div>
+
+      <p className="text-sm text-gray-600 mb-4">{config.description}</p>
+
+      {connected && accounts.map((a) => (
+        <div key={a.id} className="mb-3 rounded-lg border border-gray-200 p-3">
+          <p className="text-sm font-medium text-gray-900">{(a.metadata as any)?.label || config.name}</p>
+          <p className="text-xs text-gray-500">{(a.metadata as any)?.accountId || (a.metadata as any)?.tenant || 'Active account'}</p>
+          <div className="mt-2 flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => handleScan(a.id)}>Run Scan</Button>
+            <Button variant="outline" size="sm" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => handleDisconnect(a.id)}>
+              Disconnect
+            </Button>
+          </div>
+        </div>
+      ))}
+
+      {!connected && (
+        <Button variant="outline" size="sm" onClick={() => setShowConnect(true)}>
+          Connect {config.name}
+        </Button>
+      )}
+
+      {showConnect && (
+        <div className="mt-4 rounded-lg border border-gray-200 p-4 space-y-2">
+          <form onSubmit={handleConnect} className="space-y-2">
+            <input className="w-full border rounded-md px-3 py-2 text-sm" placeholder="API key" value={apiKey} onChange={(e) => setApiKey(e.target.value)} />
+            <input className="w-full border rounded-md px-3 py-2 text-sm" placeholder="Account ID (optional)" value={accountId} onChange={(e) => setAccountId(e.target.value)} />
+            <input className="w-full border rounded-md px-3 py-2 text-sm" placeholder="Tenant / subdomain (optional)" value={tenant} onChange={(e) => setTenant(e.target.value)} />
+            <input className="w-full border rounded-md px-3 py-2 text-sm" placeholder="Base URL (optional)" value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} />
+            <input className="w-full border rounded-md px-3 py-2 text-sm" placeholder="Label (optional)" value={label} onChange={(e) => setLabel(e.target.value)} />
+            <div className="flex gap-2 pt-1">
+              <Button type="submit" size="sm" disabled={submitting}>{submitting ? 'Connecting...' : 'Save'}</Button>
+              <Button type="button" size="sm" variant="outline" onClick={() => setShowConnect(false)}>Cancel</Button>
+            </div>
+          </form>
+        </div>
+      )}
+    </Card>
+  );
+}
+
 // ─── MDM sub-component ────────────────────────────────────────────────────────
 
 function MdmCard({ onToast }: { onToast: (type: 'success' | 'error', msg: string) => void }) {
@@ -6847,6 +7021,16 @@ export function IntegrationsPage() {
           onAccountRemoved={(id) => setJumpCloudAccounts(prev => prev.filter(a => a.id !== id))}
           onToast={showToast}
         />}
+
+        {ENGINEER_A_CARDS.map((card) => (
+          <EngineerAIntegrationCard
+            key={card.key}
+            config={card}
+            loading={loading}
+            onToast={showToast}
+            activeTab={activeTab}
+          />
+        ))}
 
         {/* ── Static coming-soon cards ─────────────────────────────────────── */}
         {activeTab === 'available' && STATIC_INTEGRATIONS.map((integration) => (
