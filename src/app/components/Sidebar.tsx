@@ -206,7 +206,7 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
         </button>
       </div>
 
-      <nav className="flex-1 overflow-y-auto p-3 space-y-1">
+      <nav className="flex-1 overflow-y-auto overflow-x-visible p-3 space-y-1">
         {navigation.map((item) => {
           // Hide items restricted to other roles
           if (!canSee(item.roles)) return null;
@@ -228,9 +228,10 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
           if (hasChildren) {
             if (isCompact && visibleChildren.length > 0) {
               return (
-                <div key={item.title} className="relative group/menu-flyout">
-                  <button
-                    type="button"
+                <div key={item.title} className="relative group">
+                  <Link
+                    to={visibleChildren[0].href}
+                    onClick={closeSidebar}
                     title={item.title}
                     className={cn(
                       "w-full flex items-center justify-center px-3 py-2 rounded-md text-sm transition-colors",
@@ -238,9 +239,9 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
                     )}
                   >
                     <Icon className="w-4 h-4 flex-shrink-0" />
-                  </button>
+                  </Link>
 
-                  <div className="hidden lg:group-hover/menu-flyout:block lg:absolute lg:left-full lg:top-0 lg:ml-2 lg:min-w-[220px] lg:rounded-md lg:border lg:border-slate-700 lg:bg-slate-900 lg:shadow-xl lg:p-1 z-50">
+                  <div className="hidden lg:group-hover:block lg:group-focus-within:block lg:absolute lg:left-full lg:top-0 lg:ml-2 lg:min-w-[220px] lg:rounded-md lg:border lg:border-slate-700 lg:bg-slate-900 lg:shadow-xl lg:p-1 z-50">
                     <p className="px-3 py-2 text-xs font-semibold tracking-wide text-slate-300 border-b border-slate-700">{item.title}</p>
                     {visibleChildren.map((child) => (
                       <Link
