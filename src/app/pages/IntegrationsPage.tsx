@@ -5622,11 +5622,13 @@ function EngineerAIntegrationCard({
   loading,
   onToast,
   activeTab,
+  onConnectionCountChange,
 }: {
   config: EngineerACardConfig;
   loading: boolean;
   onToast: (type: 'success' | 'error', msg: string) => void;
   activeTab: 'connected' | 'available';
+  onConnectionCountChange: (count: number) => void;
 }) {
   const [accounts, setAccounts] = useState<EngineerAIntegrationRecord[]>([]);
   const [showConnect, setShowConnect] = useState(false);
@@ -5642,9 +5644,12 @@ function EngineerAIntegrationCard({
   const load = async () => {
     try {
       const res = await config.service.getAccounts();
-      setAccounts(res.data ?? []);
+      const list = res.data ?? [];
+      setAccounts(list);
+      onConnectionCountChange(list.length);
     } catch {
       setAccounts([]);
+      onConnectionCountChange(0);
     }
   };
 
@@ -6443,6 +6448,7 @@ export function IntegrationsPage() {
   const [repos, setRepos] = useState<GitHubRepo[]>([]);
   const [mdmOverview, setMdmOverview] = useState<MdmOverview | null>(null);
   const [activeTab, setActiveTab] = useState<'connected' | 'available'>('connected');
+  const [engineerAConnectionCounts, setEngineerAConnectionCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [disconnecting, setDisconnecting] = useState(false);
   const [showRepos, setShowRepos] = useState(false);
@@ -6597,7 +6603,7 @@ export function IntegrationsPage() {
   const azureAdConnected = azureAdAccounts.length > 0;
   const jumpCloudConnected = jumpCloudAccounts.length > 0;
 
-  const connectedCount = [
+  const baseConnectedCount = [
     isConnected,
     driveConnected,
     slackConnected,
@@ -6632,6 +6638,11 @@ export function IntegrationsPage() {
     jumpCloudConnected,
   ].filter(Boolean).length;
 
+  const engineerAConnectedCount = Object.values(engineerAConnectionCounts).filter((count) => count > 0).length;
+  const connectedCount = baseConnectedCount + engineerAConnectedCount;
+  const totalToolCount = 32 + ENGINEER_A_CARDS.length + STATIC_INTEGRATIONS.length;
+  const availableCount = Math.max(totalToolCount - connectedCount, 0);
+
   const shouldShowTile = (connected: boolean) =>
     activeTab === 'connected' ? connected : !connected;
 
@@ -6651,10 +6662,10 @@ export function IntegrationsPage() {
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'connected' | 'available')} className="gap-4">
         <TabsList className="w-full sm:w-auto">
           <TabsTrigger value="connected">Connected Tools ({connectedCount})</TabsTrigger>
-          <TabsTrigger value="available">Available Tools</TabsTrigger>
+          <TabsTrigger value="available">Available Tools ({availableCount})</TabsTrigger>
         </TabsList>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4">
 
       {/* ── GitHub — full-width active card ─────────────────────────────── */}
       {shouldShowTile(isConnected) && (
@@ -7029,6 +7040,9 @@ export function IntegrationsPage() {
             loading={loading}
             onToast={showToast}
             activeTab={activeTab}
+            onConnectionCountChange={(count) =>
+              setEngineerAConnectionCounts((prev) => ({ ...prev, [card.key]: count }))
+            }
           />
         ))}
 
