@@ -187,10 +187,15 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
   return (
     <aside className={cn("h-full bg-slate-900 text-white flex flex-col w-64 lg:transition-[width] lg:duration-200", collapsed ? "lg:w-20" : "lg:w-64")}>
       <div className="p-4 border-b border-slate-800 flex items-center justify-between">
-        <div className={cn("flex items-center gap-2", collapsed && "lg:justify-center lg:w-full") }>
+        <Link
+          to="/"
+          onClick={closeSidebar}
+          className={cn("flex items-center gap-2 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400", collapsed && "lg:justify-center lg:w-full")}
+          aria-label="Go to home"
+        >
           <Shield className="w-8 h-8 text-blue-400" />
           <span className={cn("text-xl font-semibold", collapsed && "lg:hidden")}>Manzen</span>
-        </div>
+        </Link>
         {/* Close button — only visible on mobile */}
         <button
           onClick={closeSidebar}
