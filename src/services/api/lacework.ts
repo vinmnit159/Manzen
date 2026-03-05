@@ -42,7 +42,7 @@ export interface CloudSyncLogRecord {
 
 export const laceworkService = {
   async getAccounts(): Promise<{ success: boolean; data: LaceworkIntegrationRecord[] }> {
-    return apiClient.get('/integrations/lacework/accounts');
+    return apiClient.get('/api/integrations/lacework/accounts');
   },
 
   async connect(data: {
@@ -51,26 +51,26 @@ export const laceworkService = {
     secret: string;
     label?: string;
   }): Promise<{ success: boolean; data: LaceworkIntegrationRecord }> {
-    return apiClient.post('/integrations/lacework/connect', data);
+    return apiClient.post('/api/integrations/lacework/connect', data);
   },
 
   async disconnect(integrationId: string): Promise<{ success: boolean }> {
-    return apiClient.delete(`/integrations/lacework/${integrationId}`);
+    return apiClient.delete(`/api/integrations/lacework/${integrationId}`);
   },
 
   async runScan(integrationId: string): Promise<{ success: boolean; message: string }> {
-    return apiClient.post(`/integrations/lacework/${integrationId}/scan`, {});
+    return apiClient.post(`/api/integrations/lacework/${integrationId}/scan`, {});
   },
 
   async getFindings(integrationId: string): Promise<{ success: boolean; data: CloudFindingRecord[] }> {
-    return apiClient.get(`/integrations/lacework/${integrationId}/findings`);
+    return apiClient.get(`/api/integrations/lacework/${integrationId}/findings`);
   },
 
   async getLogs(integrationId: string): Promise<{ success: boolean; data: CloudSyncLogRecord[] }> {
-    return apiClient.get(`/integrations/lacework/${integrationId}/logs`);
+    return apiClient.get(`/api/integrations/lacework/${integrationId}/logs`);
   },
 
   async getTests(integrationId: string): Promise<{ success: boolean; data: any[]; seeded: boolean }> {
-    return apiClient.get(`/integrations/lacework/${integrationId}/tests`);
+    return apiClient.get(`/api/integrations/lacework/${integrationId}/tests`);
   },
 };

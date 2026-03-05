@@ -22,7 +22,7 @@ export type { IncidentRecord, IncidentSyncLog };
 
 export const servicenowIncidentService = {
   async getAccounts(): Promise<{ success: boolean; data: ServiceNowIntegrationRecord[] }> {
-    return apiClient.get('/integrations/servicenow-incident/accounts');
+    return apiClient.get('/api/integrations/servicenow-incident/accounts');
   },
 
   async connect(data: {
@@ -35,26 +35,26 @@ export const servicenowIncidentService = {
     slaHours?: number;
     staleDays?: number;
   }): Promise<{ success: boolean; data: ServiceNowIntegrationRecord }> {
-    return apiClient.post('/integrations/servicenow-incident/connect', data);
+    return apiClient.post('/api/integrations/servicenow-incident/connect', data);
   },
 
   async disconnect(integrationId: string): Promise<{ success: boolean }> {
-    return apiClient.delete(`/integrations/servicenow-incident/${integrationId}`);
+    return apiClient.delete(`/api/integrations/servicenow-incident/${integrationId}`);
   },
 
   async runScan(integrationId: string): Promise<{ success: boolean; message: string }> {
-    return apiClient.post(`/integrations/servicenow-incident/${integrationId}/scan`, {});
+    return apiClient.post(`/api/integrations/servicenow-incident/${integrationId}/scan`, {});
   },
 
   async getIncidents(integrationId: string): Promise<{ success: boolean; data: IncidentRecord[] }> {
-    return apiClient.get(`/integrations/servicenow-incident/${integrationId}/incidents`);
+    return apiClient.get(`/api/integrations/servicenow-incident/${integrationId}/incidents`);
   },
 
   async getLogs(integrationId: string): Promise<{ success: boolean; data: IncidentSyncLog[] }> {
-    return apiClient.get(`/integrations/servicenow-incident/${integrationId}/logs`);
+    return apiClient.get(`/api/integrations/servicenow-incident/${integrationId}/logs`);
   },
 
   async getTests(integrationId: string): Promise<{ success: boolean; data: any[]; seeded: boolean }> {
-    return apiClient.get(`/integrations/servicenow-incident/${integrationId}/tests`);
+    return apiClient.get(`/api/integrations/servicenow-incident/${integrationId}/tests`);
   },
 };

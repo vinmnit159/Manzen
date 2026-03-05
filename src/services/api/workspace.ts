@@ -48,36 +48,36 @@ export const workspaceService = {
       createdAt: string;
     };
   }> {
-    return apiClient.post('/integrations/workspace/connect', data);
+    return apiClient.post('/api/integrations/workspace/connect', data);
   },
 
   /** List connected Google Workspace integrations for the org */
   async getAccounts(): Promise<{ success: boolean; data: WorkspaceIntegrationRecord[] }> {
-    return apiClient.get('/integrations/workspace/accounts');
+    return apiClient.get('/api/integrations/workspace/accounts');
   },
 
   /** Disconnect a Google Workspace integration */
   async disconnect(integrationId: string): Promise<{ success: boolean }> {
-    return apiClient.delete(`/integrations/workspace/${integrationId}`);
+    return apiClient.delete(`/api/integrations/workspace/${integrationId}`);
   },
 
   /** Trigger a manual compliance scan (fire-and-forget) */
   async runScan(integrationId: string): Promise<{ success: boolean; message: string }> {
-    return apiClient.post(`/integrations/workspace/${integrationId}/scan`, {});
+    return apiClient.post(`/api/integrations/workspace/${integrationId}/scan`, {});
   },
 
   /** Get users for a workspace integration */
   async getUsers(integrationId: string): Promise<{ success: boolean; data: any[] }> {
-    return apiClient.get(`/integrations/workspace/${integrationId}/users`);
+    return apiClient.get(`/api/integrations/workspace/${integrationId}/users`);
   },
 
   /** Get findings for a workspace integration */
   async getFindings(integrationId: string): Promise<{ success: boolean; data: WorkspaceFinding[] }> {
-    return apiClient.get(`/integrations/workspace/${integrationId}/findings`);
+    return apiClient.get(`/api/integrations/workspace/${integrationId}/findings`);
   },
 
   /** List automated tests linked to a workspace integration */
   async getTests(integrationId: string): Promise<{ success: boolean; data: any[]; seeded: boolean }> {
-    return apiClient.get(`/integrations/workspace/${integrationId}/tests`);
+    return apiClient.get(`/api/integrations/workspace/${integrationId}/tests`);
   },
 };

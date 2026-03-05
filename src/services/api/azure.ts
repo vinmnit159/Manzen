@@ -43,7 +43,7 @@ export interface CloudSyncLogRecord {
 
 export const azureService = {
   async getAccounts(): Promise<{ success: boolean; data: AzureIntegrationRecord[] }> {
-    return apiClient.get('/integrations/azure/accounts');
+    return apiClient.get('/api/integrations/azure/accounts');
   },
 
   async connect(data: {
@@ -53,26 +53,26 @@ export const azureService = {
     clientSecret: string;
     label?: string;
   }): Promise<{ success: boolean; data: AzureIntegrationRecord }> {
-    return apiClient.post('/integrations/azure/connect', data);
+    return apiClient.post('/api/integrations/azure/connect', data);
   },
 
   async disconnect(integrationId: string): Promise<{ success: boolean }> {
-    return apiClient.delete(`/integrations/azure/${integrationId}`);
+    return apiClient.delete(`/api/integrations/azure/${integrationId}`);
   },
 
   async runScan(integrationId: string): Promise<{ success: boolean; message: string }> {
-    return apiClient.post(`/integrations/azure/${integrationId}/scan`, {});
+    return apiClient.post(`/api/integrations/azure/${integrationId}/scan`, {});
   },
 
   async getFindings(integrationId: string): Promise<{ success: boolean; data: CloudFindingRecord[] }> {
-    return apiClient.get(`/integrations/azure/${integrationId}/findings`);
+    return apiClient.get(`/api/integrations/azure/${integrationId}/findings`);
   },
 
   async getLogs(integrationId: string): Promise<{ success: boolean; data: CloudSyncLogRecord[] }> {
-    return apiClient.get(`/integrations/azure/${integrationId}/logs`);
+    return apiClient.get(`/api/integrations/azure/${integrationId}/logs`);
   },
 
   async getTests(integrationId: string): Promise<{ success: boolean; data: any[]; seeded: boolean }> {
-    return apiClient.get(`/integrations/azure/${integrationId}/tests`);
+    return apiClient.get(`/api/integrations/azure/${integrationId}/tests`);
   },
 };

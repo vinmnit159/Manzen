@@ -45,7 +45,7 @@ export interface SecretSyncLogRecord {
 
 export const certManagerService = {
   async getAccounts(): Promise<{ success: boolean; data: CertManagerIntegrationRecord[] }> {
-    return apiClient.get('/integrations/cert-manager/accounts');
+    return apiClient.get('/api/integrations/cert-manager/accounts');
   },
 
   async connect(data: {
@@ -57,26 +57,26 @@ export const certManagerService = {
     region?: string;
     label?: string;
   }): Promise<{ success: boolean; data: CertManagerIntegrationRecord }> {
-    return apiClient.post('/integrations/cert-manager/connect', data);
+    return apiClient.post('/api/integrations/cert-manager/connect', data);
   },
 
   async disconnect(integrationId: string): Promise<{ success: boolean }> {
-    return apiClient.delete(`/integrations/cert-manager/${integrationId}`);
+    return apiClient.delete(`/api/integrations/cert-manager/${integrationId}`);
   },
 
   async runScan(integrationId: string): Promise<{ success: boolean; message: string }> {
-    return apiClient.post(`/integrations/cert-manager/${integrationId}/scan`, {});
+    return apiClient.post(`/api/integrations/cert-manager/${integrationId}/scan`, {});
   },
 
   async getFindings(integrationId: string): Promise<{ success: boolean; data: SecretFindingRecord[] }> {
-    return apiClient.get(`/integrations/cert-manager/${integrationId}/findings`);
+    return apiClient.get(`/api/integrations/cert-manager/${integrationId}/findings`);
   },
 
   async getLogs(integrationId: string): Promise<{ success: boolean; data: SecretSyncLogRecord[] }> {
-    return apiClient.get(`/integrations/cert-manager/${integrationId}/logs`);
+    return apiClient.get(`/api/integrations/cert-manager/${integrationId}/logs`);
   },
 
   async getTests(integrationId: string): Promise<{ success: boolean; data: any[]; seeded: boolean }> {
-    return apiClient.get(`/integrations/cert-manager/${integrationId}/tests`);
+    return apiClient.get(`/api/integrations/cert-manager/${integrationId}/tests`);
   },
 };

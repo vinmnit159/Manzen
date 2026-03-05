@@ -43,7 +43,7 @@ export interface CodeSyncLogRecord {
 
 export const sonarqubeService = {
   async getAccounts(): Promise<{ success: boolean; data: SonarQubeIntegrationRecord[] }> {
-    return apiClient.get('/integrations/sonarqube/accounts');
+    return apiClient.get('/api/integrations/sonarqube/accounts');
   },
 
   async connect(data: {
@@ -51,26 +51,26 @@ export const sonarqubeService = {
     token: string;
     label?: string;
   }): Promise<{ success: boolean; data: SonarQubeIntegrationRecord }> {
-    return apiClient.post('/integrations/sonarqube/connect', data);
+    return apiClient.post('/api/integrations/sonarqube/connect', data);
   },
 
   async disconnect(integrationId: string): Promise<{ success: boolean }> {
-    return apiClient.delete(`/integrations/sonarqube/${integrationId}`);
+    return apiClient.delete(`/api/integrations/sonarqube/${integrationId}`);
   },
 
   async runScan(integrationId: string): Promise<{ success: boolean; message: string }> {
-    return apiClient.post(`/integrations/sonarqube/${integrationId}/scan`, {});
+    return apiClient.post(`/api/integrations/sonarqube/${integrationId}/scan`, {});
   },
 
   async getFindings(integrationId: string): Promise<{ success: boolean; data: CodeFindingRecord[] }> {
-    return apiClient.get(`/integrations/sonarqube/${integrationId}/findings`);
+    return apiClient.get(`/api/integrations/sonarqube/${integrationId}/findings`);
   },
 
   async getLogs(integrationId: string): Promise<{ success: boolean; data: CodeSyncLogRecord[] }> {
-    return apiClient.get(`/integrations/sonarqube/${integrationId}/logs`);
+    return apiClient.get(`/api/integrations/sonarqube/${integrationId}/logs`);
   },
 
   async getTests(integrationId: string): Promise<{ success: boolean; data: any[]; seeded: boolean }> {
-    return apiClient.get(`/integrations/sonarqube/${integrationId}/tests`);
+    return apiClient.get(`/api/integrations/sonarqube/${integrationId}/tests`);
   },
 };

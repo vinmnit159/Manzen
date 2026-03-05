@@ -42,7 +42,7 @@ export interface CloudSyncLogRecord {
 
 export const wizService = {
   async getAccounts(): Promise<{ success: boolean; data: WizIntegrationRecord[] }> {
-    return apiClient.get('/integrations/wiz/accounts');
+    return apiClient.get('/api/integrations/wiz/accounts');
   },
 
   async connect(data: {
@@ -51,26 +51,26 @@ export const wizService = {
     wizApiEndpoint?: string;
     label?: string;
   }): Promise<{ success: boolean; data: WizIntegrationRecord }> {
-    return apiClient.post('/integrations/wiz/connect', data);
+    return apiClient.post('/api/integrations/wiz/connect', data);
   },
 
   async disconnect(integrationId: string): Promise<{ success: boolean }> {
-    return apiClient.delete(`/integrations/wiz/${integrationId}`);
+    return apiClient.delete(`/api/integrations/wiz/${integrationId}`);
   },
 
   async runScan(integrationId: string): Promise<{ success: boolean; message: string }> {
-    return apiClient.post(`/integrations/wiz/${integrationId}/scan`, {});
+    return apiClient.post(`/api/integrations/wiz/${integrationId}/scan`, {});
   },
 
   async getFindings(integrationId: string): Promise<{ success: boolean; data: CloudFindingRecord[] }> {
-    return apiClient.get(`/integrations/wiz/${integrationId}/findings`);
+    return apiClient.get(`/api/integrations/wiz/${integrationId}/findings`);
   },
 
   async getLogs(integrationId: string): Promise<{ success: boolean; data: CloudSyncLogRecord[] }> {
-    return apiClient.get(`/integrations/wiz/${integrationId}/logs`);
+    return apiClient.get(`/api/integrations/wiz/${integrationId}/logs`);
   },
 
   async getTests(integrationId: string): Promise<{ success: boolean; data: any[]; seeded: boolean }> {
-    return apiClient.get(`/integrations/wiz/${integrationId}/tests`);
+    return apiClient.get(`/api/integrations/wiz/${integrationId}/tests`);
   },
 };

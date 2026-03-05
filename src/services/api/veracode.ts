@@ -42,7 +42,7 @@ export interface CodeSyncLogRecord {
 
 export const veracodeService = {
   async getAccounts(): Promise<{ success: boolean; data: VeracodeIntegrationRecord[] }> {
-    return apiClient.get('/integrations/veracode/accounts');
+    return apiClient.get('/api/integrations/veracode/accounts');
   },
 
   async connect(data: {
@@ -50,26 +50,26 @@ export const veracodeService = {
     apiKey: string;
     label?: string;
   }): Promise<{ success: boolean; data: VeracodeIntegrationRecord }> {
-    return apiClient.post('/integrations/veracode/connect', data);
+    return apiClient.post('/api/integrations/veracode/connect', data);
   },
 
   async disconnect(integrationId: string): Promise<{ success: boolean }> {
-    return apiClient.delete(`/integrations/veracode/${integrationId}`);
+    return apiClient.delete(`/api/integrations/veracode/${integrationId}`);
   },
 
   async runScan(integrationId: string): Promise<{ success: boolean; message: string }> {
-    return apiClient.post(`/integrations/veracode/${integrationId}/scan`, {});
+    return apiClient.post(`/api/integrations/veracode/${integrationId}/scan`, {});
   },
 
   async getFindings(integrationId: string): Promise<{ success: boolean; data: CodeFindingRecord[] }> {
-    return apiClient.get(`/integrations/veracode/${integrationId}/findings`);
+    return apiClient.get(`/api/integrations/veracode/${integrationId}/findings`);
   },
 
   async getLogs(integrationId: string): Promise<{ success: boolean; data: CodeSyncLogRecord[] }> {
-    return apiClient.get(`/integrations/veracode/${integrationId}/logs`);
+    return apiClient.get(`/api/integrations/veracode/${integrationId}/logs`);
   },
 
   async getTests(integrationId: string): Promise<{ success: boolean; data: any[]; seeded: boolean }> {
-    return apiClient.get(`/integrations/veracode/${integrationId}/tests`);
+    return apiClient.get(`/api/integrations/veracode/${integrationId}/tests`);
   },
 };

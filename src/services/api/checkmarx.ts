@@ -43,7 +43,7 @@ export interface CodeSyncLogRecord {
 
 export const checkmarxService = {
   async getAccounts(): Promise<{ success: boolean; data: CheckmarxIntegrationRecord[] }> {
-    return apiClient.get('/integrations/checkmarx/accounts');
+    return apiClient.get('/api/integrations/checkmarx/accounts');
   },
 
   async connect(data: {
@@ -52,26 +52,26 @@ export const checkmarxService = {
     clientSecret: string;
     label?: string;
   }): Promise<{ success: boolean; data: CheckmarxIntegrationRecord }> {
-    return apiClient.post('/integrations/checkmarx/connect', data);
+    return apiClient.post('/api/integrations/checkmarx/connect', data);
   },
 
   async disconnect(integrationId: string): Promise<{ success: boolean }> {
-    return apiClient.delete(`/integrations/checkmarx/${integrationId}`);
+    return apiClient.delete(`/api/integrations/checkmarx/${integrationId}`);
   },
 
   async runScan(integrationId: string): Promise<{ success: boolean; message: string }> {
-    return apiClient.post(`/integrations/checkmarx/${integrationId}/scan`, {});
+    return apiClient.post(`/api/integrations/checkmarx/${integrationId}/scan`, {});
   },
 
   async getFindings(integrationId: string): Promise<{ success: boolean; data: CodeFindingRecord[] }> {
-    return apiClient.get(`/integrations/checkmarx/${integrationId}/findings`);
+    return apiClient.get(`/api/integrations/checkmarx/${integrationId}/findings`);
   },
 
   async getLogs(integrationId: string): Promise<{ success: boolean; data: CodeSyncLogRecord[] }> {
-    return apiClient.get(`/integrations/checkmarx/${integrationId}/logs`);
+    return apiClient.get(`/api/integrations/checkmarx/${integrationId}/logs`);
   },
 
   async getTests(integrationId: string): Promise<{ success: boolean; data: any[]; seeded: boolean }> {
-    return apiClient.get(`/integrations/checkmarx/${integrationId}/tests`);
+    return apiClient.get(`/api/integrations/checkmarx/${integrationId}/tests`);
   },
 };

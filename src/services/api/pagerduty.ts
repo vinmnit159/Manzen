@@ -47,7 +47,7 @@ export interface IncidentSyncLog {
 
 export const pagerdutyService = {
   async getAccounts(): Promise<{ success: boolean; data: PagerDutyIntegrationRecord[] }> {
-    return apiClient.get('/integrations/pagerduty/accounts');
+    return apiClient.get('/api/integrations/pagerduty/accounts');
   },
 
   async connect(data: {
@@ -56,26 +56,26 @@ export const pagerdutyService = {
     slaHours?: number;
     staleDays?: number;
   }): Promise<{ success: boolean; data: PagerDutyIntegrationRecord }> {
-    return apiClient.post('/integrations/pagerduty/connect', data);
+    return apiClient.post('/api/integrations/pagerduty/connect', data);
   },
 
   async disconnect(integrationId: string): Promise<{ success: boolean }> {
-    return apiClient.delete(`/integrations/pagerduty/${integrationId}`);
+    return apiClient.delete(`/api/integrations/pagerduty/${integrationId}`);
   },
 
   async runScan(integrationId: string): Promise<{ success: boolean; message: string }> {
-    return apiClient.post(`/integrations/pagerduty/${integrationId}/scan`, {});
+    return apiClient.post(`/api/integrations/pagerduty/${integrationId}/scan`, {});
   },
 
   async getIncidents(integrationId: string): Promise<{ success: boolean; data: IncidentRecord[] }> {
-    return apiClient.get(`/integrations/pagerduty/${integrationId}/incidents`);
+    return apiClient.get(`/api/integrations/pagerduty/${integrationId}/incidents`);
   },
 
   async getLogs(integrationId: string): Promise<{ success: boolean; data: IncidentSyncLog[] }> {
-    return apiClient.get(`/integrations/pagerduty/${integrationId}/logs`);
+    return apiClient.get(`/api/integrations/pagerduty/${integrationId}/logs`);
   },
 
   async getTests(integrationId: string): Promise<{ success: boolean; data: any[]; seeded: boolean }> {
-    return apiClient.get(`/integrations/pagerduty/${integrationId}/tests`);
+    return apiClient.get(`/api/integrations/pagerduty/${integrationId}/tests`);
   },
 };

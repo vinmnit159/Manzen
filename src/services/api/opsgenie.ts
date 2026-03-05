@@ -21,7 +21,7 @@ export type { IncidentRecord, IncidentSyncLog };
 
 export const opsgenieService = {
   async getAccounts(): Promise<{ success: boolean; data: OpsgenieIntegrationRecord[] }> {
-    return apiClient.get('/integrations/opsgenie/accounts');
+    return apiClient.get('/api/integrations/opsgenie/accounts');
   },
 
   async connect(data: {
@@ -31,26 +31,26 @@ export const opsgenieService = {
     slaHours?: number;
     staleDays?: number;
   }): Promise<{ success: boolean; data: OpsgenieIntegrationRecord }> {
-    return apiClient.post('/integrations/opsgenie/connect', data);
+    return apiClient.post('/api/integrations/opsgenie/connect', data);
   },
 
   async disconnect(integrationId: string): Promise<{ success: boolean }> {
-    return apiClient.delete(`/integrations/opsgenie/${integrationId}`);
+    return apiClient.delete(`/api/integrations/opsgenie/${integrationId}`);
   },
 
   async runScan(integrationId: string): Promise<{ success: boolean; message: string }> {
-    return apiClient.post(`/integrations/opsgenie/${integrationId}/scan`, {});
+    return apiClient.post(`/api/integrations/opsgenie/${integrationId}/scan`, {});
   },
 
   async getIncidents(integrationId: string): Promise<{ success: boolean; data: IncidentRecord[] }> {
-    return apiClient.get(`/integrations/opsgenie/${integrationId}/incidents`);
+    return apiClient.get(`/api/integrations/opsgenie/${integrationId}/incidents`);
   },
 
   async getLogs(integrationId: string): Promise<{ success: boolean; data: IncidentSyncLog[] }> {
-    return apiClient.get(`/integrations/opsgenie/${integrationId}/logs`);
+    return apiClient.get(`/api/integrations/opsgenie/${integrationId}/logs`);
   },
 
   async getTests(integrationId: string): Promise<{ success: boolean; data: any[]; seeded: boolean }> {
-    return apiClient.get(`/integrations/opsgenie/${integrationId}/tests`);
+    return apiClient.get(`/api/integrations/opsgenie/${integrationId}/tests`);
   },
 };

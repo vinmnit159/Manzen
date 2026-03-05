@@ -18,7 +18,7 @@ export function CodeChangesPage() {
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
-    apiClient.get<any>('/integrations/status')
+    apiClient.get<any>('/api/integrations/status')
       .then((res) => {
         const gh = (res?.integrations ?? []).find((i: any) => i.provider === 'GITHUB' && i.status === 'ACTIVE');
         if (gh) {

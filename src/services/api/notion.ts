@@ -64,47 +64,47 @@ export interface NotionUserMapping {
 
 export const notionService = {
   async getStatus(): Promise<{ connected: boolean; data: NotionStatus | null }> {
-    return apiClient.get('/integrations/notion/status');
+    return apiClient.get('/api/integrations/notion/status');
   },
 
   async connect(token: string): Promise<{ success: boolean; data: { id: string; workspaceId: string; workspaceName: string; workspaceIcon: string | null } }> {
-    return apiClient.post('/integrations/notion/connect', { token });
+    return apiClient.post('/api/integrations/notion/connect', { token });
   },
 
   async disconnect(): Promise<{ success: boolean }> {
-    return apiClient.delete('/integrations/notion/');
+    return apiClient.delete('/api/integrations/notion/');
   },
 
   async getDatabases(): Promise<{ success: boolean; data: NotionAvailableDatabase[] }> {
-    return apiClient.get('/integrations/notion/databases');
+    return apiClient.get('/api/integrations/notion/databases');
   },
 
   async linkDatabase(databaseId: string, databaseName: string): Promise<{ success: boolean; data: NotionDatabase }> {
-    return apiClient.post('/integrations/notion/databases/link', { databaseId, databaseName });
+    return apiClient.post('/api/integrations/notion/databases/link', { databaseId, databaseName });
   },
 
   async unlinkDatabase(mappingId: string): Promise<{ success: boolean }> {
-    return apiClient.delete(`/integrations/notion/databases/${mappingId}`);
+    return apiClient.delete(`/api/integrations/notion/databases/${mappingId}`);
   },
 
   async sync(): Promise<{ success: boolean; message: string }> {
-    return apiClient.post('/integrations/notion/sync', {});
+    return apiClient.post('/api/integrations/notion/sync', {});
   },
 
   async getTasks(): Promise<{ success: boolean; data: NotionExternalTask[] }> {
-    return apiClient.get('/integrations/notion/tasks');
+    return apiClient.get('/api/integrations/notion/tasks');
   },
 
   async getUserMappings(): Promise<{ success: boolean; data: NotionUserMapping[] }> {
-    return apiClient.get('/integrations/notion/user-mappings');
+    return apiClient.get('/api/integrations/notion/user-mappings');
   },
 
   async createUserMapping(data: { ismsUserId: string; externalUserId: string; email?: string }): Promise<{ success: boolean; data: NotionUserMapping }> {
-    return apiClient.post('/integrations/notion/user-mappings', data);
+    return apiClient.post('/api/integrations/notion/user-mappings', data);
   },
 
   async deleteUserMapping(id: string): Promise<{ success: boolean }> {
-    return apiClient.delete(`/integrations/notion/user-mappings/${id}`);
+    return apiClient.delete(`/api/integrations/notion/user-mappings/${id}`);
   },
 
   async createTask(data: {
@@ -115,14 +115,14 @@ export const notionService = {
     dueDate?: string;
     controlId?: string;
   }): Promise<{ success: boolean; data: { notionPageId: string; notionPageUrl: string; title: string } }> {
-    return apiClient.post('/integrations/notion/create-task', data);
+    return apiClient.post('/api/integrations/notion/create-task', data);
   },
 
   async getLogs(): Promise<{ success: boolean; data: NotionSyncLog[] }> {
-    return apiClient.get('/integrations/notion/logs');
+    return apiClient.get('/api/integrations/notion/logs');
   },
 
   async getTests(): Promise<{ success: boolean; data: any[]; seeded: boolean }> {
-    return apiClient.get('/integrations/notion/tests');
+    return apiClient.get('/api/integrations/notion/tests');
   },
 };

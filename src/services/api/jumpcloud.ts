@@ -40,33 +40,33 @@ export interface IdentitySyncLogRecord {
 
 export const jumpCloudService = {
   async getAccounts(): Promise<{ success: boolean; data: JumpCloudIntegrationRecord[] }> {
-    return apiClient.get('/integrations/jumpcloud/accounts');
+    return apiClient.get('/api/integrations/jumpcloud/accounts');
   },
 
   async connect(data: {
     apiToken: string;
     label?: string;
   }): Promise<{ success: boolean; data: JumpCloudIntegrationRecord }> {
-    return apiClient.post('/integrations/jumpcloud/connect', data);
+    return apiClient.post('/api/integrations/jumpcloud/connect', data);
   },
 
   async disconnect(integrationId: string): Promise<{ success: boolean }> {
-    return apiClient.delete(`/integrations/jumpcloud/${integrationId}`);
+    return apiClient.delete(`/api/integrations/jumpcloud/${integrationId}`);
   },
 
   async runScan(integrationId: string): Promise<{ success: boolean; message: string }> {
-    return apiClient.post(`/integrations/jumpcloud/${integrationId}/scan`, {});
+    return apiClient.post(`/api/integrations/jumpcloud/${integrationId}/scan`, {});
   },
 
   async getFindings(integrationId: string): Promise<{ success: boolean; data: IdentityFindingRecord[] }> {
-    return apiClient.get(`/integrations/jumpcloud/${integrationId}/findings`);
+    return apiClient.get(`/api/integrations/jumpcloud/${integrationId}/findings`);
   },
 
   async getLogs(integrationId: string): Promise<{ success: boolean; data: IdentitySyncLogRecord[] }> {
-    return apiClient.get(`/integrations/jumpcloud/${integrationId}/logs`);
+    return apiClient.get(`/api/integrations/jumpcloud/${integrationId}/logs`);
   },
 
   async getTests(integrationId: string): Promise<{ success: boolean; data: any[]; seeded: boolean }> {
-    return apiClient.get(`/integrations/jumpcloud/${integrationId}/tests`);
+    return apiClient.get(`/api/integrations/jumpcloud/${integrationId}/tests`);
   },
 };

@@ -45,7 +45,7 @@ export interface SecretSyncLogRecord {
 
 export const vaultService = {
   async getAccounts(): Promise<{ success: boolean; data: VaultIntegrationRecord[] }> {
-    return apiClient.get('/integrations/vault/accounts');
+    return apiClient.get('/api/integrations/vault/accounts');
   },
 
   async connect(data: {
@@ -54,26 +54,26 @@ export const vaultService = {
     namespace?: string;
     label?: string;
   }): Promise<{ success: boolean; data: VaultIntegrationRecord }> {
-    return apiClient.post('/integrations/vault/connect', data);
+    return apiClient.post('/api/integrations/vault/connect', data);
   },
 
   async disconnect(integrationId: string): Promise<{ success: boolean }> {
-    return apiClient.delete(`/integrations/vault/${integrationId}`);
+    return apiClient.delete(`/api/integrations/vault/${integrationId}`);
   },
 
   async runScan(integrationId: string): Promise<{ success: boolean; message: string }> {
-    return apiClient.post(`/integrations/vault/${integrationId}/scan`, {});
+    return apiClient.post(`/api/integrations/vault/${integrationId}/scan`, {});
   },
 
   async getFindings(integrationId: string): Promise<{ success: boolean; data: SecretFindingRecord[] }> {
-    return apiClient.get(`/integrations/vault/${integrationId}/findings`);
+    return apiClient.get(`/api/integrations/vault/${integrationId}/findings`);
   },
 
   async getLogs(integrationId: string): Promise<{ success: boolean; data: SecretSyncLogRecord[] }> {
-    return apiClient.get(`/integrations/vault/${integrationId}/logs`);
+    return apiClient.get(`/api/integrations/vault/${integrationId}/logs`);
   },
 
   async getTests(integrationId: string): Promise<{ success: boolean; data: any[]; seeded: boolean }> {
-    return apiClient.get(`/integrations/vault/${integrationId}/tests`);
+    return apiClient.get(`/api/integrations/vault/${integrationId}/tests`);
   },
 };

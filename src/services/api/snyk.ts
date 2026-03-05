@@ -43,7 +43,7 @@ export interface CodeSyncLogRecord {
 
 export const snykService = {
   async getAccounts(): Promise<{ success: boolean; data: SnykIntegrationRecord[] }> {
-    return apiClient.get('/integrations/snyk/accounts');
+    return apiClient.get('/api/integrations/snyk/accounts');
   },
 
   async connect(data: {
@@ -51,26 +51,26 @@ export const snykService = {
     apiToken: string;
     label?: string;
   }): Promise<{ success: boolean; data: SnykIntegrationRecord }> {
-    return apiClient.post('/integrations/snyk/connect', data);
+    return apiClient.post('/api/integrations/snyk/connect', data);
   },
 
   async disconnect(integrationId: string): Promise<{ success: boolean }> {
-    return apiClient.delete(`/integrations/snyk/${integrationId}`);
+    return apiClient.delete(`/api/integrations/snyk/${integrationId}`);
   },
 
   async runScan(integrationId: string): Promise<{ success: boolean; message: string }> {
-    return apiClient.post(`/integrations/snyk/${integrationId}/scan`, {});
+    return apiClient.post(`/api/integrations/snyk/${integrationId}/scan`, {});
   },
 
   async getFindings(integrationId: string): Promise<{ success: boolean; data: CodeFindingRecord[] }> {
-    return apiClient.get(`/integrations/snyk/${integrationId}/findings`);
+    return apiClient.get(`/api/integrations/snyk/${integrationId}/findings`);
   },
 
   async getLogs(integrationId: string): Promise<{ success: boolean; data: CodeSyncLogRecord[] }> {
-    return apiClient.get(`/integrations/snyk/${integrationId}/logs`);
+    return apiClient.get(`/api/integrations/snyk/${integrationId}/logs`);
   },
 
   async getTests(integrationId: string): Promise<{ success: boolean; data: any[]; seeded: boolean }> {
-    return apiClient.get(`/integrations/snyk/${integrationId}/tests`);
+    return apiClient.get(`/api/integrations/snyk/${integrationId}/tests`);
   },
 };

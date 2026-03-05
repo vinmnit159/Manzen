@@ -42,33 +42,33 @@ export interface CloudSyncLogRecord {
 
 export const gcpService = {
   async getAccounts(): Promise<{ success: boolean; data: GcpIntegrationRecord[] }> {
-    return apiClient.get('/integrations/gcp/accounts');
+    return apiClient.get('/api/integrations/gcp/accounts');
   },
 
   async connect(data: {
     keyJson: string;
     label?: string;
   }): Promise<{ success: boolean; data: GcpIntegrationRecord }> {
-    return apiClient.post('/integrations/gcp/connect', data);
+    return apiClient.post('/api/integrations/gcp/connect', data);
   },
 
   async disconnect(integrationId: string): Promise<{ success: boolean }> {
-    return apiClient.delete(`/integrations/gcp/${integrationId}`);
+    return apiClient.delete(`/api/integrations/gcp/${integrationId}`);
   },
 
   async runScan(integrationId: string): Promise<{ success: boolean; message: string }> {
-    return apiClient.post(`/integrations/gcp/${integrationId}/scan`, {});
+    return apiClient.post(`/api/integrations/gcp/${integrationId}/scan`, {});
   },
 
   async getFindings(integrationId: string): Promise<{ success: boolean; data: CloudFindingRecord[] }> {
-    return apiClient.get(`/integrations/gcp/${integrationId}/findings`);
+    return apiClient.get(`/api/integrations/gcp/${integrationId}/findings`);
   },
 
   async getLogs(integrationId: string): Promise<{ success: boolean; data: CloudSyncLogRecord[] }> {
-    return apiClient.get(`/integrations/gcp/${integrationId}/logs`);
+    return apiClient.get(`/api/integrations/gcp/${integrationId}/logs`);
   },
 
   async getTests(integrationId: string): Promise<{ success: boolean; data: any[]; seeded: boolean }> {
-    return apiClient.get(`/integrations/gcp/${integrationId}/tests`);
+    return apiClient.get(`/api/integrations/gcp/${integrationId}/tests`);
   },
 };

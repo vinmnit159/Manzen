@@ -21,7 +21,7 @@ export type { IncidentRecord, IncidentSyncLog };
 
 export const datadogIncidentsService = {
   async getAccounts(): Promise<{ success: boolean; data: DatadogIntegrationRecord[] }> {
-    return apiClient.get('/integrations/datadog-incidents/accounts');
+    return apiClient.get('/api/integrations/datadog-incidents/accounts');
   },
 
   async connect(data: {
@@ -32,26 +32,26 @@ export const datadogIncidentsService = {
     slaHours?: number;
     staleDays?: number;
   }): Promise<{ success: boolean; data: DatadogIntegrationRecord }> {
-    return apiClient.post('/integrations/datadog-incidents/connect', data);
+    return apiClient.post('/api/integrations/datadog-incidents/connect', data);
   },
 
   async disconnect(integrationId: string): Promise<{ success: boolean }> {
-    return apiClient.delete(`/integrations/datadog-incidents/${integrationId}`);
+    return apiClient.delete(`/api/integrations/datadog-incidents/${integrationId}`);
   },
 
   async runScan(integrationId: string): Promise<{ success: boolean; message: string }> {
-    return apiClient.post(`/integrations/datadog-incidents/${integrationId}/scan`, {});
+    return apiClient.post(`/api/integrations/datadog-incidents/${integrationId}/scan`, {});
   },
 
   async getIncidents(integrationId: string): Promise<{ success: boolean; data: IncidentRecord[] }> {
-    return apiClient.get(`/integrations/datadog-incidents/${integrationId}/incidents`);
+    return apiClient.get(`/api/integrations/datadog-incidents/${integrationId}/incidents`);
   },
 
   async getLogs(integrationId: string): Promise<{ success: boolean; data: IncidentSyncLog[] }> {
-    return apiClient.get(`/integrations/datadog-incidents/${integrationId}/logs`);
+    return apiClient.get(`/api/integrations/datadog-incidents/${integrationId}/logs`);
   },
 
   async getTests(integrationId: string): Promise<{ success: boolean; data: any[]; seeded: boolean }> {
-    return apiClient.get(`/integrations/datadog-incidents/${integrationId}/tests`);
+    return apiClient.get(`/api/integrations/datadog-incidents/${integrationId}/tests`);
   },
 };

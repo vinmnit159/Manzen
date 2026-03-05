@@ -55,46 +55,46 @@ export const fleetService = {
     apiToken: string;
     label?: string;
   }): Promise<{ success: boolean; data: { id: string; baseUrl: string; label: string | null; status: string; adminEmail: string; createdAt: string } }> {
-    return apiClient.post('/integrations/fleet/connect', data);
+    return apiClient.post('/api/integrations/fleet/connect', data);
   },
 
   /** List connected Fleet integrations for the org */
   async getAccounts(): Promise<{ success: boolean; data: FleetIntegrationRecord[] }> {
-    return apiClient.get('/integrations/fleet/accounts');
+    return apiClient.get('/api/integrations/fleet/accounts');
   },
 
   /** Disconnect a Fleet integration */
   async disconnect(integrationId: string): Promise<{ success: boolean }> {
-    return apiClient.delete(`/integrations/fleet/${integrationId}`);
+    return apiClient.delete(`/api/integrations/fleet/${integrationId}`);
   },
 
   /** Trigger a manual compliance scan (fire-and-forget) */
   async runScan(integrationId: string): Promise<{ success: boolean; message: string }> {
-    return apiClient.post(`/integrations/fleet/${integrationId}/scan`, {});
+    return apiClient.post(`/api/integrations/fleet/${integrationId}/scan`, {});
   },
 
   /** Get hosts for a Fleet integration */
   async getHosts(integrationId: string): Promise<{ success: boolean; data: any[] }> {
-    return apiClient.get(`/integrations/fleet/${integrationId}/hosts`);
+    return apiClient.get(`/api/integrations/fleet/${integrationId}/hosts`);
   },
 
   /** Get policies for a Fleet integration */
   async getPolicies(integrationId: string): Promise<{ success: boolean; data: any[] }> {
-    return apiClient.get(`/integrations/fleet/${integrationId}/policies`);
+    return apiClient.get(`/api/integrations/fleet/${integrationId}/policies`);
   },
 
   /** Get findings for a Fleet integration */
   async getFindings(integrationId: string): Promise<{ success: boolean; data: FleetFinding[] }> {
-    return apiClient.get(`/integrations/fleet/${integrationId}/findings`);
+    return apiClient.get(`/api/integrations/fleet/${integrationId}/findings`);
   },
 
   /** Get sync logs for a Fleet integration */
   async getLogs(integrationId: string): Promise<{ success: boolean; data: FleetSyncLog[] }> {
-    return apiClient.get(`/integrations/fleet/${integrationId}/logs`);
+    return apiClient.get(`/api/integrations/fleet/${integrationId}/logs`);
   },
 
   /** List automated tests linked to a Fleet integration */
   async getTests(integrationId: string): Promise<{ success: boolean; data: any[]; seeded: boolean }> {
-    return apiClient.get(`/integrations/fleet/${integrationId}/tests`);
+    return apiClient.get(`/api/integrations/fleet/${integrationId}/tests`);
   },
 };

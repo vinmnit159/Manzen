@@ -41,7 +41,7 @@ export interface IdentitySyncLogRecord {
 
 export const oktaService = {
   async getAccounts(): Promise<{ success: boolean; data: OktaIntegrationRecord[] }> {
-    return apiClient.get('/integrations/okta/accounts');
+    return apiClient.get('/api/integrations/okta/accounts');
   },
 
   async connect(data: {
@@ -49,26 +49,26 @@ export const oktaService = {
     apiToken: string;
     label?: string;
   }): Promise<{ success: boolean; data: OktaIntegrationRecord }> {
-    return apiClient.post('/integrations/okta/connect', data);
+    return apiClient.post('/api/integrations/okta/connect', data);
   },
 
   async disconnect(integrationId: string): Promise<{ success: boolean }> {
-    return apiClient.delete(`/integrations/okta/${integrationId}`);
+    return apiClient.delete(`/api/integrations/okta/${integrationId}`);
   },
 
   async runScan(integrationId: string): Promise<{ success: boolean; message: string }> {
-    return apiClient.post(`/integrations/okta/${integrationId}/scan`, {});
+    return apiClient.post(`/api/integrations/okta/${integrationId}/scan`, {});
   },
 
   async getFindings(integrationId: string): Promise<{ success: boolean; data: IdentityFindingRecord[] }> {
-    return apiClient.get(`/integrations/okta/${integrationId}/findings`);
+    return apiClient.get(`/api/integrations/okta/${integrationId}/findings`);
   },
 
   async getLogs(integrationId: string): Promise<{ success: boolean; data: IdentitySyncLogRecord[] }> {
-    return apiClient.get(`/integrations/okta/${integrationId}/logs`);
+    return apiClient.get(`/api/integrations/okta/${integrationId}/logs`);
   },
 
   async getTests(integrationId: string): Promise<{ success: boolean; data: any[]; seeded: boolean }> {
-    return apiClient.get(`/integrations/okta/${integrationId}/tests`);
+    return apiClient.get(`/api/integrations/okta/${integrationId}/tests`);
   },
 };

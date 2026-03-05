@@ -38,7 +38,7 @@ export interface AwsFinding {
 export const awsService = {
   /** Generate a fresh External ID + return trust/permission policy JSON */
   async getTrustPolicy(): Promise<{ success: boolean; data: AwsTrustPolicyData }> {
-    return apiClient.get('/integrations/aws/trust-policy');
+    return apiClient.get('/api/integrations/aws/trust-policy');
   },
 
   /** Connect an AWS account via cross-account IAM role */
@@ -49,31 +49,31 @@ export const awsService = {
     region?: string;
     label?: string;
   }): Promise<{ success: boolean; data: AwsAccountRecord }> {
-    return apiClient.post('/integrations/aws/connect', data);
+    return apiClient.post('/api/integrations/aws/connect', data);
   },
 
   /** List connected AWS accounts for the org */
   async getAccounts(): Promise<{ success: boolean; data: AwsAccountRecord[] }> {
-    return apiClient.get('/integrations/aws/accounts');
+    return apiClient.get('/api/integrations/aws/accounts');
   },
 
   /** Disconnect an AWS account */
   async disconnect(accountId: string): Promise<{ success: boolean }> {
-    return apiClient.delete(`/integrations/aws/${accountId}`);
+    return apiClient.delete(`/api/integrations/aws/${accountId}`);
   },
 
   /** Trigger a manual scan (fire-and-forget on backend) */
   async runScan(accountId: string): Promise<{ success: boolean; message: string }> {
-    return apiClient.post(`/integrations/aws/${accountId}/scan`, {});
+    return apiClient.post(`/api/integrations/aws/${accountId}/scan`, {});
   },
 
   /** Get findings for an AWS account */
   async getFindings(accountId: string): Promise<{ success: boolean; data: AwsFinding[] }> {
-    return apiClient.get(`/integrations/aws/${accountId}/findings`);
+    return apiClient.get(`/api/integrations/aws/${accountId}/findings`);
   },
 
   /** List automated tests linked to an AWS account */
   async getTests(accountId: string): Promise<{ success: boolean; data: any[]; seeded: boolean }> {
-    return apiClient.get(`/integrations/aws/${accountId}/tests`);
+    return apiClient.get(`/api/integrations/aws/${accountId}/tests`);
   },
 };

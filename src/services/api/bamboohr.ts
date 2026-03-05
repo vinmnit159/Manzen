@@ -47,36 +47,36 @@ export const bamboohrService = {
     apiKey: string;
     label?: string;
   }): Promise<{ success: boolean; data: { id: string; subdomain: string; label: string | null; status: string; employeeCount: number; companyName: string; createdAt: string } }> {
-    return apiClient.post('/integrations/bamboohr/connect', data);
+    return apiClient.post('/api/integrations/bamboohr/connect', data);
   },
 
   /** List connected BambooHR integrations for the org */
   async getAccounts(): Promise<{ success: boolean; data: HRIntegrationRecord[] }> {
-    return apiClient.get('/integrations/bamboohr/accounts');
+    return apiClient.get('/api/integrations/bamboohr/accounts');
   },
 
   /** Disconnect a BambooHR integration */
   async disconnect(integrationId: string): Promise<{ success: boolean }> {
-    return apiClient.delete(`/integrations/bamboohr/${integrationId}`);
+    return apiClient.delete(`/api/integrations/bamboohr/${integrationId}`);
   },
 
   /** Trigger a manual employee sync (fire-and-forget) */
   async syncEmployees(integrationId: string): Promise<{ success: boolean; message: string }> {
-    return apiClient.post(`/integrations/bamboohr/${integrationId}/sync`, {});
+    return apiClient.post(`/api/integrations/bamboohr/${integrationId}/sync`, {});
   },
 
   /** Trigger a manual compliance scan (fire-and-forget) */
   async runScan(integrationId: string): Promise<{ success: boolean; message: string }> {
-    return apiClient.post(`/integrations/bamboohr/${integrationId}/scan`, {});
+    return apiClient.post(`/api/integrations/bamboohr/${integrationId}/scan`, {});
   },
 
   /** Get personnel roster for a BambooHR integration */
   async getPersonnel(integrationId: string): Promise<{ success: boolean; data: PersonnelRecord[] }> {
-    return apiClient.get(`/integrations/bamboohr/${integrationId}/personnel`);
+    return apiClient.get(`/api/integrations/bamboohr/${integrationId}/personnel`);
   },
 
   /** List automated tests linked to a BambooHR integration */
   async getTests(integrationId: string): Promise<{ success: boolean; data: any[]; seeded: boolean }> {
-    return apiClient.get(`/integrations/bamboohr/${integrationId}/tests`);
+    return apiClient.get(`/api/integrations/bamboohr/${integrationId}/tests`);
   },
 };

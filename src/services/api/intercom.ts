@@ -42,27 +42,27 @@ export interface IntercomSyncLog {
 export const intercomService = {
   /** Returns the OAuth redirect URL — navigate to it to start the OAuth flow */
   getConnectUrl(): string {
-    return `${apiClient.baseURL}/integrations/intercom/auth`;
+    return `${apiClient.baseURL}/api/integrations/intercom/auth`;
   },
 
   /** List connected Intercom integrations for the org */
   async getAccounts(): Promise<{ success: boolean; data: IntercomIntegrationRecord[] }> {
-    return apiClient.get('/integrations/intercom/accounts');
+    return apiClient.get('/api/integrations/intercom/accounts');
   },
 
   /** Disconnect an Intercom integration */
   async disconnect(integrationId: string): Promise<{ success: boolean }> {
-    return apiClient.delete(`/integrations/intercom/${integrationId}`);
+    return apiClient.delete(`/api/integrations/intercom/${integrationId}`);
   },
 
   /** Trigger a manual compliance scan (fire-and-forget) */
   async runScan(integrationId: string): Promise<{ success: boolean; message: string }> {
-    return apiClient.post(`/integrations/intercom/${integrationId}/scan`, {});
+    return apiClient.post(`/api/integrations/intercom/${integrationId}/scan`, {});
   },
 
   /** Sync open conversation statuses */
   async sync(integrationId: string): Promise<{ success: boolean; synced: number }> {
-    return apiClient.post(`/integrations/intercom/${integrationId}/sync`, {});
+    return apiClient.post(`/api/integrations/intercom/${integrationId}/sync`, {});
   },
 
   /** List ticket links for an integration */
@@ -73,7 +73,7 @@ export const intercomService = {
     const qs = params
       ? '?' + new URLSearchParams(Object.fromEntries(Object.entries(params).filter(([, v]) => v != null) as [string, string][])).toString()
       : '';
-    return apiClient.get(`/integrations/intercom/${integrationId}/ticket-links${qs}`);
+    return apiClient.get(`/api/integrations/intercom/${integrationId}/ticket-links${qs}`);
   },
 
   /** Create a ticket link (creates conversation in Intercom) */
@@ -87,7 +87,7 @@ export const intercomService = {
       assigneeEmail?: string;
     },
   ): Promise<{ success: boolean; data: IntercomTicketLink }> {
-    return apiClient.post(`/integrations/intercom/${integrationId}/ticket-links`, data);
+    return apiClient.post(`/api/integrations/intercom/${integrationId}/ticket-links`, data);
   },
 
   /** Update a ticket link status */
@@ -96,17 +96,17 @@ export const intercomService = {
     linkId: string,
     data: { status?: string },
   ): Promise<{ success: boolean; data: IntercomTicketLink }> {
-    return apiClient.patch(`/integrations/intercom/${integrationId}/ticket-links/${linkId}`, data);
+    return apiClient.patch(`/api/integrations/intercom/${integrationId}/ticket-links/${linkId}`, data);
   },
 
   /** Get sync logs */
   async getLogs(integrationId: string): Promise<{ success: boolean; data: IntercomSyncLog[] }> {
-    return apiClient.get(`/integrations/intercom/${integrationId}/logs`);
+    return apiClient.get(`/api/integrations/intercom/${integrationId}/logs`);
   },
 
   /** List automated tests linked to this integration */
   async getTests(integrationId: string): Promise<{ success: boolean; data: any[]; seeded: boolean }> {
-    return apiClient.get(`/integrations/intercom/${integrationId}/tests`);
+    return apiClient.get(`/api/integrations/intercom/${integrationId}/tests`);
   },
 
   /** Look up ticket links for any entity (trust request, finding, etc.) */
@@ -115,7 +115,7 @@ export const intercomService = {
     entityId: string,
   ): Promise<{ success: boolean; data: IntercomTicketLink[] }> {
     return apiClient.get(
-      `/integrations/intercom/ticket-links/by-entity?entityType=${encodeURIComponent(entityType)}&entityId=${encodeURIComponent(entityId)}`,
+      `/api/integrations/intercom/ticket-links/by-entity?entityType=${encodeURIComponent(entityType)}&entityId=${encodeURIComponent(entityId)}`,
     );
   },
 };

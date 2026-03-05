@@ -37,7 +37,7 @@ export interface NewRelicTest {
 export const newRelicService = {
   /** Get current connection status */
   async getStatus(): Promise<{ connected: boolean; data: NewRelicStatus | null }> {
-    return apiClient.get('/integrations/newrelic/status');
+    return apiClient.get('/api/integrations/newrelic/status');
   },
 
   /** Connect New Relic with API key + account ID */
@@ -46,26 +46,26 @@ export const newRelicService = {
     accountId: string;
     region?: 'US' | 'EU';
   }): Promise<{ success: boolean; data: { id: string; accountId: number; region: string } }> {
-    return apiClient.post('/integrations/newrelic/connect', data);
+    return apiClient.post('/api/integrations/newrelic/connect', data);
   },
 
   /** Disconnect New Relic */
   async disconnect(): Promise<{ success: boolean }> {
-    return apiClient.delete('/integrations/newrelic');
+    return apiClient.delete('/api/integrations/newrelic');
   },
 
   /** Trigger a manual scan (fire-and-forget on backend) */
   async runScan(): Promise<{ success: boolean; message: string }> {
-    return apiClient.post('/integrations/newrelic/scan', {});
+    return apiClient.post('/api/integrations/newrelic/scan', {});
   },
 
   /** List automated tests linked to NR integration */
   async getTests(): Promise<{ success: boolean; data: NewRelicTest[]; seeded: boolean }> {
-    return apiClient.get('/integrations/newrelic/tests');
+    return apiClient.get('/api/integrations/newrelic/tests');
   },
 
   /** Get sync log history (last 50) */
   async getLogs(): Promise<{ success: boolean; data: NewRelicSyncLog[] }> {
-    return apiClient.get('/integrations/newrelic/logs');
+    return apiClient.get('/api/integrations/newrelic/logs');
   },
 };

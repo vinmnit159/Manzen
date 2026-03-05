@@ -41,7 +41,7 @@ export interface IdentitySyncLogRecord {
 
 export const azureAdService = {
   async getAccounts(): Promise<{ success: boolean; data: AzureAdIntegrationRecord[] }> {
-    return apiClient.get('/integrations/azure-ad/accounts');
+    return apiClient.get('/api/integrations/azure-ad/accounts');
   },
 
   async connect(data: {
@@ -50,26 +50,26 @@ export const azureAdService = {
     clientSecret: string;
     label?: string;
   }): Promise<{ success: boolean; data: AzureAdIntegrationRecord }> {
-    return apiClient.post('/integrations/azure-ad/connect', data);
+    return apiClient.post('/api/integrations/azure-ad/connect', data);
   },
 
   async disconnect(integrationId: string): Promise<{ success: boolean }> {
-    return apiClient.delete(`/integrations/azure-ad/${integrationId}`);
+    return apiClient.delete(`/api/integrations/azure-ad/${integrationId}`);
   },
 
   async runScan(integrationId: string): Promise<{ success: boolean; message: string }> {
-    return apiClient.post(`/integrations/azure-ad/${integrationId}/scan`, {});
+    return apiClient.post(`/api/integrations/azure-ad/${integrationId}/scan`, {});
   },
 
   async getFindings(integrationId: string): Promise<{ success: boolean; data: IdentityFindingRecord[] }> {
-    return apiClient.get(`/integrations/azure-ad/${integrationId}/findings`);
+    return apiClient.get(`/api/integrations/azure-ad/${integrationId}/findings`);
   },
 
   async getLogs(integrationId: string): Promise<{ success: boolean; data: IdentitySyncLogRecord[] }> {
-    return apiClient.get(`/integrations/azure-ad/${integrationId}/logs`);
+    return apiClient.get(`/api/integrations/azure-ad/${integrationId}/logs`);
   },
 
   async getTests(integrationId: string): Promise<{ success: boolean; data: any[]; seeded: boolean }> {
-    return apiClient.get(`/integrations/azure-ad/${integrationId}/tests`);
+    return apiClient.get(`/api/integrations/azure-ad/${integrationId}/tests`);
   },
 };
