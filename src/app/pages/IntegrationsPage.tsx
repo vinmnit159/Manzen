@@ -46,6 +46,17 @@ import { crowdstrikeService } from '@/services/api/crowdstrike';
 import { workdayService } from '@/services/api/workday';
 import { ripplingService } from '@/services/api/rippling';
 import { hiBobService } from '@/services/api/hibob';
+import { gitlabService } from '@/services/api/gitlab';
+import { bitbucketService } from '@/services/api/bitbucket';
+import { jiraService } from '@/services/api/jira';
+import { linearService } from '@/services/api/linear';
+import { asanaService } from '@/services/api/asana';
+import { confluenceService } from '@/services/api/confluence';
+import { sharepointService } from '@/services/api/sharepoint';
+import { splunkService } from '@/services/api/splunk';
+import { sumologicService } from '@/services/api/sumologic';
+import { tenableService } from '@/services/api/tenable';
+import { qualysService } from '@/services/api/qualys';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -5509,6 +5520,190 @@ const ENGINEER_A_CARDS: EngineerACardConfig[] = [
       </svg>
     ),
     service: hiBobService as any,
+  },
+  {
+    key: 'gitlab',
+    name: 'GitLab',
+    subtitle: 'DevOps · Source control & CI/CD security',
+    category: 'DevOps',
+    description: 'Verify branch protection rules, pipeline security controls, merge request approvals, and repository access governance across GitLab groups and projects.',
+    brandColor: '#FC6D26',
+    iconBg: 'bg-[#FC6D26]',
+    isoTags: ['A.8.4 Branch Protection', 'A.8.25 Pipeline Security', 'A.5.3 Merge Approvals', 'A.5.15 Repo Access'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <path d="M16 27L6 11l3-8 3 8h8l3-8 3 8z" fill="white" opacity="0.9"/>
+      </svg>
+    ),
+    service: gitlabService as any,
+  },
+  {
+    key: 'bitbucket',
+    name: 'Bitbucket',
+    subtitle: 'DevOps · Repository & pipeline access controls',
+    category: 'DevOps',
+    description: 'Audit branch restrictions, deployment permissions, pipeline environment secrets, and repository-level access policies across Bitbucket workspaces.',
+    brandColor: '#0052CC',
+    iconBg: 'bg-[#0052CC]',
+    isoTags: ['A.8.4 Branch Restrictions', 'A.8.10 Deployment Permissions', 'A.5.33 Secret Controls', 'A.5.15 Repo Access'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <path d="M5 7l3.5 18h15L27 7H5zm12 13h-2l-1.5-7h5L19 20z" fill="white" opacity="0.9"/>
+      </svg>
+    ),
+    service: bitbucketService as any,
+  },
+  {
+    key: 'jira',
+    name: 'Jira',
+    subtitle: 'Project Management · Workflow & access controls',
+    category: 'Project Management',
+    description: 'Verify project permission schemes, workflow transition controls, issue security levels, and audit log retention for compliance across Jira projects.',
+    brandColor: '#0052CC',
+    iconBg: 'bg-[#0052CC]',
+    isoTags: ['A.5.15 Project Permissions', 'A.8.32 Workflow Controls', 'A.5.10 Issue Security', 'A.8.15 Audit Retention'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <path d="M16 5L5 16l4.5 4.5L16 14l6.5 6.5L27 16z" fill="white" opacity="0.9"/>
+        <path d="M16 14l-6.5 6.5L14 25l2-2 2 2 4.5-4.5z" fill="white" opacity="0.7"/>
+      </svg>
+    ),
+    service: jiraService as any,
+  },
+  {
+    key: 'linear',
+    name: 'Linear',
+    subtitle: 'Project Management · Issue tracking & access',
+    category: 'Project Management',
+    description: 'Audit team membership controls, project visibility settings, API token scopes, and integration access governance across Linear workspaces.',
+    brandColor: '#5E6AD2',
+    iconBg: 'bg-[#5E6AD2]',
+    isoTags: ['A.5.15 Team Membership', 'A.5.10 Project Visibility', 'A.5.16 Token Scopes', 'A.5.15 Integration Access'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="10" fill="none" stroke="white" strokeWidth="2"/>
+        <path d="M10 16h12M16 10v12" stroke="white" strokeWidth="2"/>
+      </svg>
+    ),
+    service: linearService as any,
+  },
+  {
+    key: 'asana',
+    name: 'Asana',
+    subtitle: 'Project Management · Task & workspace governance',
+    category: 'Project Management',
+    description: 'Verify workspace membership policies, portfolio access controls, guest user restrictions, and task-level privacy settings across Asana organisations.',
+    brandColor: '#F06A6A',
+    iconBg: 'bg-[#F06A6A]',
+    isoTags: ['A.5.15 Workspace Membership', 'A.5.10 Portfolio Access', 'A.6.6 Guest Restrictions', 'A.5.10 Task Privacy'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="10" r="4" fill="white"/>
+        <circle cx="8" cy="22" r="4" fill="white" opacity="0.8"/>
+        <circle cx="24" cy="22" r="4" fill="white" opacity="0.8"/>
+      </svg>
+    ),
+    service: asanaService as any,
+  },
+  {
+    key: 'confluence',
+    name: 'Confluence',
+    subtitle: 'Knowledge Management · Space & content access',
+    category: 'Knowledge Management',
+    description: 'Audit space permission schemes, page restriction policies, anonymous access settings, and sensitive content governance across Confluence spaces.',
+    brandColor: '#0052CC',
+    iconBg: 'bg-[#0052CC]',
+    isoTags: ['A.5.15 Space Permissions', 'A.5.10 Page Restrictions', 'A.5.14 Anonymous Access', 'A.5.12 Content Governance'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <path d="M6 22c4-6 12-8 20-4M6 10c4 6 12 8 20 4" stroke="white" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+      </svg>
+    ),
+    service: confluenceService as any,
+  },
+  {
+    key: 'sharepoint',
+    name: 'SharePoint',
+    subtitle: 'Content Management · Document & site permissions',
+    category: 'Content Management',
+    description: 'Verify site collection permissions, external sharing policies, document library access controls, and sensitivity label enforcement across SharePoint tenants.',
+    brandColor: '#038387',
+    iconBg: 'bg-[#038387]',
+    isoTags: ['A.5.15 Site Permissions', 'A.5.14 External Sharing', 'A.5.10 Library Access', 'A.5.12 Sensitivity Labels'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <rect x="6" y="8" width="20" height="16" rx="2" fill="none" stroke="white" strokeWidth="2"/>
+        <path d="M11 14h10M11 18h7" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+      </svg>
+    ),
+    service: sharepointService as any,
+  },
+  {
+    key: 'splunk',
+    name: 'Splunk',
+    subtitle: 'SIEM · Log management & security monitoring',
+    category: 'SIEM',
+    description: 'Audit index access controls, saved search permissions, alert configurations, and user role assignments to ensure SIEM governance and log integrity.',
+    brandColor: '#65A637',
+    iconBg: 'bg-[#65A637]',
+    isoTags: ['A.8.15 Log Management', 'A.5.15 Index Access', 'A.8.16 Alert Configuration', 'A.5.2 Role Assignments'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <path d="M6 16l4-8 4 12 4-6 4 4 4-2" stroke="white" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    ),
+    service: splunkService as any,
+  },
+  {
+    key: 'sumologic',
+    name: 'Sumo Logic',
+    subtitle: 'SIEM · Cloud-native log analytics & security',
+    category: 'SIEM',
+    description: 'Verify collector configurations, partition access policies, role-based data access controls, and audit log completeness across Sumo Logic deployments.',
+    brandColor: '#000099',
+    iconBg: 'bg-[#000099]',
+    isoTags: ['A.8.15 Collector Config', 'A.5.10 Partition Access', 'A.5.15 Data Access Roles', 'A.8.15 Audit Completeness'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="9" fill="none" stroke="white" strokeWidth="2"/>
+        <path d="M10 19c1.5-4 4-6 6-6s4.5 2 6 6" stroke="white" strokeWidth="2" fill="none" strokeLinecap="round"/>
+      </svg>
+    ),
+    service: sumologicService as any,
+  },
+  {
+    key: 'tenable',
+    name: 'Tenable',
+    subtitle: 'Vulnerability Management · Asset scanning & risk',
+    category: 'Vulnerability Management',
+    description: 'Audit scan policy configurations, asset group permissions, vulnerability remediation SLAs, and user access rights across Tenable.io or Tenable.sc.',
+    brandColor: '#00B388',
+    iconBg: 'bg-[#00B388]',
+    isoTags: ['A.8.8 Scan Policies', 'A.5.15 Asset Permissions', 'A.8.8 Remediation SLAs', 'A.5.2 User Access Rights'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="9" fill="none" stroke="white" strokeWidth="2"/>
+        <circle cx="16" cy="16" r="4" fill="white"/>
+      </svg>
+    ),
+    service: tenableService as any,
+  },
+  {
+    key: 'qualys',
+    name: 'Qualys',
+    subtitle: 'Vulnerability Management · Compliance & scanning',
+    category: 'Vulnerability Management',
+    description: 'Verify scanner appliance configurations, asset tag policies, compliance profile assignments, and user permission sets across the Qualys Cloud Platform.',
+    brandColor: '#ED0000',
+    iconBg: 'bg-[#ED0000]',
+    isoTags: ['A.8.8 Scanner Config', 'A.5.12 Asset Tag Policies', 'A.5.36 Compliance Profiles', 'A.5.15 User Permissions'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <path d="M16 5C9.9 5 5 9.9 5 16s4.9 11 11 11 11-4.9 11-11S22.1 5 16 5z" fill="none" stroke="white" strokeWidth="2"/>
+        <path d="M12 20l8-8M12 12l8 8" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+      </svg>
+    ),
+    service: qualysService as any,
   },
 ];
 
