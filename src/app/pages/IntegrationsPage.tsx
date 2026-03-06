@@ -5279,10 +5279,10 @@ function GcpCard({
 
   return (
     <>
-      <Card className="p-6">
+      <Card className="p-6 md:col-span-2">
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center flex-shrink-0">
+            <div className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center flex-shrink-0 p-1 overflow-hidden">
               <svg className="w-7 h-7" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path d="M12 6.5l3 5.2-3 5.2-3-5.2z" fill="#EA4335"/>
                 <path d="M6.5 17.5h11L15 12.5l-3 5.2-3-5.2z" fill="#FBBC05"/>
