@@ -57,6 +57,7 @@ import { PersonnelSettingsPage } from "@/app/pages/personnel/SettingsPage";
 
 // Other
 import { IntegrationsPage } from "@/app/pages/IntegrationsPage";
+import { PartnerApiPage } from "@/app/pages/integrations/PartnerApiPage";
 import { MySecurityTasksPage } from "@/app/pages/MySecurityTasksPage";
 import { MyAccessRequestsPage } from "@/app/pages/MyAccessRequestsPage";
 
@@ -153,6 +154,7 @@ export const router = createBrowserRouter([
 
       // Other routes
       { path: "integrations", Component: IntegrationsPage },
+      { path: "integrations/partner-api", Component: PartnerApiPage },
       { path: "my-security-tasks", Component: MySecurityTasksPage },
       { path: "my-access-requests", Component: MyAccessRequestsPage },
 

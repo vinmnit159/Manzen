@@ -121,7 +121,14 @@ const navigation: NavItem[] = [
       { title: "Settings",  href: "/personnel/settings", roles: [...ADMIN_ROLES] },
     ],
   },
-  { title: "Integrations", href: "/integrations", icon: Settings },
+  {
+    title: "Integrations",
+    icon: Settings,
+    children: [
+      { title: "Connected Apps", href: "/integrations" },
+      { title: "Partner API",    href: "/integrations/partner-api", roles: [...ADMIN_ROLES] },
+    ],
+  },
   { title: "My Security Tasks",  href: "/my-security-tasks",  icon: CheckSquare },
   { title: "My Access Requests", href: "/my-access-requests", icon: FileWarning },
 ];
