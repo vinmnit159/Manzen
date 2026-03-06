@@ -469,6 +469,255 @@ function NotionIcon({ className }: { className?: string }) {
   );
 }
 
+function NotionCard({
+  notionStatus,
+  connected,
+  loadingStatus,
+  onConnected,
+  onDisconnected,
+  onToast,
+}: {
+  notionStatus: NotionStatus | null;
+  connected: boolean;
+  loadingStatus: boolean;
+  onConnected: (status: NotionStatus) => void;
+  onDisconnected: () => void;
+  onToast: (type: 'success' | 'error', msg: string) => void;
+}) {
+  const [disconnecting, setDisconnecting] = useState(false);
+
+  const handleConnect = async () => {
+    try {
+      const res = await notionService.getConnectUrl();
+      window.location.href = res.url;
+    } catch {
+      onToast('error', 'Failed to get Notion connect URL');
+    }
+  };
+
+  const handleDisconnect = async () => {
+    if (!window.confirm('Disconnect Notion?')) return;
+    setDisconnecting(true);
+    try {
+      await notionService.disconnect();
+      onDisconnected();
+      onToast('success', 'Notion disconnected');
+    } catch {
+      onToast('error', 'Failed to disconnect Notion');
+    } finally {
+      setDisconnecting(false);
+    }
+  };
+
+  return (
+    <Card className="p-6 md:col-span-2">
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center flex-shrink-0">
+            <NotionIcon className="w-6 h-6" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">Notion</h3>
+            <p className="text-sm text-gray-500">Knowledge Base · Policies, procedures & wikis</p>
+          </div>
+        </div>
+        <Badge variant={connected ? 'default' : 'outline'}>
+          {loadingStatus ? 'Checking...' : connected ? 'Connected' : 'Available'}
+        </Badge>
+      </div>
+
+      <p className="text-sm text-gray-600 mb-4">
+        Connect Notion to sync policies, procedures, and other documents to your ISMS.
+      </p>
+
+      {/* ISO control tags */}
+      <div className="flex flex-wrap gap-2 mb-5">
+        {['A.5.9 Policies', 'A.5.10 Procedures', 'A.5.33 Documentation'].map((l) => (
+          <span key={l} className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full border border-gray-200 font-medium">{l}</span>
+        ))}
+      </div>
+
+      {connected && notionStatus && (
+        <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2 mb-4">
+          Connected to workspace <strong>{notionStatus.workspaceName}</strong>.
+        </p>
+      )}
+
+      <div className="flex flex-wrap gap-2">
+        {!loadingStatus && !connected && (
+          <button
+            onClick={handleConnect}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-black text-white text-sm font-medium hover:bg-gray-800"
+          >
+            <NotionIcon className="w-4 h-4" />
+            Connect Notion
+          </button>
+        )}
+        {connected && (
+          <button
+            onClick={handleDisconnect}
+            disabled={disconnecting}
+            className="inline-flex items-center px-4 py-2 rounded-md border border-red-200 text-sm font-medium text-red-600 hover:bg-red-50"
+          >
+            {disconnecting ? 'Disconnecting...' : 'Disconnect'}
+          </button>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+function NewRelicCard({
+  nrStatus,
+  connected,
+  loadingStatus,
+  onConnected,
+  onDisconnected,
+  onToast,
+}: {
+  nrStatus: NewRelicStatus | null;
+  connected: boolean;
+  loadingStatus: boolean;
+  onConnected: (status: NewRelicStatus) => void;
+  onDisconnected: () => void;
+  onToast: (type: 'success' | 'error', msg: string) => void;
+}) {
+  const [disconnecting, setDisconnecting] = useState(false);
+  const [showConnectModal, setShowConnectModal] = useState(false);
+
+  const handleDisconnect = async () => {
+    if (!window.confirm('Disconnect New Relic?')) return;
+    setDisconnecting(true);
+    try {
+      await newRelicService.disconnect();
+      onDisconnected();
+      onToast('success', 'New Relic disconnected');
+    } catch {
+      onToast('error', 'Failed to disconnect New Relic');
+    } finally {
+      setDisconnecting(false);
+    }
+  };
+
+  return (
+    <>
+      <Card className="p-6 md:col-span-2">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center flex-shrink-0">
+              <NewRelicIcon className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">New Relic</h3>
+              <p className="text-sm text-gray-500">APM & Infrastructure · Logging & monitoring</p>
+            </div>
+          </div>
+          <Badge variant={connected ? 'default' : 'outline'}>
+            {loadingStatus ? 'Checking...' : connected ? 'Connected' : 'Available'}
+          </Badge>
+        </div>
+
+        <p className="text-sm text-gray-600 mb-4">
+          Connect New Relic to monitor application and infrastructure security, and to generate evidence for compliance.
+        </p>
+
+        <div className="flex flex-wrap gap-2 mb-5">
+          {['A.8.15 Logging', 'A.8.16 Monitoring', 'A.8.25 Secure SDLC'].map((l) => (
+            <span key={l} className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded-full border border-green-100 font-medium">{l}</span>
+          ))}
+        </div>
+
+        {connected && nrStatus && (
+          <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2 mb-4">
+            Connected to account <strong>{nrStatus.accountName}</strong>.
+          </p>
+        )}
+
+        <div className="flex flex-wrap gap-2">
+          {!loadingStatus && !connected && (
+            <button
+              onClick={() => setShowConnectModal(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-black text-white text-sm font-medium hover:bg-gray-800"
+            >
+              <NewRelicIcon className="w-4 h-4" />
+              Connect New Relic
+            </button>
+          )}
+          {connected && (
+            <button
+              onClick={handleDisconnect}
+              disabled={disconnecting}
+              className="inline-flex items-center px-4 py-2 rounded-md border border-red-200 text-sm font-medium text-red-600 hover:bg-red-50"
+            >
+              {disconnecting ? 'Disconnecting...' : 'Disconnect'}
+            </button>
+          )}
+        </div>
+      </Card>
+      {showConnectModal && (
+        <NewRelicConnectModal
+          onClose={() => setShowConnectModal(false)}
+          onConnected={(status) => { onConnected(status); setShowConnectModal(false); onToast('success', 'New Relic connected!'); }}
+        />
+      )}
+    </>
+  );
+}
+
+function NewRelicConnectModal({ onClose, onConnected }: {
+  onClose: () => void;
+  onConnected: (status: NewRelicStatus) => void;
+}) {
+  const [apiKey, setApiKey] = useState('');
+  const [accountId, setAccountId] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!apiKey.trim() || !accountId.trim()) {
+      setError('API Key and Account ID are required');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    try {
+      const res = await newRelicService.connect({ apiKey, accountId });
+      onConnected(res.data);
+    } catch (err: any) {
+      setError(err?.message ?? 'Failed to connect to New Relic');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md mx-4">
+        <h2 className="text-lg font-semibold mb-1">Connect New Relic</h2>
+        <p className="text-sm text-gray-500 mb-4">Provide a User API Key and your Account ID.</p>
+        <div className="space-y-3">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Account ID</label>
+            <input type="text" value={accountId} onChange={e => setAccountId(e.target.value)} placeholder="e.g. 1234567" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#00AC69]" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">API Key</label>
+            <input type="password" value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder="NRAK-..." className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#00AC69]" required autoComplete="off" />
+          </div>
+        </div>
+        {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+        <div className="mt-5 flex justify-end gap-2">
+          <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+          <Button type="submit" disabled={loading} className="bg-[#00AC69] hover:bg-[#009159] text-white">
+            {loading ? 'Connecting…' : 'Connect New Relic'}
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
 function RedashIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
