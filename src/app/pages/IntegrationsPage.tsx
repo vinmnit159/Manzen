@@ -2625,8 +2625,14 @@ const STATIC_INTEGRATIONS: { name: string; category: string; description: string
 type EngineerACardConfig = {
   key: string;
   name: string;
+  subtitle: string;
   category: string;
   description: string;
+  brandColor: string;       // CSS color for the connect button + icon bg
+  isoTags: string[];        // specific ISO control tag pills
+  iconBg: string;           // tailwind bg class or inline style
+  iconText?: string;        // fallback initials if no SVG icon
+  iconSvg?: React.ReactNode; // branded SVG icon
   service: {
     getAccounts: () => Promise<{ success: boolean; data: EngineerAIntegrationRecord[] }>;
     connect: (payload: { apiKey: string; accountId?: string; tenant?: string; baseUrl?: string; region?: string; label?: string }) => Promise<{ success: boolean; data: EngineerAIntegrationRecord }>;
@@ -5345,15 +5351,165 @@ function GcpCard({
 
 
 const ENGINEER_A_CARDS: EngineerACardConfig[] = [
-  { key: 'workspace-directory', name: 'Google Workspace Directory', category: 'Identity', description: 'Directory posture, admin controls, and account lifecycle checks.', service: workspaceDirectoryService as any },
-  { key: 'onelogin', name: 'OneLogin', category: 'Identity', description: 'Identity and SSO governance checks for OneLogin tenants.', service: oneLoginService as any },
-  { key: 'jamf', name: 'Jamf Pro', category: 'Endpoint / MDM', description: 'macOS fleet security baseline and endpoint policy coverage.', service: jamfService as any },
-  { key: 'kandji', name: 'Kandji', category: 'Endpoint / MDM', description: 'Device posture controls and compliance blueprint monitoring.', service: kandjiService as any },
-  { key: 'intune', name: 'Microsoft Intune', category: 'Endpoint / MDM', description: 'Windows and mobile compliance baseline verification.', service: intuneService as any },
-  { key: 'crowdstrike', name: 'CrowdStrike Falcon', category: 'Endpoint Security', description: 'EDR coverage, detections, and host hygiene posture checks.', service: crowdstrikeService as any },
-  { key: 'workday', name: 'Workday', category: 'HRIS', description: 'Employee lifecycle sync and HR access governance checks.', service: workdayService as any },
-  { key: 'rippling', name: 'Rippling', category: 'HRIS', description: 'Onboarding/offboarding and HR data governance controls.', service: ripplingService as any },
-  { key: 'hibob', name: 'HiBob', category: 'HRIS', description: 'People operations lifecycle and privacy controls.', service: hiBobService as any },
+  {
+    key: 'workspace-directory',
+    name: 'Google Workspace Directory',
+    subtitle: 'Identity · MFA, stale accounts & external sharing',
+    category: 'Identity',
+    description: 'Verify MFA enforcement for admins, detect inactive users, control super-admin count, and restrict external sharing via the Google Workspace Admin SDK.',
+    brandColor: '#1a73e8',
+    iconBg: 'bg-white border border-gray-200',
+    isoTags: ['A.5.17 MFA', 'A.5.18 Stale Accounts', 'A.5.3 Admin Control', 'A.5.23 Sharing Policy'],
+    iconSvg: (
+      <svg viewBox="0 0 48 48" className="w-7 h-7" xmlns="http://www.w3.org/2000/svg">
+        <path fill="#4285F4" d="M24 4C12.95 4 4 12.95 4 24s8.95 20 20 20 20-8.95 20-20S35.05 4 24 4z"/>
+        <path fill="white" d="M24 12a7 7 0 100 14 7 7 0 000-14zm0 22c-5 0-9.33 2.56-11.93 6.44A16 16 0 0024 40a16 16 0 0011.93-5.56C33.33 36.56 29 34 24 34z"/>
+      </svg>
+    ),
+    service: workspaceDirectoryService as any,
+  },
+  {
+    key: 'onelogin',
+    name: 'OneLogin',
+    subtitle: 'Identity & SSO · MFA, stale accounts & app hygiene',
+    category: 'Identity',
+    description: 'Verify MFA policy coverage, detect stale accounts, review privileged role assignments, and audit app assignment hygiene via the OneLogin API.',
+    brandColor: '#00A1E0',
+    iconBg: 'bg-[#00A1E0]',
+    isoTags: ['A.5.17 MFA', 'A.5.18 Stale Accounts', 'A.5.2 Privileged Roles', 'A.5.15 App Access'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="7" fill="white"/>
+        <circle cx="16" cy="16" r="3" fill="#00A1E0"/>
+        <path d="M16 2v4M16 26v4M2 16h4M26 16h4" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
+      </svg>
+    ),
+    service: oneLoginService as any,
+  },
+  {
+    key: 'jamf',
+    name: 'Jamf Pro',
+    subtitle: 'Endpoint / MDM · Encryption, screen lock & EDR',
+    category: 'Endpoint / MDM',
+    description: 'Verify disk encryption policy, screen lock baseline, OS update compliance, and EDR sensor coverage across your macOS fleet via the Jamf Pro API.',
+    brandColor: '#004F9F',
+    iconBg: 'bg-[#004F9F]',
+    isoTags: ['A.8.24 Encryption', 'A.5.15 Screen Lock', 'A.8.8 OS Updates', 'A.8.16 EDR Coverage'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <path d="M16 3L4 9v8c0 6.6 5.1 12.8 12 14.2C23.9 29.8 29 23.6 29 17V9L16 3z"/>
+        <path d="M13 16l2.5 2.5L20 13" stroke="#004F9F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+      </svg>
+    ),
+    service: jamfService as any,
+  },
+  {
+    key: 'kandji',
+    name: 'Kandji',
+    subtitle: 'Endpoint / MDM · Encryption, blueprints & firewall',
+    category: 'Endpoint / MDM',
+    description: 'Verify encryption baseline, compliance blueprint coverage, detect stale devices, and confirm firewall policy enforcement across your Apple device fleet.',
+    brandColor: '#1B1B1B',
+    iconBg: 'bg-gray-900',
+    isoTags: ['A.8.24 Encryption', 'A.8.9 Compliance Baseline', 'A.8.1 Stale Devices', 'A.8.20 Firewall'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <rect x="8" y="4" width="16" height="20" rx="3" fill="white" opacity="0.9"/>
+        <rect x="11" y="8" width="10" height="2" rx="1" fill="#1B1B1B"/>
+        <rect x="11" y="12" width="7" height="2" rx="1" fill="#1B1B1B"/>
+        <circle cx="16" cy="26" r="2" fill="white"/>
+      </svg>
+    ),
+    service: kandjiService as any,
+  },
+  {
+    key: 'intune',
+    name: 'Microsoft Intune',
+    subtitle: 'Endpoint / MDM · Device compliance & conditional access',
+    category: 'Endpoint / MDM',
+    description: 'Verify device compliance baseline, encryption policy, conditional access integration, and unmanaged device exceptions across your Windows and mobile fleet.',
+    brandColor: '#0078D4',
+    iconBg: 'bg-white border border-gray-200',
+    isoTags: ['A.8.9 Device Compliance', 'A.8.24 Encryption', 'A.5.15 Conditional Access', 'A.5.36 Exceptions'],
+    iconSvg: (
+      <svg viewBox="0 0 24 24" className="w-7 h-7" xmlns="http://www.w3.org/2000/svg">
+        <path d="M11.5 2L2 7v10l9.5 5 9.5-5V7L11.5 2z" fill="#0078D4"/>
+        <path d="M11.5 2v20M2 7l9.5 5 9.5-5" stroke="white" strokeWidth="1" fill="none" opacity="0.5"/>
+      </svg>
+    ),
+    service: intuneService as any,
+  },
+  {
+    key: 'crowdstrike',
+    name: 'CrowdStrike Falcon',
+    subtitle: 'Endpoint Security · Sensor coverage & detections',
+    category: 'Endpoint Security',
+    description: 'Verify sensor coverage across all hosts, confirm critical detections are triaged, check tamper protection policy, and review stale host quarantine status.',
+    brandColor: '#E3003A',
+    iconBg: 'bg-[#E3003A]',
+    isoTags: ['A.8.16 Sensor Coverage', 'A.5.24 Detections Triaged', 'A.8.9 Tamper Protection', 'A.8.15 Stale Hosts'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <path d="M16 4L6 9v7c0 5.5 4.3 10.7 10 12 5.7-1.3 10-6.5 10-12V9L16 4z" fill="white" opacity="0.15" stroke="white" strokeWidth="1.5"/>
+        <path d="M10 16l4 4 8-8" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+      </svg>
+    ),
+    service: crowdstrikeService as any,
+  },
+  {
+    key: 'workday',
+    name: 'Workday',
+    subtitle: 'HRIS · Employee lifecycle & HR access governance',
+    category: 'HRIS',
+    description: 'Verify the active employee roster is synced, terminated employee workflows complete on time, privileged HR roles are reviewed, and personal data fields are governed.',
+    brandColor: '#F3741B',
+    iconBg: 'bg-[#F3741B]',
+    isoTags: ['A.6.2 Employee Roster', 'A.6.5 Offboarding', 'A.5.2 Privileged HR Roles', 'A.5.34 Data Governance'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="11" r="5" fill="white"/>
+        <path d="M6 26c0-5.5 4.5-10 10-10s10 4.5 10 10" fill="white" opacity="0.8"/>
+      </svg>
+    ),
+    service: workdayService as any,
+  },
+  {
+    key: 'rippling',
+    name: 'Rippling',
+    subtitle: 'HRIS · Onboarding, offboarding & HR data retention',
+    category: 'HRIS',
+    description: 'Verify employee lifecycle sync, onboarding/offboarding SLA compliance, admin access segmentation, and HR data retention controls via the Rippling API.',
+    brandColor: '#FFC234',
+    iconBg: 'bg-[#FFC234]',
+    isoTags: ['A.6.2 Lifecycle Sync', 'A.6.5 Offboarding SLA', 'A.5.15 Access Segmentation', 'A.5.33 Data Retention'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="10" cy="13" r="4" fill="white"/>
+        <circle cx="22" cy="13" r="4" fill="white" opacity="0.7"/>
+        <path d="M4 27c0-4.4 2.7-8 6-8M18 27c0-4.4 2.7-8 6-8" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+        <path d="M13 27c0-4.4 1.3-8 3-8s3 3.6 3 8" fill="white" opacity="0.5"/>
+      </svg>
+    ),
+    service: ripplingService as any,
+  },
+  {
+    key: 'hibob',
+    name: 'HiBob',
+    subtitle: 'HRIS · People ops lifecycle & PII controls',
+    category: 'HRIS',
+    description: 'Verify user lifecycle consistency, role-based access hygiene, contractor account governance, and PII export controls via the HiBob API.',
+    brandColor: '#FF6B6B',
+    iconBg: 'bg-[#FF6B6B]',
+    isoTags: ['A.6.2 Lifecycle', 'A.5.15 Role-Based Access', 'A.6.6 Contractor Governance', 'A.5.34 PII Controls'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <path d="M16 6C10.5 6 6 10.5 6 16s4.5 10 10 10 10-4.5 10-10S21.5 6 16 6z" fill="white" opacity="0.2" stroke="white" strokeWidth="1.5"/>
+        <circle cx="16" cy="13" r="3.5" fill="white"/>
+        <path d="M9 24c0-3.9 3.1-7 7-7s7 3.1 7 7" fill="white" opacity="0.8"/>
+      </svg>
+    ),
+    service: hiBobService as any,
+  },
 ];
 
 function EngineerAIntegrationCard({
@@ -5463,14 +5619,16 @@ function EngineerAIntegrationCard({
         {/* Header */}
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center flex-shrink-0 overflow-hidden">
-              <span className="text-sm font-bold text-gray-600">
-                {config.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
-              </span>
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 p-1 overflow-hidden ${config.iconBg}`}>
+              {config.iconSvg ?? (
+                <span className="text-sm font-bold text-white">
+                  {config.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
+                </span>
+              )}
             </div>
             <div>
               <h3 className="text-lg font-semibold text-gray-900">{config.name}</h3>
-              <p className="text-sm text-gray-500">{config.category}</p>
+              <p className="text-sm text-gray-500">{config.subtitle}</p>
             </div>
           </div>
           <Badge variant={connected ? 'default' : 'outline'}>
@@ -5480,19 +5638,12 @@ function EngineerAIntegrationCard({
 
         <p className="text-sm text-gray-600 mb-4">{config.description}</p>
 
-        {/* ISO control tags — generic */}
+        {/* ISO control tags — per-integration */}
         <div className="flex flex-wrap gap-2 mb-5">
-          {['ISO 27001 Automated Tests', 'Compliance Evidence'].map((l) => (
-            <span key={l} className="text-xs bg-gray-50 text-gray-600 px-2 py-1 rounded-full border border-gray-200 font-medium">{l}</span>
+          {config.isoTags.map((l) => (
+            <span key={l} className="text-xs bg-indigo-50 text-indigo-700 px-2 py-1 rounded-full border border-indigo-100 font-medium">{l}</span>
           ))}
         </div>
-
-        {/* Connected banner */}
-        {connected && (
-          <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2 mb-4">
-            {accounts.length} account{accounts.length !== 1 ? 's' : ''} connected. Automated compliance scans are active.
-          </p>
-        )}
 
         {/* Connected account rows */}
         {connected && accounts.map((a) => (
@@ -5512,12 +5663,13 @@ function EngineerAIntegrationCard({
           </div>
         ))}
 
-        {/* Action buttons */}
+        {/* Action button — brand-colored */}
         <div className="flex flex-wrap gap-2">
           {!loading && (
             <button
               onClick={() => setShowConnect(v => !v)}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium"
+              style={{ backgroundColor: config.brandColor }}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-md text-white text-sm font-medium hover:opacity-90 transition-opacity"
             >
               {connected ? `+ Add ${config.name} Account` : `Connect ${config.name}`}
             </button>
