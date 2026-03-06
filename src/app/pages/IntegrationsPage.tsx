@@ -6660,62 +6660,23 @@ export function IntegrationsPage() {
   };
 
   const loadStatus = async () => {
-    try {
-      // Run requests in batches of 5 with a small delay between batches to avoid
-      // overwhelming the backend with 33 simultaneous DB queries (causes SIGSEGV).
-      async function batchedAll<T>(fns: (() => Promise<T>)[], batchSize = 5, delayMs = 80): Promise<T[]> {
-        const results: T[] = [];
-        for (let i = 0; i < fns.length; i += batchSize) {
-          if (i > 0) await new Promise(r => setTimeout(r, delayMs));
-          const batch = await Promise.all(fns.slice(i, i + batchSize).map(fn => fn()));
-          results.push(...batch);
-        }
-        return results;
-      }
+    // Fire requests in named batches of 5 (backend connection-pool limit).
+    // Each batch's state is applied immediately after it resolves so the
+    // Connected count updates progressively rather than waiting for all 32
+    // requests to finish — eliminating the "stuck at 0" problem.
+    const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
 
-      const [
-        { integrations }, slackRes, channelsRes, mdmRes, nrRes, notionRes,
-        awsRes, cfRes, bambooRes, redashRes, workspaceRes,
-        fleetRes, intercomRes, bigIdRes, pdRes, ogRes,
-        snRes, ddRes, gcpRes, azureRes, wizRes,
-        laceworkRes, snykRes, sonarqubeRes, veracodeRes, checkmarxRes,
-        vaultRes, secretsManagerRes, certManagerRes, oktaRes, azureAdRes, jumpCloudRes,
-      ] = await batchedAll([
-        () => integrationsService.getStatus(),
-        () => slackService.getStatus().catch(() => ({ success: false, data: null })),
-        () => slackService.getChannels().catch(() => ({ data: [] as SlackChannel[] })),
-        () => mdmService.getOverview().catch(() => ({ total: 0, compliant: 0, nonCompliant: 0, unknown: 0 } as MdmOverview)),
-        () => newRelicService.getStatus().catch(() => ({ connected: false, data: null })),
-        () => notionService.getStatus().catch(() => ({ connected: false, data: null })),
-        () => awsService.getAccounts().catch(() => ({ success: true, data: [] as AwsAccountRecord[] })),
-        () => cloudflareService.getAccounts().catch(() => ({ success: true, data: [] as CloudflareAccountRecord[] })),
-        () => bamboohrService.getAccounts().catch(() => ({ success: true, data: [] as HRIntegrationRecord[] })),
-        () => redashService.getAccounts().catch(() => ({ success: true, data: [] as RedashIntegrationRecord[] })),
-        () => workspaceService.getAccounts().catch(() => ({ success: true, data: [] as WorkspaceIntegrationRecord[] })),
-        () => fleetService.getAccounts().catch(() => ({ success: true, data: [] as FleetIntegrationRecord[] })),
-        () => intercomService.getAccounts().catch(() => ({ success: true, data: [] as IntercomIntegrationRecord[] })),
-        () => bigIdService.getAccounts().catch(() => ({ success: true, data: [] as BigIdIntegrationRecord[] })),
-        () => pagerdutyService.getAccounts().catch(() => ({ success: true, data: [] as PagerDutyIntegrationRecord[] })),
-        () => opsgenieService.getAccounts().catch(() => ({ success: true, data: [] as OpsgenieIntegrationRecord[] })),
-        () => servicenowIncidentService.getAccounts().catch(() => ({ success: true, data: [] as ServiceNowIntegrationRecord[] })),
-        () => datadogIncidentsService.getAccounts().catch(() => ({ success: true, data: [] as DatadogIntegrationRecord[] })),
-        () => gcpService.getAccounts().catch(() => ({ success: true, data: [] as GcpIntegrationRecord[] })),
-        () => azureService.getAccounts().catch(() => ({ success: true, data: [] as AzureIntegrationRecord[] })),
-        () => wizService.getAccounts().catch(() => ({ success: true, data: [] as WizIntegrationRecord[] })),
-        () => laceworkService.getAccounts().catch(() => ({ success: true, data: [] as LaceworkIntegrationRecord[] })),
-        () => snykService.getAccounts().catch(() => ({ success: true, data: [] as SnykIntegrationRecord[] })),
-        () => sonarqubeService.getAccounts().catch(() => ({ success: true, data: [] as SonarQubeIntegrationRecord[] })),
-        () => veracodeService.getAccounts().catch(() => ({ success: true, data: [] as VeracodeIntegrationRecord[] })),
-        () => checkmarxService.getAccounts().catch(() => ({ success: true, data: [] as CheckmarxIntegrationRecord[] })),
-        () => vaultService.getAccounts().catch(() => ({ success: true, data: [] as VaultIntegrationRecord[] })),
-        () => secretsManagerService.getAccounts().catch(() => ({ success: true, data: [] as SecretsManagerIntegrationRecord[] })),
-        () => certManagerService.getAccounts().catch(() => ({ success: true, data: [] as CertManagerIntegrationRecord[] })),
-        () => oktaService.getAccounts().catch(() => ({ success: true, data: [] as OktaIntegrationRecord[] })),
-        () => azureAdService.getAccounts().catch(() => ({ success: true, data: [] as AzureAdIntegrationRecord[] })),
-        () => jumpCloudService.getAccounts().catch(() => ({ success: true, data: [] as JumpCloudIntegrationRecord[] })),
+    try {
+      // ── Batch 1: GitHub/Drive + Slack + MDM + NewRelic + Notion ──────────
+      const [intRes, slackRes, channelsRes, mdmRes, nrRes] = await Promise.all([
+        integrationsService.getStatus(),
+        slackService.getStatus().catch(() => ({ success: false, data: null })),
+        slackService.getChannels().catch(() => ({ data: [] as SlackChannel[] })),
+        mdmService.getOverview().catch(() => ({ total: 0, compliant: 0, nonCompliant: 0, unknown: 0 } as MdmOverview)),
+        newRelicService.getStatus().catch(() => ({ connected: false, data: null })),
       ]);
-      const gh = integrations.find((i) => i.provider === 'GITHUB' && i.status === 'ACTIVE') ?? null;
-      const drive = integrations.find((i) => i.provider === 'GOOGLE_DRIVE' && i.status === 'ACTIVE') ?? null;
+      const gh = intRes.integrations.find((i: any) => i.provider === 'GITHUB' && i.status === 'ACTIVE') ?? null;
+      const drive = intRes.integrations.find((i: any) => i.provider === 'GOOGLE_DRIVE' && i.status === 'ACTIVE') ?? null;
       setGithubIntegration(gh);
       setDriveIntegration(drive);
       setSlackIntegration(slackRes.data);
@@ -6723,35 +6684,99 @@ export function IntegrationsPage() {
       setMdmOverview(mdmRes);
       setNrConnected(nrRes.connected);
       setNrStatus(nrRes.data);
+      if (gh) setRepos(gh.repos);
+
+      await delay(80);
+
+      // ── Batch 2: Notion + AWS + Cloudflare + BambooHR + Redash ───────────
+      const [notionRes, awsRes, cfRes, bambooRes, redashRes] = await Promise.all([
+        notionService.getStatus().catch(() => ({ connected: false, data: null })),
+        awsService.getAccounts().catch(() => ({ success: true, data: [] as AwsAccountRecord[] })),
+        cloudflareService.getAccounts().catch(() => ({ success: true, data: [] as CloudflareAccountRecord[] })),
+        bamboohrService.getAccounts().catch(() => ({ success: true, data: [] as HRIntegrationRecord[] })),
+        redashService.getAccounts().catch(() => ({ success: true, data: [] as RedashIntegrationRecord[] })),
+      ]);
       setNotionConnected(notionRes.connected);
       setNotionStatus(notionRes.data);
       setAwsAccounts(awsRes.data ?? []);
       setCloudflareAccounts(cfRes.data ?? []);
       setBamboohrAccounts(bambooRes.data ?? []);
       setRedashAccounts(redashRes.data ?? []);
+
+      await delay(80);
+
+      // ── Batch 3: Workspace + Fleet + Intercom + BigId + PagerDuty ────────
+      const [workspaceRes, fleetRes, intercomRes, bigIdRes, pdRes] = await Promise.all([
+        workspaceService.getAccounts().catch(() => ({ success: true, data: [] as WorkspaceIntegrationRecord[] })),
+        fleetService.getAccounts().catch(() => ({ success: true, data: [] as FleetIntegrationRecord[] })),
+        intercomService.getAccounts().catch(() => ({ success: true, data: [] as IntercomIntegrationRecord[] })),
+        bigIdService.getAccounts().catch(() => ({ success: true, data: [] as BigIdIntegrationRecord[] })),
+        pagerdutyService.getAccounts().catch(() => ({ success: true, data: [] as PagerDutyIntegrationRecord[] })),
+      ]);
       setWorkspaceAccounts(workspaceRes.data ?? []);
       setFleetAccounts(fleetRes.data ?? []);
       setIntercomAccounts(intercomRes.data ?? []);
       setBigIdAccounts(bigIdRes.data ?? []);
       setPagerdutyAccounts(pdRes.data ?? []);
+
+      await delay(80);
+
+      // ── Batch 4: Opsgenie + ServiceNow + Datadog + GCP + Azure ───────────
+      const [ogRes, snRes, ddRes, gcpRes, azureRes] = await Promise.all([
+        opsgenieService.getAccounts().catch(() => ({ success: true, data: [] as OpsgenieIntegrationRecord[] })),
+        servicenowIncidentService.getAccounts().catch(() => ({ success: true, data: [] as ServiceNowIntegrationRecord[] })),
+        datadogIncidentsService.getAccounts().catch(() => ({ success: true, data: [] as DatadogIntegrationRecord[] })),
+        gcpService.getAccounts().catch(() => ({ success: true, data: [] as GcpIntegrationRecord[] })),
+        azureService.getAccounts().catch(() => ({ success: true, data: [] as AzureIntegrationRecord[] })),
+      ]);
       setOpsgenieAccounts(ogRes.data ?? []);
       setServicenowAccounts(snRes.data ?? []);
       setDatadogAccounts(ddRes.data ?? []);
       setGcpAccounts(gcpRes.data ?? []);
       setAzureAccounts(azureRes.data ?? []);
+
+      await delay(80);
+
+      // ── Batch 5: Wiz + Lacework + Snyk + SonarQube + Veracode ────────────
+      const [wizRes, laceworkRes, snykRes, sonarqubeRes, veracodeRes] = await Promise.all([
+        wizService.getAccounts().catch(() => ({ success: true, data: [] as WizIntegrationRecord[] })),
+        laceworkService.getAccounts().catch(() => ({ success: true, data: [] as LaceworkIntegrationRecord[] })),
+        snykService.getAccounts().catch(() => ({ success: true, data: [] as SnykIntegrationRecord[] })),
+        sonarqubeService.getAccounts().catch(() => ({ success: true, data: [] as SonarQubeIntegrationRecord[] })),
+        veracodeService.getAccounts().catch(() => ({ success: true, data: [] as VeracodeIntegrationRecord[] })),
+      ]);
       setWizAccounts(wizRes.data ?? []);
       setLaceworkAccounts(laceworkRes.data ?? []);
       setSnykAccounts(snykRes.data ?? []);
       setSonarqubeAccounts(sonarqubeRes.data ?? []);
       setVeracodeAccounts(veracodeRes.data ?? []);
+
+      await delay(80);
+
+      // ── Batch 6: Checkmarx + Vault + SecretsManager + CertManager + Okta ─
+      const [checkmarxRes, vaultRes, secretsManagerRes, certManagerRes, oktaRes] = await Promise.all([
+        checkmarxService.getAccounts().catch(() => ({ success: true, data: [] as CheckmarxIntegrationRecord[] })),
+        vaultService.getAccounts().catch(() => ({ success: true, data: [] as VaultIntegrationRecord[] })),
+        secretsManagerService.getAccounts().catch(() => ({ success: true, data: [] as SecretsManagerIntegrationRecord[] })),
+        certManagerService.getAccounts().catch(() => ({ success: true, data: [] as CertManagerIntegrationRecord[] })),
+        oktaService.getAccounts().catch(() => ({ success: true, data: [] as OktaIntegrationRecord[] })),
+      ]);
       setCheckmarxAccounts(checkmarxRes.data ?? []);
       setVaultAccounts(vaultRes.data ?? []);
       setSecretsManagerAccounts(secretsManagerRes.data ?? []);
       setCertManagerAccounts(certManagerRes.data ?? []);
       setOktaAccounts(oktaRes.data ?? []);
+
+      await delay(80);
+
+      // ── Batch 7: AzureAD + JumpCloud ─────────────────────────────────────
+      const [azureAdRes, jumpCloudRes] = await Promise.all([
+        azureAdService.getAccounts().catch(() => ({ success: true, data: [] as AzureAdIntegrationRecord[] })),
+        jumpCloudService.getAccounts().catch(() => ({ success: true, data: [] as JumpCloudIntegrationRecord[] })),
+      ]);
       setAzureAdAccounts(azureAdRes.data ?? []);
       setJumpCloudAccounts(jumpCloudRes.data ?? []);
-      if (gh) setRepos(gh.repos);
+
     } catch {
       /* unauthenticated or network — treat as disconnected */
     } finally {
@@ -6862,8 +6887,18 @@ export function IntegrationsPage() {
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'connected' | 'available')} className="gap-4">
         <TabsList className="w-full sm:w-auto">
-          <TabsTrigger value="connected">Connected Tools ({connectedCount})</TabsTrigger>
-          <TabsTrigger value="available">Available Tools ({availableCount})</TabsTrigger>
+          <TabsTrigger value="connected">
+            Connected Tools&nbsp;
+            {loading
+              ? <span className="inline-block w-5 h-3.5 rounded bg-current opacity-20 animate-pulse align-middle" />
+              : `(${connectedCount})`}
+          </TabsTrigger>
+          <TabsTrigger value="available">
+            Available Tools&nbsp;
+            {loading
+              ? <span className="inline-block w-5 h-3.5 rounded bg-current opacity-20 animate-pulse align-middle" />
+              : `(${availableCount})`}
+          </TabsTrigger>
         </TabsList>
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
