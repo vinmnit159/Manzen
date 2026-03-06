@@ -864,61 +864,112 @@ function SlackCard({
       <Card className="p-6 md:col-span-2">
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center flex-shrink-0">
-              <svg className="w-7 h-7" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 6.5l3 5.2-3 5.2-3-5.2z" fill="#EA4335"/>
-                <path d="M6.5 17.5h11L15 12.5l-3 5.2-3-5.2z" fill="#FBBC05"/>
-                <path d="M15 12.5l2.5-4.5H6.5L9 12.5z" fill="#4285F4"/>
-              </svg>
+            <div className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center flex-shrink-0 p-1 overflow-hidden">
+              <SlackIcon className="w-7 h-7" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">Google Cloud (GCP)</h3>
-              <p className="text-sm text-gray-500">Cloud Security · IAM, logging &amp; misconfigurations</p>
+              <h3 className="text-lg font-semibold text-gray-900">Slack</h3>
+              <p className="text-sm text-gray-500">Communication · Alerts &amp; interactive notifications</p>
             </div>
           </div>
           <Badge variant={isConnected ? 'default' : 'outline'}>
-            {loadingStatus ? 'Checking...' : isConnected ? `${accounts.length} project${accounts.length !== 1 ? 's' : ''} connected` : 'Available'}
+            {loadingStatus ? 'Checking...' : isConnected ? 'Connected' : 'Available'}
           </Badge>
         </div>
+
         <p className="text-sm text-gray-600 mb-4">
-          Scan GCP projects for IAM misconfigurations, audit logging gaps, encryption coverage, and network exposure using Security Command Center. All 5 results appear in the Tests page.
+          Receive automated alerts for critical risks, audit findings, overdue tests, and audit events.
+          Respond with interactive buttons directly from Slack — accept risks, start remediation, and more.
         </p>
+
         <div className="flex flex-wrap gap-2 mb-5">
-          {['A.5.15 IAM', 'A.8.15 Audit Logging', 'A.8.9 Misconfigs', 'A.8.24 Encryption', 'A.8.20 Network'].map((l) => (
-            <span key={l} className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full border border-blue-100 font-medium">{l}</span>
+          {['Critical Risks', 'Audit Findings', 'Overdue Tests', 'Audit Events'].map((l) => (
+            <span key={l} className="text-xs bg-purple-50 text-purple-700 px-2 py-1 rounded-full border border-purple-100 font-medium">{l}</span>
           ))}
         </div>
-        {isConnected && accounts.map(account => (
-          <div key={account.id} className="mb-3 flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-lg">
-            <div>
-              <p className="text-sm font-medium text-gray-900">{account.label ?? account.projectId}</p>
-              <p className="text-xs text-gray-400 font-mono">
-                {account.findingCount} finding{account.findingCount !== 1 ? 's' : ''}
-                {account.lastSyncAt && ` · Last sync: ${new Date(account.lastSyncAt).toLocaleString()}`}
-              </p>
-            </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <Button variant="outline" size="sm" onClick={() => handleScan(account.id)} disabled={scanningId === account.id}>
-                {scanningId === account.id ? 'Scanning…' : 'Scan Now'}
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => handleDisconnect(account.id, account.label)} disabled={disconnectingId === account.id} className="text-red-600 border-red-200 hover:bg-red-50">
-                {disconnectingId === account.id ? 'Disconnecting...' : 'Disconnect'}
-              </Button>
-            </div>
-          </div>
-        ))}
+
+        {isConnected && slackIntegration && (
+          <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2 mb-4">
+            Connected to workspace <strong>{slackIntegration.workspaceName}</strong> since {new Date(slackIntegration.createdAt).toLocaleDateString()}.
+          </p>
+        )}
+
         <div className="flex flex-wrap gap-2">
-          {!loadingStatus && (
-            <button onClick={() => setShowConnectModal(true)} className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium">
-              {isConnected ? '+ Connect Another Project' : 'Connect GCP'}
-            </button>
+          {!loadingStatus && !isConnected && (
+            <a href={slackService.getInstallUrl()}>
+              <Button className="gap-2 bg-[#4A154B] hover:bg-[#3a1039] text-white">
+                <SlackIcon className="w-4 h-4" />
+                Connect Slack
+              </Button>
+            </a>
+          )}
+          {isConnected && (
+            <>
+              <Button variant="outline" size="sm" onClick={() => setShowChannels(v => !v)}>
+                {showChannels ? 'Hide Channels' : `Channel Mappings (${channels.length})`}
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => { setShowChannels(true); setShowAddModal(true); }}
+                className="bg-[#4A154B] hover:bg-[#3a1039] text-white border-0">
+                + Add Mapping
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleDisconnect} disabled={disconnecting}
+                className="text-red-600 border-red-200 hover:bg-red-50">
+                {disconnecting ? 'Disconnecting...' : 'Disconnect'}
+              </Button>
+            </>
           )}
         </div>
+
+        {/* Channel mappings table — inline, no separate page */}
+        {isConnected && showChannels && (
+          <div className="mt-5 border-t border-gray-100 pt-4">
+            <h4 className="text-sm font-semibold text-gray-700 mb-3">Channel Mappings</h4>
+            {channels.length === 0 ? (
+              <p className="text-sm text-gray-400">No channel mappings yet. Use "+ Add Mapping" to route events to Slack channels.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-100 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
+                      <th className="py-2 pr-4">Channel</th>
+                      <th className="py-2 pr-4">Event</th>
+                      <th className="py-2 pr-4">Added</th>
+                      <th className="py-2 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {channels.map(ch => (
+                      <tr key={ch.id} className="hover:bg-gray-50">
+                        <td className="py-2 pr-4 font-medium text-gray-900">
+                          {ch.channelName}
+                          <span className="block text-xs text-gray-400 font-normal">{ch.channelId}</span>
+                        </td>
+                        <td className="py-2 pr-4">
+                          <span className="inline-block bg-purple-50 text-purple-700 text-xs font-medium px-2 py-0.5 rounded-full">
+                            {eventLabel(ch.eventType)}
+                          </span>
+                        </td>
+                        <td className="py-2 pr-4 text-xs text-gray-400">{new Date(ch.createdAt).toLocaleDateString()}</td>
+                        <td className="py-2 text-right">
+                          <button onClick={() => handleRemoveChannel(ch.id)}
+                            className="text-xs text-red-500 hover:text-red-700 font-medium">
+                            Remove
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
       </Card>
-      {showConnectModal && (
-        <GcpConnectModal
-          onClose={() => setShowConnectModal(false)}
-          onConnected={(account) => { onAccountAdded(account); onToast('success', 'GCP connected! 5 automated cloud security tests are being seeded.'); setShowConnectModal(false); }}
+
+      {showAddModal && (
+        <SlackAddChannelModal
+          onClose={() => setShowAddModal(false)}
+          onAdded={handleChannelAdded}
         />
       )}
     </>
