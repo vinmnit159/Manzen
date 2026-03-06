@@ -2584,6 +2584,2715 @@ type EngineerACardConfig = {
   };
 };
 
+// ─── Restored card components ────────────────────────────────────────────────
+
+function AwsOnboardModal({ onClose, onConnected }: {
+  onClose: () => void;
+  onConnected: (account: AwsAccountRecord) => void;
+}) {
+  const [step, setStep] = useState<1 | 2>(1);
+  const [trustData, setTrustData] = useState<{ externalId: string; ismsAccountId: string; trustPolicyJson: string; permissionPolicyJson: string } | null>(null);
+  const [loadingPolicy, setLoadingPolicy] = useState(false);
+  const [policyError, setPolicyError] = useState('');
+
+  const [roleArn, setRoleArn] = useState('');
+  const [awsAccountId, setAwsAccountId] = useState('');
+  const [region, setRegion] = useState('us-east-1');
+  const [label, setLabel] = useState('');
+  const [connecting, setConnecting] = useState(false);
+  const [connectError, setConnectError] = useState('');
+
+  const [copied, setCopied] = useState<'trust' | 'perm' | null>(null);
+
+  async function loadTrustPolicy() {
+    setLoadingPolicy(true); setPolicyError('');
+    try {
+      const res = await awsService.getTrustPolicy();
+      setTrustData(res.data);
+    } catch (err: any) {
+      setPolicyError(err?.message ?? 'Failed to generate trust policy');
+    } finally { setLoadingPolicy(false); }
+  }
+
+  // Load trust policy as soon as modal opens
+  useState(() => { loadTrustPolicy(); });
+
+  function copyToClipboard(text: string, which: 'trust' | 'perm') {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(which);
+      setTimeout(() => setCopied(null), 2000);
+    });
+  }
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!roleArn.trim() || !awsAccountId.trim()) { setConnectError('Role ARN and AWS Account ID are required'); return; }
+    if (!trustData) { setConnectError('Trust policy data missing — please go back and try again'); return; }
+    setConnecting(true); setConnectError('');
+    try {
+      const res = await awsService.connect({
+        roleArn: roleArn.trim(),
+        awsAccountId: awsAccountId.trim(),
+        externalId: trustData.externalId,
+        region,
+        label: label.trim() || undefined,
+      });
+      if (res.success) {
+        onConnected(res.data);
+        onClose();
+      }
+    } catch (err: any) {
+      setConnectError(err?.message ?? 'Failed to connect — check your Role ARN and trust policy');
+    } finally { setConnecting(false); }
+  }
+
+  const AWS_REGIONS = [
+    'us-east-1', 'us-east-2', 'us-west-1', 'us-west-2',
+    'eu-west-1', 'eu-west-2', 'eu-west-3', 'eu-central-1', 'eu-north-1',
+    'ap-southeast-1', 'ap-southeast-2', 'ap-northeast-1', 'ap-south-1',
+    'ca-central-1', 'sa-east-1',
+  ];
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">Connect AWS Account</h2>
+            <p className="text-sm text-gray-500">Step {step} of 2</p>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+        </div>
+
+        {step === 1 && (
+          <div className="px-6 py-5 space-y-4">
+            <p className="text-sm text-gray-600">
+              Create a cross-account IAM role in your AWS account with the trust policy below. This allows ISMS to
+              assume the role using a unique External ID — no access keys are stored.
+            </p>
+
+            {loadingPolicy && <p className="text-sm text-gray-400 animate-pulse">Generating trust policy…</p>}
+            {policyError && <p className="text-sm text-red-600">{policyError}</p>}
+
+            {trustData && (
+              <>
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-sm font-semibold text-gray-700">1. Trust Policy (attach to IAM role)</label>
+                    <button
+                      onClick={() => copyToClipboard(trustData.trustPolicyJson, 'trust')}
+                      className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                    >
+                      {copied === 'trust' ? 'Copied!' : 'Copy'}
+                    </button>
+                  </div>
+                  <pre className="text-xs bg-gray-900 text-green-300 rounded-lg p-4 overflow-x-auto whitespace-pre-wrap break-all font-mono leading-5">
+                    {trustData.trustPolicyJson}
+                  </pre>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-sm font-semibold text-gray-700">2. Permission Policy (inline or managed)</label>
+                    <button
+                      onClick={() => copyToClipboard(trustData.permissionPolicyJson, 'perm')}
+                      className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                    >
+                      {copied === 'perm' ? 'Copied!' : 'Copy'}
+                    </button>
+                  </div>
+                  <pre className="text-xs bg-gray-900 text-green-300 rounded-lg p-4 overflow-x-auto whitespace-pre-wrap break-all font-mono leading-5">
+                    {trustData.permissionPolicyJson}
+                  </pre>
+                </div>
+
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800">
+                  <strong>External ID:</strong> <code className="font-mono">{trustData.externalId}</code>
+                  <br />This ID is pre-filled in the trust policy above. Keep this page open while creating the role.
+                </div>
+              </>
+            )}
+
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={() => setStep(2)}
+                disabled={!trustData || loadingPolicy}
+                className="flex-1 inline-flex items-center justify-center px-4 py-2 rounded-lg bg-[#FF9900] hover:bg-[#e68a00] text-white text-sm font-medium shadow-sm transition-colors disabled:opacity-50"
+              >
+                I&apos;ve created the role — Next
+              </button>
+              <button onClick={onClose} className="flex-1 inline-flex items-center justify-center px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+        {step === 2 && (
+          <form onSubmit={submit} className="px-6 py-5 space-y-4">
+            <p className="text-sm text-gray-600">Enter the ARN of the role you just created and your AWS Account ID.</p>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Role ARN <span className="text-gray-400 font-normal">(e.g. arn:aws:iam::123456789012:role/ISMSReadOnly)</span>
+              </label>
+              <input
+                type="text"
+                value={roleArn}
+                onChange={e => setRoleArn(e.target.value)}
+                placeholder="arn:aws:iam::123456789012:role/ISMSReadOnly"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF9900] font-mono"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">AWS Account ID <span className="text-gray-400 font-normal">(12 digits)</span></label>
+              <input
+                type="text"
+                value={awsAccountId}
+                onChange={e => setAwsAccountId(e.target.value)}
+                placeholder="123456789012"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF9900]"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Primary Region</label>
+              <select
+                value={region}
+                onChange={e => setRegion(e.target.value)}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF9900]"
+              >
+                {AWS_REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Label <span className="text-gray-400 font-normal">(optional)</span></label>
+              <input
+                type="text"
+                value={label}
+                onChange={e => setLabel(e.target.value)}
+                placeholder="Production, Staging, etc."
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF9900]"
+              />
+            </div>
+            {connectError && <p className="text-sm text-red-600">{connectError}</p>}
+            <div className="flex gap-2 pt-2">
+              <button type="button" onClick={() => setStep(1)} className="inline-flex items-center justify-center px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                Back
+              </button>
+              <button
+                type="submit"
+                disabled={connecting}
+                className="flex-1 inline-flex items-center justify-center px-4 py-2 rounded-lg bg-[#FF9900] hover:bg-[#e68a00] text-white text-sm font-medium shadow-sm transition-colors disabled:opacity-50"
+              >
+                {connecting ? 'Connecting & validating…' : 'Connect AWS Account'}
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── AWS — full card ──────────────────────────────────────────────────────────
+
+function AwsCard({
+  accounts,
+  loadingStatus,
+  onAccountAdded,
+  onAccountRemoved,
+  onToast,
+}: {
+  accounts: AwsAccountRecord[];
+  loadingStatus: boolean;
+  onAccountAdded: (account: AwsAccountRecord) => void;
+  onAccountRemoved: (accountId: string) => void;
+  onToast: (type: 'success' | 'error', msg: string) => void;
+}) {
+  const [showModal, setShowModal] = useState(false);
+  const [scanningId, setScanningId] = useState<string | null>(null);
+  const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
+
+  const isConnected = accounts.length > 0;
+
+  async function handleScan(accountId: string) {
+    setScanningId(accountId);
+    try {
+      await awsService.runScan(accountId);
+      onToast('success', 'AWS scan started — results will appear in tests shortly');
+    } catch {
+      onToast('error', 'Failed to start scan');
+    } finally { setScanningId(null); }
+  }
+
+  async function handleDisconnect(accountId: string, label: string | null) {
+    if (!window.confirm(`Disconnect AWS account ${label ?? accountId}? Automated tests will stop running.`)) return;
+    setDisconnectingId(accountId);
+    try {
+      await awsService.disconnect(accountId);
+      onAccountRemoved(accountId);
+      onToast('success', 'AWS account disconnected');
+    } catch {
+      onToast('error', 'Failed to disconnect AWS account');
+    } finally { setDisconnectingId(null); }
+  }
+
+  return (
+    <>
+      <Card className="p-6 md:col-span-2">
+        {/* Header */}
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center flex-shrink-0 p-1 overflow-hidden">
+              <AwsIcon className="w-8 h-8" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">AWS</h3>
+              <p className="text-sm text-gray-500">Cloud Infrastructure · IAM, S3, CloudTrail, KMS, EC2, RDS</p>
+            </div>
+          </div>
+          <Badge variant={isConnected ? 'default' : 'outline'}>
+            {loadingStatus ? 'Checking...' : isConnected ? `${accounts.length} account${accounts.length > 1 ? 's' : ''} connected` : 'Available'}
+          </Badge>
+        </div>
+
+        <p className="text-sm text-gray-600 mb-4">
+          Automatically collect ISO 27001 evidence from AWS via cross-account IAM role assumption — no access
+          keys stored. Runs 12 automated compliance checks across IAM, CloudTrail, S3, KMS, EC2 and RDS.
+        </p>
+
+        {/* ISO control tags */}
+        <div className="flex flex-wrap gap-2 mb-5">
+          {['A.5.15 IAM', 'A.5.18 Access Keys', 'A.8.15 CloudTrail', 'A.8.10 S3 Public', 'A.8.24 Encryption', 'A.8.20 Network', 'A.8.13 RDS Backups'].map((l) => (
+            <span key={l} className="text-xs bg-orange-50 text-orange-700 px-2 py-1 rounded-full border border-orange-100 font-medium">{l}</span>
+          ))}
+        </div>
+
+        {/* Connected accounts */}
+        {isConnected && accounts.length > 0 && (
+          <div className="mb-4 space-y-2">
+            {accounts.map(account => (
+              <div key={account.id} className="flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-lg">
+                <div>
+                  <p className="text-sm font-medium text-gray-900">{account.label ?? account.awsAccountId}</p>
+                  <p className="text-xs text-gray-400 font-mono">
+                    {account.awsAccountId} · {account.region}
+                    {account.lastScanAt && ` · Last scan: ${new Date(account.lastScanAt).toLocaleString()}`}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleScan(account.id)}
+                    disabled={scanningId === account.id}
+                  >
+                    {scanningId === account.id ? 'Scanning…' : 'Run Scan'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleDisconnect(account.id, account.label)}
+                    disabled={disconnectingId === account.id}
+                    className="text-red-600 border-red-200 hover:bg-red-50"
+                  >
+                    {disconnectingId === account.id ? 'Disconnecting...' : 'Disconnect'}
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Action buttons */}
+        <div className="flex flex-wrap gap-2">
+          {!loadingStatus && (
+            <button
+              onClick={() => setShowModal(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#FF9900] hover:bg-[#e68a00] text-white text-sm font-medium"
+            >
+              <AwsIcon className="w-4 h-4" />
+              {isConnected ? '+ Add AWS Account' : 'Connect AWS'}
+            </button>
+          )}
+        </div>
+      </Card>
+
+      {showModal && (
+        <AwsOnboardModal
+          onClose={() => setShowModal(false)}
+          onConnected={(account) => {
+            onAccountAdded(account);
+            onToast('success', `AWS account ${account.label ?? account.awsAccountId} connected! 12 automated tests are being seeded.`);
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+// ─── BambooHR — Connect Modal ─────────────────────────────────────────────────
+
+function BambooHRConnectModal({ onClose, onConnected }: {
+  onClose: () => void;
+  onConnected: (account: HRIntegrationRecord) => void;
+}) {
+  const [subdomain, setSubdomain] = useState('');
+  const [apiKey, setApiKey] = useState('');
+  const [label, setLabel] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!subdomain.trim() || !apiKey.trim()) { setError('Subdomain and API Key are required'); return; }
+    setLoading(true); setError('');
+    try {
+      const res = await bamboohrService.connect({ subdomain: subdomain.trim(), apiKey: apiKey.trim(), label: label.trim() || undefined });
+      if (res.success) {
+        const accountsRes = await bamboohrService.getAccounts();
+        const newAccount = (accountsRes.data ?? []).find(a => a.subdomain === subdomain.trim());
+        if (newAccount) onConnected(newAccount);
+        else onConnected({ id: res.data.id, subdomain: res.data.subdomain, label: res.data.label, status: res.data.status, lastSyncAt: null, createdAt: res.data.createdAt, personnel: [] });
+        onClose();
+      }
+    } catch (err: any) {
+      setError(err?.message ?? 'Failed to connect — check your subdomain and API key');
+    } finally { setLoading(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+        <h2 className="text-lg font-semibold mb-1">Connect BambooHR</h2>
+        <p className="text-sm text-gray-500 mb-3">
+          Generate a read-only API key in <strong>BambooHR → Account → API Keys</strong>.
+          Use your company subdomain (e.g. <code className="bg-gray-100 px-1 rounded text-xs">mycompany</code> from{' '}
+          <code className="bg-gray-100 px-1 rounded text-xs">mycompany.bamboohr.com</code>).
+        </p>
+        <form onSubmit={submit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Company Subdomain <span className="text-gray-400 font-normal">(e.g. mycompany)</span>
+            </label>
+            <input
+              type="text"
+              value={subdomain}
+              onChange={e => setSubdomain(e.target.value)}
+              placeholder="mycompany"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#73AC27]"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              API Key <span className="text-gray-400 font-normal">(read-only)</span>
+            </label>
+            <input
+              type="password"
+              value={apiKey}
+              onChange={e => setApiKey(e.target.value)}
+              placeholder="BambooHR API Key"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#73AC27] font-mono"
+              autoComplete="off"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Label <span className="text-gray-400 font-normal">(optional)</span>
+            </label>
+            <input
+              type="text"
+              value={label}
+              onChange={e => setLabel(e.target.value)}
+              placeholder="e.g. Production HR"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#73AC27]"
+            />
+          </div>
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          <div className="flex gap-2 pt-2">
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-[#73AC27] hover:bg-[#5e8e1f] text-white text-sm font-medium shadow-sm transition-colors disabled:opacity-50"
+            >
+              {loading ? 'Connecting…' : 'Connect BambooHR'}
+            </button>
+            <button type="button" onClick={onClose}
+              className="flex-1 inline-flex items-center justify-center px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50">
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ─── BambooHR — full card ─────────────────────────────────────────────────────
+
+function BambooHRCard({
+  accounts,
+  loadingStatus,
+  onAccountAdded,
+  onAccountRemoved,
+  onToast,
+}: {
+  accounts: HRIntegrationRecord[];
+  loadingStatus: boolean;
+  onAccountAdded: (account: HRIntegrationRecord) => void;
+  onAccountRemoved: (integrationId: string) => void;
+  onToast: (type: 'success' | 'error', msg: string) => void;
+}) {
+  const [showModal, setShowModal] = useState(false);
+  const [syncingId, setSyncingId] = useState<string | null>(null);
+  const [scanningId, setScanningId] = useState<string | null>(null);
+  const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
+
+  const isConnected = accounts.length > 0;
+
+  async function handleSync(integrationId: string) {
+    setSyncingId(integrationId);
+    try {
+      await bamboohrService.syncEmployees(integrationId);
+      onToast('success', 'Employee sync started — roster will update shortly');
+    } catch {
+      onToast('error', 'Failed to start sync');
+    } finally { setSyncingId(null); }
+  }
+
+  async function handleScan(integrationId: string) {
+    setScanningId(integrationId);
+    try {
+      await bamboohrService.runScan(integrationId);
+      onToast('success', 'BambooHR compliance scan started — results will appear in tests shortly');
+    } catch {
+      onToast('error', 'Failed to start scan');
+    } finally { setScanningId(null); }
+  }
+
+  async function handleDisconnect(integrationId: string, label: string | null) {
+    if (!window.confirm(`Disconnect BambooHR${label ? ` (${label})` : ''}? Automated HR tests will stop running.`)) return;
+    setDisconnectingId(integrationId);
+    try {
+      await bamboohrService.disconnect(integrationId);
+      onAccountRemoved(integrationId);
+      onToast('success', 'BambooHR disconnected');
+    } catch {
+      onToast('error', 'Failed to disconnect BambooHR');
+    } finally { setDisconnectingId(null); }
+  }
+
+  return (
+    <>
+      <Card className="p-6 md:col-span-2">
+        {/* Header */}
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center flex-shrink-0 p-1 overflow-hidden">
+              <BambooHRIcon className="w-8 h-8" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">BambooHR</h3>
+              <p className="text-sm text-gray-500">HR · Employee lifecycle & personnel compliance</p>
+            </div>
+          </div>
+          <Badge variant={isConnected ? 'default' : 'outline'}>
+            {loadingStatus ? 'Checking...' : isConnected ? `${accounts.length} connected` : 'Available'}
+          </Badge>
+        </div>
+
+        <p className="text-sm text-gray-600 mb-4">
+          Sync your employee roster from BambooHR to automate HR compliance checks — detect new hires
+          needing onboarding, terminated employees with outstanding access, missing managers, incomplete
+          policy acceptance, and MDM enrollment gaps. All results appear in the Tests page.
+        </p>
+
+        {/* ISO control tags */}
+        <div className="flex flex-wrap gap-2 mb-5">
+          {['A.6.1 HR Policies', 'A.6.3 Security Awareness', 'A.6.5 Termination', 'A.8.1 Asset Responsibility'].map((l) => (
+            <span key={l} className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded-full border border-green-100 font-medium">{l}</span>
+          ))}
+        </div>
+
+        {/* Connected accounts */}
+        {isConnected && accounts.map(account => {
+          const active = account.personnel.filter(p => p.status === 'ACTIVE').length;
+          const total = account.personnel.length;
+          return (
+            <div key={account.id} className="mb-3 flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-lg">
+              <div>
+                <p className="text-sm font-medium text-gray-900">{account.label ?? account.subdomain}</p>
+                <p className="text-xs text-gray-400 font-mono">
+                  {account.subdomain}.bamboohr.com
+                  {total > 0 && ` · ${active} active / ${total} total employees`}
+                  {account.lastSyncAt && ` · Last sync: ${new Date(account.lastSyncAt).toLocaleString()}`}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <Button variant="outline" size="sm" onClick={() => handleSync(account.id)} disabled={syncingId === account.id}>
+                  {syncingId === account.id ? 'Syncing…' : 'Sync'}
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => handleScan(account.id)} disabled={scanningId === account.id}>
+                  {scanningId === account.id ? 'Scanning…' : 'Run Scan'}
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => handleDisconnect(account.id, account.label)} disabled={disconnectingId === account.id}
+                  className="text-red-600 border-red-200 hover:bg-red-50">
+                  {disconnectingId === account.id ? 'Disconnecting...' : 'Disconnect'}
+                </Button>
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Action button */}
+        <div className="flex flex-wrap gap-2">
+          {!loadingStatus && (
+            <button
+              onClick={() => setShowModal(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#73AC27] hover:bg-[#5e8e1f] text-white text-sm font-medium"
+            >
+              <BambooHRIcon className="w-4 h-4" />
+              {isConnected ? '+ Add BambooHR Account' : 'Connect BambooHR'}
+            </button>
+          )}
+        </div>
+      </Card>
+
+      {showModal && (
+        <BambooHRConnectModal
+          onClose={() => setShowModal(false)}
+          onConnected={(account) => {
+            onAccountAdded(account);
+            onToast('success', 'BambooHR connected! Employee sync started and 6 automated tests are being seeded.');
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+// ─── Cloudflare — Connect Modal ──────────────────────────────────────────────
+
+function CloudflareConnectModal({ onClose, onConnected }: {
+  onClose: () => void;
+  onConnected: (account: CloudflareAccountRecord) => void;
+}) {
+  const [apiToken, setApiToken] = useState('');
+  const [label, setLabel] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!apiToken.trim()) { setError('API Token is required'); return; }
+    setLoading(true); setError('');
+    try {
+      const res = await cloudflareService.connect({ apiToken: apiToken.trim(), label: label.trim() || undefined });
+      if (res.success) {
+        // Reload accounts to get the full record with zones
+        const accountsRes = await cloudflareService.getAccounts();
+        const newAccount = (accountsRes.data ?? []).find(a => a.cfAccountId === res.data.cfAccountId);
+        if (newAccount) onConnected(newAccount);
+        else onConnected({ id: res.data.id, cfAccountId: res.data.cfAccountId, label: res.data.label, status: res.data.status, lastScanAt: null, createdAt: res.data.createdAt, zones: [] });
+        onClose();
+      }
+    } catch (err: any) {
+      setError(err?.message ?? 'Failed to connect — check your API token and try again');
+    } finally { setLoading(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+        <h2 className="text-lg font-semibold mb-1">Connect Cloudflare</h2>
+        <p className="text-sm text-gray-500 mb-3">
+          Create a scoped API token in{' '}
+          <a href="https://dash.cloudflare.com/profile/api-tokens" target="_blank" rel="noreferrer" className="text-blue-600 underline">
+            Cloudflare Dashboard → My Profile → API Tokens
+          </a>.
+          Use "Create Custom Token" and grant: <strong>Zone:Read</strong>, <strong>Zone Settings:Read</strong>,{' '}
+          <strong>WAF:Read</strong>, <strong>Firewall Services:Read</strong>, <strong>DNS:Read</strong>, <strong>SSL/TLS:Read</strong>.
+        </p>
+        <form onSubmit={submit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Scoped API Token <span className="text-gray-400 font-normal">(read-only)</span>
+            </label>
+            <input
+              type="password"
+              value={apiToken}
+              onChange={e => setApiToken(e.target.value)}
+              placeholder="Cloudflare scoped API token"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#F6821F] font-mono"
+              autoComplete="off"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Label <span className="text-gray-400 font-normal">(optional)</span>
+            </label>
+            <input
+              type="text"
+              value={label}
+              onChange={e => setLabel(e.target.value)}
+              placeholder="e.g. Production, My Org"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#F6821F]"
+            />
+          </div>
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          <div className="flex gap-2 pt-2">
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-[#F6821F] hover:bg-[#e07318] text-white text-sm font-medium shadow-sm transition-colors disabled:opacity-50"
+            >
+              {loading ? 'Connecting…' : 'Connect Cloudflare'}
+            </button>
+            <button type="button" onClick={onClose}
+              className="flex-1 inline-flex items-center justify-center px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50">
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ─── Cloudflare — full card ───────────────────────────────────────────────────
+
+function CloudflareCard({
+  accounts,
+  loadingStatus,
+  onAccountAdded,
+  onAccountRemoved,
+  onToast,
+}: {
+  accounts: CloudflareAccountRecord[];
+  loadingStatus: boolean;
+  onAccountAdded: (account: CloudflareAccountRecord) => void;
+  onAccountRemoved: (accountId: string) => void;
+  onToast: (type: 'success' | 'error', msg: string) => void;
+}) {
+  const [showModal, setShowModal] = useState(false);
+  const [scanningId, setScanningId] = useState<string | null>(null);
+  const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
+
+  const isConnected = accounts.length > 0;
+
+  async function handleScan(accountId: string) {
+    setScanningId(accountId);
+    try {
+      await cloudflareService.runScan(accountId);
+      onToast('success', 'Cloudflare scan started — results will appear in tests shortly');
+    } catch {
+      onToast('error', 'Failed to start scan');
+    } finally { setScanningId(null); }
+  }
+
+  async function handleDisconnect(accountId: string, label: string | null) {
+    if (!window.confirm(`Disconnect Cloudflare account ${label ?? accountId}? Automated tests will stop running.`)) return;
+    setDisconnectingId(accountId);
+    try {
+      await cloudflareService.disconnect(accountId);
+      onAccountRemoved(accountId);
+      onToast('success', 'Cloudflare account disconnected');
+    } catch {
+      onToast('error', 'Failed to disconnect Cloudflare account');
+    } finally { setDisconnectingId(null); }
+  }
+
+  return (
+    <>
+      <Card className="p-6 md:col-span-2">
+        {/* Header */}
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center flex-shrink-0 p-1 overflow-hidden">
+              <CloudflareIcon className="w-8 h-8" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Cloudflare</h3>
+              <p className="text-sm text-gray-500">Network Security · WAF, DNS, TLS &amp; Bot Protection</p>
+            </div>
+          </div>
+          <Badge variant={isConnected ? 'default' : 'outline'}>
+            {loadingStatus ? 'Checking...' : isConnected ? `${accounts.length} account${accounts.length > 1 ? 's' : ''} connected` : 'Available'}
+          </Badge>
+        </div>
+
+        <p className="text-sm text-gray-600 mb-4">
+          Automatically collect ISO 27001 evidence from Cloudflare via a scoped read-only API token — no
+          global keys stored. Runs 10 automated compliance checks across WAF, TLS, DNSSEC, rate limiting,
+          bot protection, HTTPS enforcement, HSTS, audit logging, and email spoofing protection.
+        </p>
+
+        {/* ISO control tags */}
+        <div className="flex flex-wrap gap-2 mb-5">
+          {['A.8.20 WAF & Network', 'A.8.24 TLS & HTTPS', 'A.8.9 DNSSEC', 'A.8.15 Audit Logging'].map((l) => (
+            <span key={l} className="text-xs bg-orange-50 text-orange-700 px-2 py-1 rounded-full border border-orange-100 font-medium">{l}</span>
+          ))}
+        </div>
+
+        {/* Connected accounts */}
+        {isConnected && accounts.length > 0 && (
+          <div className="mb-4 space-y-2">
+            {accounts.map(account => (
+              <div key={account.id} className="flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-lg">
+                <div>
+                  <p className="text-sm font-medium text-gray-900">{account.label ?? account.cfAccountId}</p>
+                  <p className="text-xs text-gray-400 font-mono">
+                    {account.cfAccountId}
+                    {account.zones.length > 0 && ` · ${account.zones.length} zone${account.zones.length > 1 ? 's' : ''}`}
+                    {account.lastScanAt && ` · Last scan: ${new Date(account.lastScanAt).toLocaleString()}`}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleScan(account.id)}
+                    disabled={scanningId === account.id}
+                  >
+                    {scanningId === account.id ? 'Scanning…' : 'Run Scan'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleDisconnect(account.id, account.label)}
+                    disabled={disconnectingId === account.id}
+                    className="text-red-600 border-red-200 hover:bg-red-50"
+                  >
+                    {disconnectingId === account.id ? 'Disconnecting...' : 'Disconnect'}
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Action button */}
+        <div className="flex flex-wrap gap-2">
+          {!loadingStatus && (
+            <button
+              onClick={() => setShowModal(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#F6821F] hover:bg-[#e07318] text-white text-sm font-medium"
+            >
+              <CloudflareIcon className="w-4 h-4" />
+              {isConnected ? '+ Add Cloudflare Account' : 'Connect Cloudflare'}
+            </button>
+          )}
+        </div>
+      </Card>
+
+      {showModal && (
+        <CloudflareConnectModal
+          onClose={() => setShowModal(false)}
+          onConnected={(account) => {
+            onAccountAdded(account);
+            onToast('success', `Cloudflare account connected! 10 automated tests are being seeded.`);
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+// ─── Google Workspace — Connect Modal ─────────────────────────────────────────
+
+function WorkspaceConnectModal({ onClose, onConnected }: {
+  onClose: () => void;
+  onConnected: (account: WorkspaceIntegrationRecord) => void;
+}) {
+  const [serviceAccountJson, setServiceAccountJson] = useState('');
+  const [adminEmail, setAdminEmail] = useState('');
+  const [label, setLabel] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!serviceAccountJson.trim() || !adminEmail.trim()) {
+      setError('Service Account JSON and Admin Email are required');
+      return;
+    }
+    setLoading(true); setError('');
+    try {
+      const res = await workspaceService.connect({
+        serviceAccountJson: serviceAccountJson.trim(),
+        adminEmail: adminEmail.trim(),
+        label: label.trim() || undefined,
+      });
+      if (res.success) {
+        const accountsRes = await workspaceService.getAccounts();
+        const newAccount = (accountsRes.data ?? []).find(a => a.domain === res.data.domain);
+        if (newAccount) onConnected(newAccount);
+        else onConnected({
+          id: res.data.id,
+          domain: res.data.domain,
+          adminEmail: res.data.adminEmail,
+          label: res.data.label,
+          status: res.data.status,
+          lastScanAt: null,
+          createdAt: res.data.createdAt,
+          users: [],
+          findings: [],
+        });
+        onClose();
+      }
+    } catch (err: any) {
+      setError(err?.message ?? 'Failed to connect — check service account key, admin email, and domain-wide delegation scopes');
+    } finally { setLoading(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-xl p-6 my-4">
+        <h2 className="text-lg font-semibold mb-1">Connect Google Workspace</h2>
+        <p className="text-sm text-gray-500 mb-4">
+          Create a service account with Domain-Wide Delegation in{' '}
+          <a href="https://console.cloud.google.com" target="_blank" rel="noreferrer" className="text-blue-600 underline">
+            Google Cloud Console
+          </a>{' '}
+          and grant the following scopes in your Workspace Admin console:
+        </p>
+        <div className="bg-gray-50 border border-gray-200 rounded-md p-3 mb-4 text-xs font-mono text-gray-700 space-y-1">
+          <p>https://www.googleapis.com/auth/admin.directory.user.readonly</p>
+          <p>https://www.googleapis.com/auth/admin.directory.rolemanagement.readonly</p>
+          <p>https://www.googleapis.com/auth/admin.reports.audit.readonly</p>
+        </div>
+        <form onSubmit={submit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Service Account Key JSON
+            </label>
+            <textarea
+              value={serviceAccountJson}
+              onChange={e => setServiceAccountJson(e.target.value)}
+              placeholder={'{\n  "type": "service_account",\n  "project_id": "...",\n  "private_key_id": "...",\n  "private_key": "-----BEGIN RSA PRIVATE KEY-----\\n...",\n  "client_email": "isms@project.iam.gserviceaccount.com",\n  ...\n}'}
+              rows={6}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono resize-none"
+              autoComplete="off"
+              spellCheck={false}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Super Admin Email <span className="text-gray-400 font-normal">(impersonated for API calls)</span>
+            </label>
+            <input
+              type="email"
+              value={adminEmail}
+              onChange={e => setAdminEmail(e.target.value)}
+              placeholder="admin@company.com"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Label <span className="text-gray-400 font-normal">(optional)</span>
+            </label>
+            <input
+              type="text"
+              value={label}
+              onChange={e => setLabel(e.target.value)}
+              placeholder="e.g. Production Workspace"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          <div className="flex gap-2 pt-2">
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium shadow-sm transition-colors disabled:opacity-50"
+            >
+              {loading ? 'Connecting…' : 'Connect Workspace'}
+            </button>
+            <button type="button" onClick={onClose}
+              className="flex-1 inline-flex items-center justify-center px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50">
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ─── Google Workspace — full card ──────────────────────────────────────────────
+
+function WorkspaceCard({
+  accounts,
+  loadingStatus,
+  onAccountAdded,
+  onAccountRemoved,
+  onToast,
+}: {
+  accounts: WorkspaceIntegrationRecord[];
+  loadingStatus: boolean;
+  onAccountAdded: (account: WorkspaceIntegrationRecord) => void;
+  onAccountRemoved: (integrationId: string) => void;
+  onToast: (type: 'success' | 'error', msg: string) => void;
+}) {
+  const [showModal, setShowModal] = useState(false);
+  const [scanningId, setScanningId] = useState<string | null>(null);
+  const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
+
+  const isConnected = accounts.length > 0;
+
+  async function handleScan(integrationId: string) {
+    setScanningId(integrationId);
+    try {
+      await workspaceService.runScan(integrationId);
+      onToast('success', 'Google Workspace scan started — results will appear in tests shortly');
+    } catch {
+      onToast('error', 'Failed to start scan');
+    } finally { setScanningId(null); }
+  }
+
+  async function handleDisconnect(integrationId: string, label: string | null, domain: string) {
+    if (!window.confirm(`Disconnect Google Workspace${label ? ` (${label})` : ` (${domain})`}? Automated identity tests will stop running.`)) return;
+    setDisconnectingId(integrationId);
+    try {
+      await workspaceService.disconnect(integrationId);
+      onAccountRemoved(integrationId);
+      onToast('success', 'Google Workspace disconnected');
+    } catch {
+      onToast('error', 'Failed to disconnect Google Workspace');
+    } finally { setDisconnectingId(null); }
+  }
+
+  return (
+    <>
+      <Card className="p-6 md:col-span-2">
+        {/* Header */}
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center flex-shrink-0 p-1 overflow-hidden">
+              <GoogleWorkspaceIcon className="w-8 h-8" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Google Workspace</h3>
+              <p className="text-sm text-gray-500">Identity &amp; Access · User lifecycle &amp; MFA compliance</p>
+            </div>
+          </div>
+          <Badge variant={isConnected ? 'default' : 'outline'}>
+            {loadingStatus ? 'Checking...' : isConnected ? `${accounts.length} connected` : 'Available'}
+          </Badge>
+        </div>
+
+        <p className="text-sm text-gray-600 mb-4">
+          Automatically collect ISO 27001 identity-governance evidence from Google Workspace — verify MFA
+          enforcement, super admin count, inactive accounts, terminated employees, suspended user activity,
+          and organisational unit assignment. All 6 results appear in the Tests page.
+        </p>
+
+        {/* ISO control tags */}
+        <div className="flex flex-wrap gap-2 mb-5">
+          {['A.5.17 MFA', 'A.5.15 Admin Access', 'A.8.9 Inactive Users', 'A.5.15 Terminated Employees'].map((l) => (
+            <span key={l} className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full border border-blue-100 font-medium">{l}</span>
+          ))}
+        </div>
+
+        {/* Connected accounts */}
+        {isConnected && accounts.map(account => {
+          const activeUsers = account.users.filter(u => !u.isSuspended).length;
+          const totalUsers = account.users.length;
+          const mfaEnabled = account.users.filter(u => u.mfaEnabled && !u.isSuspended).length;
+          const openFindings = account.findings.filter(f => f.severity === 'HIGH').length;
+          return (
+            <div key={account.id} className="mb-3 flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-lg">
+              <div>
+                <p className="text-sm font-medium text-gray-900">{account.label ?? account.domain}</p>
+                <p className="text-xs text-gray-400 font-mono">
+                  {account.domain}
+                  {totalUsers > 0 && ` · ${activeUsers} active / ${totalUsers} users`}
+                  {totalUsers > 0 && ` · ${mfaEnabled} MFA`}
+                  {openFindings > 0 && ` · ${openFindings} HIGH finding${openFindings !== 1 ? 's' : ''}`}
+                  {account.lastScanAt && ` · Last scan: ${new Date(account.lastScanAt).toLocaleString()}`}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <Button variant="outline" size="sm" onClick={() => handleScan(account.id)} disabled={scanningId === account.id}>
+                  {scanningId === account.id ? 'Scanning…' : 'Run Scan'}
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => handleDisconnect(account.id, account.label, account.domain)} disabled={disconnectingId === account.id}
+                  className="text-red-600 border-red-200 hover:bg-red-50">
+                  {disconnectingId === account.id ? 'Disconnecting...' : 'Disconnect'}
+                </Button>
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Action button */}
+        <div className="flex flex-wrap gap-2">
+          {!loadingStatus && (
+            <button
+              onClick={() => setShowModal(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium"
+            >
+              <GoogleWorkspaceIcon className="w-4 h-4" />
+              {isConnected ? '+ Add Workspace Domain' : 'Connect Google Workspace'}
+            </button>
+          )}
+        </div>
+      </Card>
+
+      {showModal && (
+        <WorkspaceConnectModal
+          onClose={() => setShowModal(false)}
+          onConnected={(account) => {
+            onAccountAdded(account);
+            onToast('success', 'Google Workspace connected! 6 automated identity tests are being seeded.');
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+// ─── Redash — Connect Modal ───────────────────────────────────────────────────
+
+function RedashConnectModal({ onClose, onConnected }: {
+  onClose: () => void;
+  onConnected: (account: RedashIntegrationRecord) => void;
+}) {
+  const [baseUrl, setBaseUrl] = useState('');
+  const [apiKey, setApiKey] = useState('');
+  const [label, setLabel] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!baseUrl.trim() || !apiKey.trim()) { setError('Base URL and API Key are required'); return; }
+    setLoading(true); setError('');
+    try {
+      const res = await redashService.connect({ baseUrl: baseUrl.trim(), apiKey: apiKey.trim(), label: label.trim() || undefined });
+      if (res.success) {
+        const accountsRes = await redashService.getAccounts();
+        const newAccount = (accountsRes.data ?? []).find(a => a.baseUrl === baseUrl.trim().replace(/\/$/, ''));
+        if (newAccount) onConnected(newAccount);
+        else onConnected({ id: res.data.id, baseUrl: res.data.baseUrl, label: res.data.label, status: res.data.status, lastScanAt: null, createdAt: res.data.createdAt, users: [], dataSources: [] });
+        onClose();
+      }
+    } catch (err: any) {
+      setError(err?.message ?? 'Failed to connect — check your base URL and API key');
+    } finally { setLoading(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+        <h2 className="text-lg font-semibold mb-1">Connect Redash</h2>
+        <p className="text-sm text-gray-500 mb-3">
+          Enter your Redash instance URL and an API key with admin read access.
+          Find your API key in <strong>Redash → Profile → API Key</strong>.
+        </p>
+        <form onSubmit={submit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Redash Instance URL <span className="text-gray-400 font-normal">(e.g. https://redash.example.com)</span>
+            </label>
+            <input
+              type="text"
+              value={baseUrl}
+              onChange={e => setBaseUrl(e.target.value)}
+              placeholder="https://redash.example.com"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF6B35]"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              API Key <span className="text-gray-400 font-normal">(admin user)</span>
+            </label>
+            <input
+              type="password"
+              value={apiKey}
+              onChange={e => setApiKey(e.target.value)}
+              placeholder="Redash API Key"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF6B35] font-mono"
+              autoComplete="off"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Label <span className="text-gray-400 font-normal">(optional)</span>
+            </label>
+            <input
+              type="text"
+              value={label}
+              onChange={e => setLabel(e.target.value)}
+              placeholder="e.g. Production Analytics"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF6B35]"
+            />
+          </div>
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          <div className="flex gap-2 pt-2">
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-[#FF6B35] hover:bg-[#e55c28] text-white text-sm font-medium shadow-sm transition-colors disabled:opacity-50"
+            >
+              {loading ? 'Connecting…' : 'Connect Redash'}
+            </button>
+            <button type="button" onClick={onClose}
+              className="flex-1 inline-flex items-center justify-center px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50">
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ─── Redash — full card ───────────────────────────────────────────────────────
+
+function RedashCard({
+  accounts,
+  loadingStatus,
+  onAccountAdded,
+  onAccountRemoved,
+  onToast,
+}: {
+  accounts: RedashIntegrationRecord[];
+  loadingStatus: boolean;
+  onAccountAdded: (account: RedashIntegrationRecord) => void;
+  onAccountRemoved: (integrationId: string) => void;
+  onToast: (type: 'success' | 'error', msg: string) => void;
+}) {
+  const [showModal, setShowModal] = useState(false);
+  const [scanningId, setScanningId] = useState<string | null>(null);
+  const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
+
+  const isConnected = accounts.length > 0;
+
+  async function handleScan(integrationId: string) {
+    setScanningId(integrationId);
+    try {
+      await redashService.runScan(integrationId);
+      onToast('success', 'Redash scan started — results will appear in tests shortly');
+    } catch {
+      onToast('error', 'Failed to start scan');
+    } finally { setScanningId(null); }
+  }
+
+  async function handleDisconnect(integrationId: string, label: string | null, baseUrl: string) {
+    if (!window.confirm(`Disconnect Redash${label ? ` (${label})` : ` (${baseUrl})`}? Automated tests will stop running.`)) return;
+    setDisconnectingId(integrationId);
+    try {
+      await redashService.disconnect(integrationId);
+      onAccountRemoved(integrationId);
+      onToast('success', 'Redash disconnected');
+    } catch {
+      onToast('error', 'Failed to disconnect Redash');
+    } finally { setDisconnectingId(null); }
+  }
+
+  return (
+    <>
+      <Card className="p-6 md:col-span-2">
+        {/* Header */}
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center flex-shrink-0 p-1 overflow-hidden">
+              <RedashIcon className="w-8 h-8" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Redash</h3>
+              <p className="text-sm text-gray-500">Analytics · Data governance &amp; query compliance</p>
+            </div>
+          </div>
+          <Badge variant={isConnected ? 'default' : 'outline'}>
+            {loadingStatus ? 'Checking...' : isConnected ? `${accounts.length} connected` : 'Available'}
+          </Badge>
+        </div>
+
+        <p className="text-sm text-gray-600 mb-4">
+          Automatically collect ISO 27001 evidence from your Redash instance — verify admin access controls,
+          inactive users, public dashboards, query ownership, production data source restrictions, and
+          approved connection types. All 7 results appear in the Tests page.
+        </p>
+
+        {/* ISO control tags */}
+        <div className="flex flex-wrap gap-2 mb-5">
+          {['A.8.2 Public Dashboards', 'A.8.9 Access Control', 'A.8.12 Query Ownership', 'A.5.15 Terminated Users'].map((l) => (
+            <span key={l} className="text-xs bg-orange-50 text-orange-700 px-2 py-1 rounded-full border border-orange-100 font-medium">{l}</span>
+          ))}
+        </div>
+
+        {/* Connected accounts */}
+        {isConnected && accounts.map(account => {
+          const activeUsers = account.users.filter(u => u.isActive).length;
+          const totalUsers = account.users.length;
+          const dsSources = account.dataSources.length;
+          return (
+            <div key={account.id} className="mb-3 flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-lg">
+              <div>
+                <p className="text-sm font-medium text-gray-900">{account.label ?? account.baseUrl}</p>
+                <p className="text-xs text-gray-400 font-mono">
+                  {account.baseUrl}
+                  {totalUsers > 0 && ` · ${activeUsers} active / ${totalUsers} users`}
+                  {dsSources > 0 && ` · ${dsSources} data source${dsSources !== 1 ? 's' : ''}`}
+                  {account.lastScanAt && ` · Last scan: ${new Date(account.lastScanAt).toLocaleString()}`}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <Button variant="outline" size="sm" onClick={() => handleScan(account.id)} disabled={scanningId === account.id}>
+                  {scanningId === account.id ? 'Scanning…' : 'Run Scan'}
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => handleDisconnect(account.id, account.label, account.baseUrl)} disabled={disconnectingId === account.id}
+                  className="text-red-600 border-red-200 hover:bg-red-50">
+                  {disconnectingId === account.id ? 'Disconnecting...' : 'Disconnect'}
+                </Button>
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Action button */}
+        <div className="flex flex-wrap gap-2">
+          {!loadingStatus && (
+            <button
+              onClick={() => setShowModal(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#FF6B35] hover:bg-[#e55c28] text-white text-sm font-medium"
+            >
+              <RedashIcon className="w-4 h-4" />
+              {isConnected ? '+ Add Redash Instance' : 'Connect Redash'}
+            </button>
+          )}
+        </div>
+      </Card>
+
+      {showModal && (
+        <RedashConnectModal
+          onClose={() => setShowModal(false)}
+          onConnected={(account) => {
+            onAccountAdded(account);
+            onToast('success', 'Redash connected! 7 automated tests are being seeded.');
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+// ─── Fleet — Connect Modal ────────────────────────────────────────────────────
+
+function FleetConnectModal({ onClose, onConnected }: {
+  onClose: () => void;
+  onConnected: (account: FleetIntegrationRecord) => void;
+}) {
+  const [baseUrl, setBaseUrl] = useState('');
+  const [apiToken, setApiToken] = useState('');
+  const [label, setLabel] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!baseUrl.trim() || !apiToken.trim()) { setError('Fleet URL and API Token are required'); return; }
+    setLoading(true); setError('');
+    try {
+      const res = await fleetService.connect({ baseUrl: baseUrl.trim(), apiToken: apiToken.trim(), label: label.trim() || undefined });
+      if (res.success) {
+        const accountsRes = await fleetService.getAccounts();
+        const newAccount = (accountsRes.data ?? []).find(a => a.baseUrl === baseUrl.trim().replace(/\/$/, ''));
+        if (newAccount) onConnected(newAccount);
+        else onConnected({ id: res.data.id, baseUrl: res.data.baseUrl, label: res.data.label, status: res.data.status, lastScanAt: null, createdAt: res.data.createdAt, hosts: [], findings: [] });
+        onClose();
+      }
+    } catch (err: any) {
+      setError(err?.message ?? 'Failed to connect — check your Fleet URL and API token');
+    } finally { setLoading(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 my-4">
+        <h2 className="text-lg font-semibold mb-1">Connect Fleet</h2>
+        <p className="text-sm text-gray-500 mb-4">
+          Enter your Fleet server URL and a read-only API token. Generate a token in{' '}
+          <strong>Fleet → Settings → Integrations → API Tokens</strong> or using the Fleet CLI:{' '}
+          <code className="bg-gray-100 px-1 rounded text-xs">fleetctl login</code>.
+        </p>
+        <form onSubmit={submit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Fleet Server URL <span className="text-gray-400 font-normal">(e.g. https://fleet.company.com)</span>
+            </label>
+            <input
+              type="text"
+              value={baseUrl}
+              onChange={e => setBaseUrl(e.target.value)}
+              placeholder="https://fleet.company.com"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#192147]"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              API Token <span className="text-gray-400 font-normal">(read-only)</span>
+            </label>
+            <input
+              type="password"
+              value={apiToken}
+              onChange={e => setApiToken(e.target.value)}
+              placeholder="Fleet API token"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#192147] font-mono"
+              autoComplete="off"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Label <span className="text-gray-400 font-normal">(optional)</span>
+            </label>
+            <input
+              type="text"
+              value={label}
+              onChange={e => setLabel(e.target.value)}
+              placeholder="e.g. Production Fleet"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#192147]"
+            />
+          </div>
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          <div className="flex gap-2 pt-2">
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-[#192147] hover:bg-[#0f1833] text-white text-sm font-medium shadow-sm transition-colors disabled:opacity-50"
+            >
+              {loading ? 'Connecting…' : 'Connect Fleet'}
+            </button>
+            <button type="button" onClick={onClose}
+              className="flex-1 inline-flex items-center justify-center px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50">
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ─── Fleet — full card ────────────────────────────────────────────────────────
+
+function FleetCard({
+  accounts,
+  loadingStatus,
+  onAccountAdded,
+  onAccountRemoved,
+  onToast,
+}: {
+  accounts: FleetIntegrationRecord[];
+  loadingStatus: boolean;
+  onAccountAdded: (account: FleetIntegrationRecord) => void;
+  onAccountRemoved: (integrationId: string) => void;
+  onToast: (type: 'success' | 'error', msg: string) => void;
+}) {
+  const [showModal, setShowModal] = useState(false);
+  const [scanningId, setScanningId] = useState<string | null>(null);
+  const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
+
+  const isConnected = accounts.length > 0;
+
+  async function handleScan(integrationId: string) {
+    setScanningId(integrationId);
+    try {
+      await fleetService.runScan(integrationId);
+      onToast('success', 'Fleet scan started — results will appear in tests shortly');
+    } catch {
+      onToast('error', 'Failed to start scan');
+    } finally { setScanningId(null); }
+  }
+
+  async function handleDisconnect(integrationId: string, label: string | null, baseUrl: string) {
+    if (!window.confirm(`Disconnect Fleet${label ? ` (${label})` : ` (${baseUrl})`}? Automated endpoint tests will stop running.`)) return;
+    setDisconnectingId(integrationId);
+    try {
+      await fleetService.disconnect(integrationId);
+      onAccountRemoved(integrationId);
+      onToast('success', 'Fleet disconnected');
+    } catch {
+      onToast('error', 'Failed to disconnect Fleet');
+    } finally { setDisconnectingId(null); }
+  }
+
+  return (
+    <>
+      <Card className="p-6 md:col-span-2">
+        {/* Header */}
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center flex-shrink-0 p-1 overflow-hidden">
+              <FleetIcon className="w-8 h-8" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Fleet</h3>
+              <p className="text-sm text-gray-500">Endpoint · Device posture &amp; policy compliance</p>
+            </div>
+          </div>
+          <Badge variant={isConnected ? 'default' : 'outline'}>
+            {loadingStatus ? 'Checking...' : isConnected ? `${accounts.length} connected` : 'Available'}
+          </Badge>
+        </div>
+
+        <p className="text-sm text-gray-600 mb-4">
+          Automatically collect ISO 27001 endpoint-compliance evidence from Fleet — verify disk encryption,
+          MDM enrollment, OS version baselines, stale device detection, osquery policy results, and asset
+          inventory completeness. All 6 results appear in the Tests page.
+        </p>
+
+        {/* ISO control tags */}
+        <div className="flex flex-wrap gap-2 mb-5">
+          {['A.8.24 Disk Encryption', 'A.8.1 MDM Enrollment', 'A.5.9 Asset Inventory', 'A.8.8 OS Patching', 'A.8.9 Policy Compliance'].map((l) => (
+            <span key={l} className="text-xs bg-slate-50 text-slate-700 px-2 py-1 rounded-full border border-slate-200 font-medium">{l}</span>
+          ))}
+        </div>
+
+        {/* Connected instances */}
+        {isConnected && accounts.map(account => {
+          const totalHosts = account.hosts.length;
+          const encryptedCount = account.hosts.filter(h => h.diskEncrypted === true).length;
+          const mdmCount = account.hosts.filter(h => h.mdmEnrolled === true).length;
+          const openFindings = account.findings.filter(f => f.severity === 'HIGH').length;
+          return (
+            <div key={account.id} className="mb-3 flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-lg">
+              <div>
+                <p className="text-sm font-medium text-gray-900">{account.label ?? account.baseUrl}</p>
+                <p className="text-xs text-gray-400 font-mono">
+                  {account.baseUrl}
+                  {totalHosts > 0 && ` · ${totalHosts} host${totalHosts !== 1 ? 's' : ''}`}
+                  {totalHosts > 0 && ` · ${encryptedCount} encrypted`}
+                  {totalHosts > 0 && ` · ${mdmCount} MDM`}
+                  {openFindings > 0 && ` · ${openFindings} HIGH finding${openFindings !== 1 ? 's' : ''}`}
+                  {account.lastScanAt && ` · Last scan: ${new Date(account.lastScanAt).toLocaleString()}`}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <Button variant="outline" size="sm" onClick={() => handleScan(account.id)} disabled={scanningId === account.id}>
+                  {scanningId === account.id ? 'Scanning…' : 'Run Scan'}
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => handleDisconnect(account.id, account.label, account.baseUrl)} disabled={disconnectingId === account.id}
+                  className="text-red-600 border-red-200 hover:bg-red-50">
+                  {disconnectingId === account.id ? 'Disconnecting...' : 'Disconnect'}
+                </Button>
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Action button */}
+        <div className="flex flex-wrap gap-2">
+          {!loadingStatus && (
+            <button
+              onClick={() => setShowModal(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#192147] hover:bg-[#0f1833] text-white text-sm font-medium"
+            >
+              <FleetIcon className="w-4 h-4" />
+              {isConnected ? '+ Add Fleet Instance' : 'Connect Fleet'}
+            </button>
+          )}
+        </div>
+      </Card>
+
+      {showModal && (
+        <FleetConnectModal
+          onClose={() => setShowModal(false)}
+          onConnected={(account) => {
+            onAccountAdded(account);
+            onToast('success', 'Fleet connected! 6 automated endpoint tests are being seeded.');
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+// ─── Intercom — full card ─────────────────────────────────────────────────────
+
+function IntercomCard({
+  accounts,
+  loadingStatus,
+  onAccountRemoved,
+  onToast,
+}: {
+  accounts: IntercomIntegrationRecord[];
+  loadingStatus: boolean;
+  onAccountRemoved: (integrationId: string) => void;
+  onToast: (type: 'success' | 'error', msg: string) => void;
+}) {
+  const [scanningId, setScanningId] = useState<string | null>(null);
+  const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
+  const [syncingId, setSyncingId] = useState<string | null>(null);
+
+  const isConnected = accounts.length > 0;
+
+  async function handleScan(integrationId: string) {
+    setScanningId(integrationId);
+    try {
+      await intercomService.runScan(integrationId);
+      onToast('success', 'Intercom scan started — results will appear in tests shortly');
+    } catch {
+      onToast('error', 'Failed to start scan');
+    } finally { setScanningId(null); }
+  }
+
+  async function handleSync(integrationId: string) {
+    setSyncingId(integrationId);
+    try {
+      const res = await intercomService.sync(integrationId);
+      onToast('success', `Synced ${(res as any).synced ?? 0} conversation(s)`);
+    } catch {
+      onToast('error', 'Failed to sync conversations');
+    } finally { setSyncingId(null); }
+  }
+
+  async function handleDisconnect(integrationId: string, workspaceName: string | null) {
+    if (!window.confirm(`Disconnect Intercom${workspaceName ? ` (${workspaceName})` : ''}? Automated Policy tests will stop running.`)) return;
+    setDisconnectingId(integrationId);
+    try {
+      await intercomService.disconnect(integrationId);
+      onAccountRemoved(integrationId);
+      onToast('success', 'Intercom disconnected');
+    } catch {
+      onToast('error', 'Failed to disconnect Intercom');
+    } finally { setDisconnectingId(null); }
+  }
+
+  function handleConnect() {
+    // Redirect to backend OAuth initiation endpoint (which requires auth header via cookie won't work)
+    // Instead, navigate with the token in the URL via a redirect handled by the backend
+    window.location.href = intercomService.getConnectUrl();
+  }
+
+  return (
+    <Card className="p-6 md:col-span-2">
+      {/* Header */}
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center flex-shrink-0 p-1 overflow-hidden">
+            <IntercomIcon className="w-8 h-8" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">Intercom</h3>
+            <p className="text-sm text-gray-500">Customer Support · Trust request &amp; findings tracking</p>
+          </div>
+        </div>
+        <Badge variant={isConnected ? 'default' : 'outline'}>
+          {loadingStatus ? 'Checking...' : isConnected ? `${accounts.length} workspace${accounts.length !== 1 ? 's' : ''} connected` : 'Available'}
+        </Badge>
+      </div>
+
+      <p className="text-sm text-gray-600 mb-4">
+        Automatically track security requests via Intercom conversations — monitor SLA compliance for
+        trust centre requests, triage times, and audit finding acknowledgements. All 3 results appear in the Tests page.
+      </p>
+
+      {/* ISO control tags */}
+      <div className="flex flex-wrap gap-2 mb-5">
+        {['A.5.30 Availability', 'A.5.24 Incident Mgmt', 'SLA Tracking', 'Trust Requests'].map((l) => (
+          <span key={l} className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full border border-blue-100 font-medium">{l}</span>
+        ))}
+      </div>
+
+      {/* Connected workspace rows */}
+      {isConnected && accounts.map(account => (
+        <div key={account.id} className="mb-3 flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-lg">
+          <div>
+            <p className="text-sm font-medium text-gray-900">{account.workspaceName ?? account.workspaceId}</p>
+            <p className="text-xs text-gray-400 font-mono">
+              {account.ticketCount} ticket{account.ticketCount !== 1 ? 's' : ''}
+              {' · '}{account.openConversations} open
+              {account.lastSyncAt && ` · Last sync: ${new Date(account.lastSyncAt).toLocaleString()}`}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <Button variant="outline" size="sm" onClick={() => handleScan(account.id)} disabled={scanningId === account.id}>
+              {scanningId === account.id ? 'Scanning…' : 'Scan Now'}
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => handleSync(account.id)} disabled={syncingId === account.id}>
+              {syncingId === account.id ? 'Syncing…' : 'Sync'}
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => handleDisconnect(account.id, account.workspaceName)} disabled={disconnectingId === account.id}
+              className="text-red-600 border-red-200 hover:bg-red-50">
+              {disconnectingId === account.id ? 'Disconnecting...' : 'Disconnect'}
+            </Button>
+          </div>
+        </div>
+      ))}
+
+      {/* Action button */}
+      <div className="flex flex-wrap gap-2">
+        {!loadingStatus && (
+          <button
+            onClick={handleConnect}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#1F8DED] hover:bg-[#1a7acb] text-white text-sm font-medium"
+          >
+            <IntercomIcon className="w-4 h-4" />
+            {isConnected ? '+ Connect Another Workspace' : 'Connect Intercom'}
+          </button>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+// ─── BigID — Connect Modal ────────────────────────────────────────────────────
+
+function BigIdConnectModal({
+  onClose,
+  onConnected,
+}: {
+  onClose: () => void;
+  onConnected: (account: BigIdIntegrationRecord) => void;
+}) {
+  const [baseUrl, setBaseUrl] = useState('');
+  const [apiToken, setApiToken] = useState('');
+  const [label, setLabel] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!baseUrl.trim() || !apiToken.trim()) { setError('Base URL and API token are required'); return; }
+    setLoading(true); setError('');
+    try {
+      const res = await bigIdService.connect({ baseUrl: baseUrl.trim(), apiToken: apiToken.trim(), label: label.trim() || undefined });
+      onConnected(res.data);
+      onClose();
+    } catch (err: any) {
+      setError(err?.message ?? 'Failed to connect to BigID. Check the URL and API token.');
+    } finally { setLoading(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+        <h2 className="text-lg font-semibold mb-1">Connect BigID</h2>
+        <p className="text-sm text-gray-500 mb-4">Enter your BigID base URL and API token to begin data discovery compliance scanning.</p>
+        <form onSubmit={submit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Base URL</label>
+            <input
+              type="url"
+              value={baseUrl}
+              onChange={e => setBaseUrl(e.target.value)}
+              placeholder="https://your-bigid-instance.com"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">API Token</label>
+            <input
+              type="password"
+              value={apiToken}
+              onChange={e => setApiToken(e.target.value)}
+              placeholder="Bearer token from BigID Settings"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Label <span className="text-gray-400 font-normal">(optional)</span></label>
+            <input
+              type="text"
+              value={label}
+              onChange={e => setLabel(e.target.value)}
+              placeholder="e.g. Production BigID"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
+            />
+          </div>
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          <div className="flex gap-2 pt-2">
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium shadow-sm transition-colors disabled:opacity-50"
+            >
+              {loading ? 'Connecting…' : 'Connect BigID'}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 inline-flex items-center justify-center px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ─── BigID — full card ────────────────────────────────────────────────────────
+
+function BigIdCard({
+  accounts,
+  loadingStatus,
+  onAccountAdded,
+  onAccountRemoved,
+  onToast,
+}: {
+  accounts: BigIdIntegrationRecord[];
+  loadingStatus: boolean;
+  onAccountAdded: (account: BigIdIntegrationRecord) => void;
+  onAccountRemoved: (integrationId: string) => void;
+  onToast: (type: 'success' | 'error', msg: string) => void;
+}) {
+  const [scanningId, setScanningId] = useState<string | null>(null);
+  const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
+  const [showConnectModal, setShowConnectModal] = useState(false);
+
+  const isConnected = accounts.length > 0;
+
+  async function handleScan(integrationId: string) {
+    setScanningId(integrationId);
+    try {
+      await bigIdService.runScan(integrationId);
+      onToast('success', 'BigID scan started — results will appear in Tests shortly');
+    } catch {
+      onToast('error', 'Failed to start scan');
+    } finally { setScanningId(null); }
+  }
+
+  async function handleDisconnect(integrationId: string, label: string | null, baseUrl: string) {
+    const name = label ?? baseUrl;
+    if (!window.confirm(`Disconnect BigID (${name})? Automated data-privacy tests will stop running.`)) return;
+    setDisconnectingId(integrationId);
+    try {
+      await bigIdService.disconnect(integrationId);
+      onAccountRemoved(integrationId);
+      onToast('success', 'BigID disconnected');
+    } catch {
+      onToast('error', 'Failed to disconnect BigID');
+    } finally { setDisconnectingId(null); }
+  }
+
+  return (
+    <>
+      <Card className="p-6 md:col-span-2">
+        {/* Header */}
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-[#1A2B6D] flex items-center justify-center flex-shrink-0">
+              <svg className="w-6 h-6" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" fill="white">
+                <path d="M4 8h24v3H4zM4 14.5h16v3H4zM4 21h20v3H4z"/>
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">BigID</h3>
+              <p className="text-sm text-gray-500">Data Privacy · PII/PCI/PHI discovery &amp; classification</p>
+            </div>
+          </div>
+          <Badge variant={isConnected ? 'default' : 'outline'}>
+            {loadingStatus ? 'Checking...' : isConnected ? `${accounts.length} instance${accounts.length !== 1 ? 's' : ''} connected` : 'Available'}
+          </Badge>
+        </div>
+
+        <p className="text-sm text-gray-600 mb-4">
+          Automatically discover and classify sensitive data (PII, PCI, PHI) across your data sources.
+          Monitor data inventory, scan SLA compliance, and ensure all data assets have assigned owners.
+          All 5 results appear in the Tests page.
+        </p>
+
+        {/* ISO control tags */}
+        <div className="flex flex-wrap gap-2 mb-5">
+          {['A.5.9 Data Inventory', 'A.5.12 Classification', 'A.5.34 PII Protection', 'A.8.16 Monitoring'].map((l) => (
+            <span key={l} className="text-xs bg-indigo-50 text-indigo-700 px-2 py-1 rounded-full border border-indigo-100 font-medium">{l}</span>
+          ))}
+        </div>
+
+        {/* Connected instance rows */}
+        {isConnected && accounts.map(account => (
+          <div key={account.id} className="mb-3 flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-lg">
+            <div>
+              <p className="text-sm font-medium text-gray-900">{account.label ?? account.baseUrl}</p>
+              <p className="text-xs text-gray-400 font-mono">
+                {account.dataSourceCount} data source{account.dataSourceCount !== 1 ? 's' : ''}
+                {account.latestSummary && ` · ${account.latestSummary.piiCount.toLocaleString()} PII records`}
+                {account.lastSyncAt && ` · Last sync: ${new Date(account.lastSyncAt).toLocaleString()}`}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Button variant="outline" size="sm" onClick={() => handleScan(account.id)} disabled={scanningId === account.id}>
+                {scanningId === account.id ? 'Scanning…' : 'Scan Now'}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleDisconnect(account.id, account.label, account.baseUrl)}
+                disabled={disconnectingId === account.id}
+                className="text-red-600 border-red-200 hover:bg-red-50"
+              >
+                {disconnectingId === account.id ? 'Disconnecting...' : 'Disconnect'}
+              </Button>
+            </div>
+          </div>
+        ))}
+
+        {/* Action button */}
+        <div className="flex flex-wrap gap-2">
+          {!loadingStatus && (
+            <button
+              onClick={() => setShowConnectModal(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#1A2B6D] hover:bg-[#14225a] text-white text-sm font-medium"
+            >
+              {isConnected ? '+ Connect Another Instance' : 'Connect BigID'}
+            </button>
+          )}
+        </div>
+      </Card>
+
+      {showConnectModal && (
+        <BigIdConnectModal
+          onClose={() => setShowConnectModal(false)}
+          onConnected={(account) => {
+            onAccountAdded(account);
+            onToast('success', 'BigID connected! 5 automated data-privacy tests are being seeded.');
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+// ─── PagerDuty — Connect Modal ────────────────────────────────────────────────
+
+function PagerDutyConnectModal({
+  onClose,
+  onConnected,
+}: {
+  onClose: () => void;
+  onConnected: (account: PagerDutyIntegrationRecord) => void;
+}) {
+  const [apiKey, setApiKey] = useState('');
+  const [label, setLabel] = useState('');
+  const [slaHours, setSlaHours] = useState('4');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!apiKey.trim()) { setError('API key is required'); return; }
+    setLoading(true); setError('');
+    try {
+      const res = await pagerdutyService.connect({ apiKey: apiKey.trim(), label: label.trim() || undefined, slaHours: Number(slaHours) || 4 });
+      onConnected(res.data);
+      onClose();
+    } catch (err: any) {
+      setError(err?.message ?? 'Failed to connect to PagerDuty. Check the API key.');
+    } finally { setLoading(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+        <h2 className="text-lg font-semibold mb-1">Connect PagerDuty</h2>
+        <p className="text-sm text-gray-500 mb-4">Enter your PagerDuty API key (User or Account API key) to start incident compliance scanning.</p>
+        <form onSubmit={submit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">API Key</label>
+            <input type="password" value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder="y_NbAkKc66ryYTWUXYEu" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">SLA Hours <span className="text-gray-400 font-normal">(acknowledgement target)</span></label>
+            <input type="number" min="1" max="72" value={slaHours} onChange={e => setSlaHours(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Label <span className="text-gray-400 font-normal">(optional)</span></label>
+            <input type="text" value={label} onChange={e => setLabel(e.target.value)} placeholder="e.g. Production PagerDuty" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
+          </div>
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          <div className="flex gap-2 pt-2">
+            <button type="submit" disabled={loading} className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium shadow-sm transition-colors disabled:opacity-50">
+              {loading ? 'Connecting…' : 'Connect PagerDuty'}
+            </button>
+            <button type="button" onClick={onClose} className="flex-1 inline-flex items-center justify-center px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function PagerDutyCard({
+  accounts,
+  loadingStatus,
+  onAccountAdded,
+  onAccountRemoved,
+  onToast,
+}: {
+  accounts: PagerDutyIntegrationRecord[];
+  loadingStatus: boolean;
+  onAccountAdded: (account: PagerDutyIntegrationRecord) => void;
+  onAccountRemoved: (id: string) => void;
+  onToast: (type: 'success' | 'error', msg: string) => void;
+}) {
+  const [scanningId, setScanningId] = useState<string | null>(null);
+  const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
+  const [showConnectModal, setShowConnectModal] = useState(false);
+  const isConnected = accounts.length > 0;
+
+  async function handleScan(id: string) {
+    setScanningId(id);
+    try { await pagerdutyService.runScan(id); onToast('success', 'PagerDuty scan started — results will appear in Tests shortly'); }
+    catch { onToast('error', 'Failed to start scan'); }
+    finally { setScanningId(null); }
+  }
+
+  async function handleDisconnect(id: string, label: string | null) {
+    if (!window.confirm(`Disconnect PagerDuty (${label ?? id})? Automated incident tests will stop running.`)) return;
+    setDisconnectingId(id);
+    try { await pagerdutyService.disconnect(id); onAccountRemoved(id); onToast('success', 'PagerDuty disconnected'); }
+    catch { onToast('error', 'Failed to disconnect PagerDuty'); }
+    finally { setDisconnectingId(null); }
+  }
+
+  return (
+    <>
+      <Card className="p-6 md:col-span-2">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-[#06AC38] flex items-center justify-center flex-shrink-0">
+              <svg className="w-6 h-6" viewBox="0 0 32 32" fill="white" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18 4h-6v10h6c2.8 0 5-2.2 5-5s-2.2-5-5-5zM12 16v12h4v-8h2c4.4 0 8-3.6 8-8s-3.6-8-8-8h-6v12z" fill="white"/>
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">PagerDuty</h3>
+              <p className="text-sm text-gray-500">Incident Management · On-call &amp; escalation policies</p>
+            </div>
+          </div>
+          <Badge variant={isConnected ? 'default' : 'outline'}>
+            {loadingStatus ? 'Checking...' : isConnected ? `${accounts.length} instance${accounts.length !== 1 ? 's' : ''} connected` : 'Available'}
+          </Badge>
+        </div>
+        <p className="text-sm text-gray-600 mb-4">
+          Monitor incident response SLAs, track open incidents, and verify on-call escalation policies against ISO 27001 A.5.24–A.5.27 controls. All 5 results appear in the Tests page.
+        </p>
+        <div className="flex flex-wrap gap-2 mb-5">
+          {['A.5.24 Incident Planning', 'A.5.25 Event Assessment', 'A.5.26 Incident Response', 'A.5.27 RCA Learning'].map((l) => (
+            <span key={l} className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded-full border border-green-100 font-medium">{l}</span>
+          ))}
+        </div>
+        {isConnected && accounts.map(account => (
+          <div key={account.id} className="mb-3 flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-lg">
+            <div>
+              <p className="text-sm font-medium text-gray-900">{account.label ?? `PagerDuty Account`}</p>
+              <p className="text-xs text-gray-400 font-mono">
+                {account.incidentCount} incident{account.incidentCount !== 1 ? 's' : ''}
+                {account.lastSyncAt && ` · Last sync: ${new Date(account.lastSyncAt).toLocaleString()}`}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Button variant="outline" size="sm" onClick={() => handleScan(account.id)} disabled={scanningId === account.id}>
+                {scanningId === account.id ? 'Scanning…' : 'Scan Now'}
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => handleDisconnect(account.id, account.label)} disabled={disconnectingId === account.id} className="text-red-600 border-red-200 hover:bg-red-50">
+                {disconnectingId === account.id ? 'Disconnecting...' : 'Disconnect'}
+              </Button>
+            </div>
+          </div>
+        ))}
+        <div className="flex flex-wrap gap-2">
+          {!loadingStatus && (
+            <button onClick={() => setShowConnectModal(true)} className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#06AC38] hover:bg-[#058f2e] text-white text-sm font-medium">
+              {isConnected ? '+ Connect Another Account' : 'Connect PagerDuty'}
+            </button>
+          )}
+        </div>
+      </Card>
+      {showConnectModal && (
+        <PagerDutyConnectModal
+          onClose={() => setShowConnectModal(false)}
+          onConnected={(account) => { onAccountAdded(account); onToast('success', 'PagerDuty connected! 5 automated incident tests are being seeded.'); }}
+        />
+      )}
+    </>
+  );
+}
+
+// ─── Opsgenie — Connect Modal ─────────────────────────────────────────────────
+
+function OpsgenieConnectModal({
+  onClose,
+  onConnected,
+}: {
+  onClose: () => void;
+  onConnected: (account: OpsgenieIntegrationRecord) => void;
+}) {
+  const [apiKey, setApiKey] = useState('');
+  const [region, setRegion] = useState('us');
+  const [label, setLabel] = useState('');
+  const [slaHours, setSlaHours] = useState('4');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!apiKey.trim()) { setError('API key is required'); return; }
+    setLoading(true); setError('');
+    try {
+      const res = await opsgenieService.connect({ apiKey: apiKey.trim(), region, label: label.trim() || undefined, slaHours: Number(slaHours) || 4 });
+      onConnected(res.data);
+      onClose();
+    } catch (err: any) {
+      setError(err?.message ?? 'Failed to connect to Opsgenie. Check the API key.');
+    } finally { setLoading(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+        <h2 className="text-lg font-semibold mb-1">Connect Opsgenie</h2>
+        <p className="text-sm text-gray-500 mb-4">Enter your Opsgenie API key to start alert compliance scanning.</p>
+        <form onSubmit={submit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">API Key</label>
+            <input type="password" value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Region</label>
+            <select value={region} onChange={e => setRegion(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900">
+              <option value="us">US</option>
+              <option value="eu">EU</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">SLA Hours <span className="text-gray-400 font-normal">(acknowledgement target)</span></label>
+            <input type="number" min="1" max="72" value={slaHours} onChange={e => setSlaHours(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Label <span className="text-gray-400 font-normal">(optional)</span></label>
+            <input type="text" value={label} onChange={e => setLabel(e.target.value)} placeholder="e.g. Production Opsgenie" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
+          </div>
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          <div className="flex gap-2 pt-2">
+            <button type="submit" disabled={loading} className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium shadow-sm transition-colors disabled:opacity-50">
+              {loading ? 'Connecting…' : 'Connect Opsgenie'}
+            </button>
+            <button type="button" onClick={onClose} className="flex-1 inline-flex items-center justify-center px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function OpsgenieCard({
+  accounts,
+  loadingStatus,
+  onAccountAdded,
+  onAccountRemoved,
+  onToast,
+}: {
+  accounts: OpsgenieIntegrationRecord[];
+  loadingStatus: boolean;
+  onAccountAdded: (account: OpsgenieIntegrationRecord) => void;
+  onAccountRemoved: (id: string) => void;
+  onToast: (type: 'success' | 'error', msg: string) => void;
+}) {
+  const [scanningId, setScanningId] = useState<string | null>(null);
+  const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
+  const [showConnectModal, setShowConnectModal] = useState(false);
+  const isConnected = accounts.length > 0;
+
+  async function handleScan(id: string) {
+    setScanningId(id);
+    try { await opsgenieService.runScan(id); onToast('success', 'Opsgenie scan started — results will appear in Tests shortly'); }
+    catch { onToast('error', 'Failed to start scan'); }
+    finally { setScanningId(null); }
+  }
+
+  async function handleDisconnect(id: string, label: string | null) {
+    if (!window.confirm(`Disconnect Opsgenie (${label ?? id})? Automated incident tests will stop running.`)) return;
+    setDisconnectingId(id);
+    try { await opsgenieService.disconnect(id); onAccountRemoved(id); onToast('success', 'Opsgenie disconnected'); }
+    catch { onToast('error', 'Failed to disconnect Opsgenie'); }
+    finally { setDisconnectingId(null); }
+  }
+
+  return (
+    <>
+      <Card className="p-6 md:col-span-2">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-[#2D6AE7] flex items-center justify-center flex-shrink-0">
+              <svg className="w-6 h-6" viewBox="0 0 32 32" fill="white" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="16" cy="16" r="8" fill="white" opacity="0.9"/>
+                <path d="M16 8a8 8 0 1 0 0 16A8 8 0 0 0 16 8zm0 14a6 6 0 1 1 0-12 6 6 0 0 1 0 12z" fill="#2D6AE7"/>
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Opsgenie</h3>
+              <p className="text-sm text-gray-500">Alert Management · On-call schedules &amp; SLA tracking</p>
+            </div>
+          </div>
+          <Badge variant={isConnected ? 'default' : 'outline'}>
+            {loadingStatus ? 'Checking...' : isConnected ? `${accounts.length} instance${accounts.length !== 1 ? 's' : ''} connected` : 'Available'}
+          </Badge>
+        </div>
+        <p className="text-sm text-gray-600 mb-4">
+          Track alert response SLAs, verify on-call schedule coverage, and ensure critical alerts are actively managed. All 5 results appear in the Tests page.
+        </p>
+        <div className="flex flex-wrap gap-2 mb-5">
+          {['A.5.24 Incident Planning', 'A.5.25 Event Assessment', 'A.5.26 Incident Response', 'A.5.27 RCA Learning'].map((l) => (
+            <span key={l} className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full border border-blue-100 font-medium">{l}</span>
+          ))}
+        </div>
+        {isConnected && accounts.map(account => (
+          <div key={account.id} className="mb-3 flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-lg">
+            <div>
+              <p className="text-sm font-medium text-gray-900">{account.label ?? `Opsgenie (${account.region.toUpperCase()})`}</p>
+              <p className="text-xs text-gray-400 font-mono">
+                {account.incidentCount} alert{account.incidentCount !== 1 ? 's' : ''}
+                {account.lastSyncAt && ` · Last sync: ${new Date(account.lastSyncAt).toLocaleString()}`}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Button variant="outline" size="sm" onClick={() => handleScan(account.id)} disabled={scanningId === account.id}>
+                {scanningId === account.id ? 'Scanning…' : 'Scan Now'}
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => handleDisconnect(account.id, account.label)} disabled={disconnectingId === account.id} className="text-red-600 border-red-200 hover:bg-red-50">
+                {disconnectingId === account.id ? 'Disconnecting...' : 'Disconnect'}
+              </Button>
+            </div>
+          </div>
+        ))}
+        <div className="flex flex-wrap gap-2">
+          {!loadingStatus && (
+            <button onClick={() => setShowConnectModal(true)} className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#2D6AE7] hover:bg-[#2158c4] text-white text-sm font-medium">
+              {isConnected ? '+ Connect Another Account' : 'Connect Opsgenie'}
+            </button>
+          )}
+        </div>
+      </Card>
+      {showConnectModal && (
+        <OpsgenieConnectModal
+          onClose={() => setShowConnectModal(false)}
+          onConnected={(account) => { onAccountAdded(account); onToast('success', 'Opsgenie connected! 5 automated incident tests are being seeded.'); }}
+        />
+      )}
+    </>
+  );
+}
+
+// ─── ServiceNow Incident — Connect Modal ──────────────────────────────────────
+
+function ServiceNowConnectModal({
+  onClose,
+  onConnected,
+}: {
+  onClose: () => void;
+  onConnected: (account: ServiceNowIntegrationRecord) => void;
+}) {
+  const [instanceUrl, setInstanceUrl] = useState('');
+  const [authMethod, setAuthMethod] = useState('basic');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [token, setToken] = useState('');
+  const [label, setLabel] = useState('');
+  const [slaHours, setSlaHours] = useState('4');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!instanceUrl.trim()) { setError('Instance URL is required'); return; }
+    setLoading(true); setError('');
+    try {
+      const payload: any = { instanceUrl: instanceUrl.trim(), authMethod, label: label.trim() || undefined, slaHours: Number(slaHours) || 4 };
+      if (authMethod === 'token') payload.token = token;
+      else { payload.username = username; payload.password = password; }
+      const res = await servicenowIncidentService.connect(payload);
+      onConnected(res.data);
+      onClose();
+    } catch (err: any) {
+      setError(err?.message ?? 'Failed to connect to ServiceNow. Check credentials.');
+    } finally { setLoading(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6 overflow-y-auto max-h-[90vh]">
+        <h2 className="text-lg font-semibold mb-1">Connect ServiceNow</h2>
+        <p className="text-sm text-gray-500 mb-4">Connect your ServiceNow instance to track incident compliance.</p>
+        <form onSubmit={submit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Instance URL</label>
+            <input type="url" value={instanceUrl} onChange={e => setInstanceUrl(e.target.value)} placeholder="https://yourinstance.service-now.com" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Auth Method</label>
+            <select value={authMethod} onChange={e => setAuthMethod(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900">
+              <option value="basic">Basic (username/password)</option>
+              <option value="token">Bearer Token</option>
+            </select>
+          </div>
+          {authMethod === 'basic' ? (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                <input type="text" value={username} onChange={e => setUsername(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
+              </div>
+            </>
+          ) : (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Bearer Token</label>
+              <input type="password" value={token} onChange={e => setToken(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
+            </div>
+          )}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">SLA Hours <span className="text-gray-400 font-normal">(acknowledgement target)</span></label>
+            <input type="number" min="1" max="72" value={slaHours} onChange={e => setSlaHours(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Label <span className="text-gray-400 font-normal">(optional)</span></label>
+            <input type="text" value={label} onChange={e => setLabel(e.target.value)} placeholder="e.g. Production ServiceNow" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
+          </div>
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          <div className="flex gap-2 pt-2">
+            <button type="submit" disabled={loading} className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium shadow-sm transition-colors disabled:opacity-50">
+              {loading ? 'Connecting…' : 'Connect ServiceNow'}
+            </button>
+            <button type="button" onClick={onClose} className="flex-1 inline-flex items-center justify-center px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function ServiceNowIncidentCard({
+  accounts,
+  loadingStatus,
+  onAccountAdded,
+  onAccountRemoved,
+  onToast,
+}: {
+  accounts: ServiceNowIntegrationRecord[];
+  loadingStatus: boolean;
+  onAccountAdded: (account: ServiceNowIntegrationRecord) => void;
+  onAccountRemoved: (id: string) => void;
+  onToast: (type: 'success' | 'error', msg: string) => void;
+}) {
+  const [scanningId, setScanningId] = useState<string | null>(null);
+  const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
+  const [showConnectModal, setShowConnectModal] = useState(false);
+  const isConnected = accounts.length > 0;
+
+  async function handleScan(id: string) {
+    setScanningId(id);
+    try { await servicenowIncidentService.runScan(id); onToast('success', 'ServiceNow scan started — results will appear in Tests shortly'); }
+    catch { onToast('error', 'Failed to start scan'); }
+    finally { setScanningId(null); }
+  }
+
+  async function handleDisconnect(id: string, label: string | null, instanceUrl: string) {
+    const name = label ?? instanceUrl;
+    if (!window.confirm(`Disconnect ServiceNow (${name})? Automated incident tests will stop running.`)) return;
+    setDisconnectingId(id);
+    try { await servicenowIncidentService.disconnect(id); onAccountRemoved(id); onToast('success', 'ServiceNow disconnected'); }
+    catch { onToast('error', 'Failed to disconnect ServiceNow'); }
+    finally { setDisconnectingId(null); }
+  }
+
+  return (
+    <>
+      <Card className="p-6 md:col-span-2">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-[#81B5A1] flex items-center justify-center flex-shrink-0">
+              <svg className="w-6 h-6" viewBox="0 0 32 32" fill="white" xmlns="http://www.w3.org/2000/svg">
+                <path d="M4 8h24v4H4zM4 14h18v4H4zM4 20h20v4H4z" fill="white"/>
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">ServiceNow</h3>
+              <p className="text-sm text-gray-500">Incident Management · ITSM &amp; SLA compliance</p>
+            </div>
+          </div>
+          <Badge variant={isConnected ? 'default' : 'outline'}>
+            {loadingStatus ? 'Checking...' : isConnected ? `${accounts.length} instance${accounts.length !== 1 ? 's' : ''} connected` : 'Available'}
+          </Badge>
+        </div>
+        <p className="text-sm text-gray-600 mb-4">
+          Sync incidents from ServiceNow, monitor SLA compliance, and verify that critical incidents have resolution notes. All 5 results appear in the Tests page.
+        </p>
+        <div className="flex flex-wrap gap-2 mb-5">
+          {['A.5.24 Incident Planning', 'A.5.25 Event Assessment', 'A.5.26 Incident Response', 'A.5.27 RCA Learning'].map((l) => (
+            <span key={l} className="text-xs bg-teal-50 text-teal-700 px-2 py-1 rounded-full border border-teal-100 font-medium">{l}</span>
+          ))}
+        </div>
+        {isConnected && accounts.map(account => (
+          <div key={account.id} className="mb-3 flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-lg">
+            <div>
+              <p className="text-sm font-medium text-gray-900">{account.label ?? account.instanceUrl}</p>
+              <p className="text-xs text-gray-400 font-mono">
+                {account.incidentCount} incident{account.incidentCount !== 1 ? 's' : ''}
+                {account.lastSyncAt && ` · Last sync: ${new Date(account.lastSyncAt).toLocaleString()}`}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Button variant="outline" size="sm" onClick={() => handleScan(account.id)} disabled={scanningId === account.id}>
+                {scanningId === account.id ? 'Scanning…' : 'Scan Now'}
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => handleDisconnect(account.id, account.label, account.instanceUrl)} disabled={disconnectingId === account.id} className="text-red-600 border-red-200 hover:bg-red-50">
+                {disconnectingId === account.id ? 'Disconnecting...' : 'Disconnect'}
+              </Button>
+            </div>
+          </div>
+        ))}
+        <div className="flex flex-wrap gap-2">
+          {!loadingStatus && (
+            <button onClick={() => setShowConnectModal(true)} className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#62A0A0] hover:bg-[#4f8686] text-white text-sm font-medium">
+              {isConnected ? '+ Connect Another Instance' : 'Connect ServiceNow'}
+            </button>
+          )}
+        </div>
+      </Card>
+      {showConnectModal && (
+        <ServiceNowConnectModal
+          onClose={() => setShowConnectModal(false)}
+          onConnected={(account) => { onAccountAdded(account); onToast('success', 'ServiceNow connected! 5 automated incident tests are being seeded.'); }}
+        />
+      )}
+    </>
+  );
+}
+
+// ─── Datadog Incidents — Connect Modal ────────────────────────────────────────
+
+function DatadogConnectModal({
+  onClose,
+  onConnected,
+}: {
+  onClose: () => void;
+  onConnected: (account: DatadogIntegrationRecord) => void;
+}) {
+  const [apiKey, setApiKey] = useState('');
+  const [appKey, setAppKey] = useState('');
+  const [datadogSite, setDatadogSite] = useState('datadoghq.com');
+  const [label, setLabel] = useState('');
+  const [slaHours, setSlaHours] = useState('4');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!apiKey.trim() || !appKey.trim()) { setError('API key and App key are required'); return; }
+    setLoading(true); setError('');
+    try {
+      const res = await datadogIncidentsService.connect({ apiKey: apiKey.trim(), appKey: appKey.trim(), datadogSite, label: label.trim() || undefined, slaHours: Number(slaHours) || 4 });
+      onConnected(res.data);
+      onClose();
+    } catch (err: any) {
+      setError(err?.message ?? 'Failed to connect to Datadog. Check credentials.');
+    } finally { setLoading(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+        <h2 className="text-lg font-semibold mb-1">Connect Datadog Incidents</h2>
+        <p className="text-sm text-gray-500 mb-4">Enter your Datadog API key and Application key to begin incident compliance scanning.</p>
+        <form onSubmit={submit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">API Key</label>
+            <input type="password" value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder="Datadog API key" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Application Key</label>
+            <input type="password" value={appKey} onChange={e => setAppKey(e.target.value)} placeholder="Datadog Application key" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Datadog Site</label>
+            <select value={datadogSite} onChange={e => setDatadogSite(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900">
+              <option value="datadoghq.com">US1 (datadoghq.com)</option>
+              <option value="us3.datadoghq.com">US3 (us3.datadoghq.com)</option>
+              <option value="us5.datadoghq.com">US5 (us5.datadoghq.com)</option>
+              <option value="datadoghq.eu">EU (datadoghq.eu)</option>
+              <option value="ap1.datadoghq.com">AP1 (ap1.datadoghq.com)</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">SLA Hours <span className="text-gray-400 font-normal">(acknowledgement target)</span></label>
+            <input type="number" min="1" max="72" value={slaHours} onChange={e => setSlaHours(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Label <span className="text-gray-400 font-normal">(optional)</span></label>
+            <input type="text" value={label} onChange={e => setLabel(e.target.value)} placeholder="e.g. Production Datadog" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
+          </div>
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          <div className="flex gap-2 pt-2">
+            <button type="submit" disabled={loading} className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium shadow-sm transition-colors disabled:opacity-50">
+              {loading ? 'Connecting…' : 'Connect Datadog'}
+            </button>
+            <button type="button" onClick={onClose} className="flex-1 inline-flex items-center justify-center px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function DatadogIncidentsCard({
+  accounts,
+  loadingStatus,
+  onAccountAdded,
+  onAccountRemoved,
+  onToast,
+}: {
+  accounts: DatadogIntegrationRecord[];
+  loadingStatus: boolean;
+  onAccountAdded: (account: DatadogIntegrationRecord) => void;
+  onAccountRemoved: (id: string) => void;
+  onToast: (type: 'success' | 'error', msg: string) => void;
+}) {
+  const [scanningId, setScanningId] = useState<string | null>(null);
+  const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
+  const [showConnectModal, setShowConnectModal] = useState(false);
+  const isConnected = accounts.length > 0;
+
+  async function handleScan(id: string) {
+    setScanningId(id);
+    try { await datadogIncidentsService.runScan(id); onToast('success', 'Datadog scan started — results will appear in Tests shortly'); }
+    catch { onToast('error', 'Failed to start scan'); }
+    finally { setScanningId(null); }
+  }
+
+  async function handleDisconnect(id: string, label: string | null) {
+    if (!window.confirm(`Disconnect Datadog (${label ?? id})? Automated incident tests will stop running.`)) return;
+    setDisconnectingId(id);
+    try { await datadogIncidentsService.disconnect(id); onAccountRemoved(id); onToast('success', 'Datadog disconnected'); }
+    catch { onToast('error', 'Failed to disconnect Datadog'); }
+    finally { setDisconnectingId(null); }
+  }
+
+  return (
+    <>
+      <Card className="p-6 md:col-span-2">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-[#632CA6] flex items-center justify-center flex-shrink-0">
+              <svg className="w-6 h-6" viewBox="0 0 32 32" fill="white" xmlns="http://www.w3.org/2000/svg">
+                <path d="M26.3 19.4l-2.8-1.9V6.8L16 3 8.5 6.8v10.7L5.7 19.4l1.6 7.3L16 29l8.7-2.3 1.6-7.3z" fill="white" opacity="0.9"/>
+                <path d="M16 7l-5.5 3.2v6.4l5.5 3.2 5.5-3.2v-6.4L16 7z" fill="#632CA6"/>
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Datadog Incidents</h3>
+              <p className="text-sm text-gray-500">Observability · Incident tracking &amp; postmortems</p>
+            </div>
+          </div>
+          <Badge variant={isConnected ? 'default' : 'outline'}>
+            {loadingStatus ? 'Checking...' : isConnected ? `${accounts.length} instance${accounts.length !== 1 ? 's' : ''} connected` : 'Available'}
+          </Badge>
+        </div>
+        <p className="text-sm text-gray-600 mb-4">
+          Monitor Datadog incident response, track SEV-1/SEV-2 SLA compliance, and verify postmortem coverage for critical incidents. All 5 results appear in the Tests page.
+        </p>
+        <div className="flex flex-wrap gap-2 mb-5">
+          {['A.5.24 Incident Planning', 'A.5.25 Event Assessment', 'A.5.26 Incident Response', 'A.5.27 RCA Learning'].map((l) => (
+            <span key={l} className="text-xs bg-purple-50 text-purple-700 px-2 py-1 rounded-full border border-purple-100 font-medium">{l}</span>
+          ))}
+        </div>
+        {isConnected && accounts.map(account => (
+          <div key={account.id} className="mb-3 flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-lg">
+            <div>
+              <p className="text-sm font-medium text-gray-900">{account.label ?? account.datadogSite}</p>
+              <p className="text-xs text-gray-400 font-mono">
+                {account.incidentCount} incident{account.incidentCount !== 1 ? 's' : ''}
+                {account.lastSyncAt && ` · Last sync: ${new Date(account.lastSyncAt).toLocaleString()}`}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Button variant="outline" size="sm" onClick={() => handleScan(account.id)} disabled={scanningId === account.id}>
+                {scanningId === account.id ? 'Scanning…' : 'Scan Now'}
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => handleDisconnect(account.id, account.label)} disabled={disconnectingId === account.id} className="text-red-600 border-red-200 hover:bg-red-50">
+                {disconnectingId === account.id ? 'Disconnecting...' : 'Disconnect'}
+              </Button>
+            </div>
+          </div>
+        ))}
+        <div className="flex flex-wrap gap-2">
+          {!loadingStatus && (
+            <button onClick={() => setShowConnectModal(true)} className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#632CA6] hover:bg-[#4f2285] text-white text-sm font-medium">
+              {isConnected ? '+ Connect Another Account' : 'Connect Datadog'}
+            </button>
+          )}
+        </div>
+      </Card>
+      {showConnectModal && (
+        <DatadogConnectModal
+          onClose={() => setShowConnectModal(false)}
+          onConnected={(account) => { onAccountAdded(account); onToast('success', 'Datadog connected! 5 automated incident tests are being seeded.'); }}
+        />
+      )}
+    </>
+  );
+}
+
+// ─── GCP — Connect Modal ──────────────────────────────────────────────────────
+
+function GcpConnectModal({
+  onClose,
+  onConnected,
+}: {
+  onClose: () => void;
+  onConnected: (account: GcpIntegrationRecord) => void;
+}) {
+  const [keyJson, setKeyJson] = useState('');
+  const [label, setLabel] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true); setError(null);
+    try {
+      const res = await gcpService.connect({ keyJson: keyJson.trim(), label: label.trim() || undefined });
+      onConnected(res.data);
+      onClose();
+    } catch (err: any) {
+      setError(err?.message ?? 'Failed to connect to GCP. Check the service account key.');
+    } finally { setLoading(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-6">
+        <h2 className="text-lg font-semibold mb-1">Connect GCP</h2>
+        <p className="text-sm text-gray-500 mb-4">Paste your GCP Service Account key JSON to enable cloud security scanning.</p>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div>
+            <label className="text-xs font-medium text-gray-600 mb-1 block">Label (optional)</label>
+            <input type="text" value={label} onChange={e => setLabel(e.target.value)} placeholder="e.g. Production GCP" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-600 mb-1 block">Service Account Key JSON *</label>
+            <textarea value={keyJson} onChange={e => setKeyJson(e.target.value)} placeholder='{"type":"service_account","project_id":"...","private_key":"...","client_email":"..."}' rows={6} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-gray-900" required />
+          </div>
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          <div className="flex gap-2 justify-end pt-2">
+            <button type="button" onClick={onClose} className="px-4 py-2 text-sm rounded-md border border-gray-300 hover:bg-gray-50">Cancel</button>
+            <button type="submit" disabled={loading} className="px-4 py-2 text-sm rounded-md bg-gray-900 hover:bg-gray-800 text-white disabled:opacity-50">
+              {loading ? 'Connecting…' : 'Connect GCP'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function GcpCard({
+  accounts,
+  loadingStatus,
+  onAccountAdded,
+  onAccountRemoved,
+  onToast,
+}: {
+  accounts: GcpIntegrationRecord[];
+  loadingStatus: boolean;
+  onAccountAdded: (account: GcpIntegrationRecord) => void;
+  onAccountRemoved: (id: string) => void;
+  onToast: (type: 'success' | 'error', msg: string) => void;
+}) {
+  const [scanningId, setScanningId] = useState<string | null>(null);
+  const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
+  const [showConnectModal, setShowConnectModal] = useState(false);
+  const isConnected = accounts.length > 0;
+
+  async function handleScan(id: string) {
+    setScanningId(id);
+    try { await gcpService.runScan(id); onToast('success', 'GCP scan started — results will appear in Tests shortly'); }
+    catch { onToast('error', 'Failed to start scan'); }
+    finally { setScanningId(null); }
+  }
+
+  async function handleDisconnect(id: string, label: string | null) {
+    if (!window.confirm(`Disconnect GCP (${label ?? id})? Automated cloud security tests will stop running.`)) return;
+    setDisconnectingId(id);
+    try { await gcpService.disconnect(id); onAccountRemoved(id); onToast('success', 'GCP disconnected'); }
+    catch { onToast('error', 'Failed to disconnect GCP'); }
+    finally { setDisconnectingId(null); }
+  }
+
+  return (
+    <>
+      <Card className="p-6">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center flex-shrink-0">
+              <svg className="w-7 h-7" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 6.5l3 5.2-3 5.2-3-5.2z" fill="#EA4335"/>
+                <path d="M6.5 17.5h11L15 12.5l-3 5.2-3-5.2z" fill="#FBBC05"/>
+                <path d="M15 12.5l2.5-4.5H6.5L9 12.5z" fill="#4285F4"/>
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Google Cloud (GCP)</h3>
+              <p className="text-sm text-gray-500">Cloud Security · IAM, logging &amp; misconfigurations</p>
+            </div>
+          </div>
+          <Badge variant={isConnected ? 'default' : 'outline'}>
+            {loadingStatus ? 'Checking...' : isConnected ? `${accounts.length} project${accounts.length !== 1 ? 's' : ''} connected` : 'Available'}
+          </Badge>
+        </div>
+        <p className="text-sm text-gray-600 mb-4">
+          Scan GCP projects for IAM misconfigurations, audit logging gaps, encryption coverage, and network exposure using Security Command Center. All 5 results appear in the Tests page.
+        </p>
+        <div className="flex flex-wrap gap-2 mb-5">
+          {['A.5.15 IAM', 'A.8.15 Audit Logging', 'A.8.9 Misconfigs', 'A.8.24 Encryption', 'A.8.20 Network'].map((l) => (
+            <span key={l} className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full border border-blue-100 font-medium">{l}</span>
+          ))}
+        </div>
+        {isConnected && accounts.map(account => (
+          <div key={account.id} className="mb-3 flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-lg">
+            <div>
+              <p className="text-sm font-medium text-gray-900">{account.label ?? account.projectId}</p>
+              <p className="text-xs text-gray-400 font-mono">
+                {account.findingCount} finding{account.findingCount !== 1 ? 's' : ''}
+                {account.lastSyncAt && ` · Last sync: ${new Date(account.lastSyncAt).toLocaleString()}`}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Button variant="outline" size="sm" onClick={() => handleScan(account.id)} disabled={scanningId === account.id}>
+                {scanningId === account.id ? 'Scanning…' : 'Scan Now'}
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => handleDisconnect(account.id, account.label)} disabled={disconnectingId === account.id} className="text-red-600 border-red-200 hover:bg-red-50">
+                {disconnectingId === account.id ? 'Disconnecting...' : 'Disconnect'}
+              </Button>
+            </div>
+          </div>
+        ))}
+        <div className="flex flex-wrap gap-2">
+          {!loadingStatus && (
+            <button onClick={() => setShowConnectModal(true)} className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium">
+              {isConnected ? '+ Connect Another Project' : 'Connect GCP'}
+            </button>
+          )}
+        </div>
+      </Card>
+      {showConnectModal && (
+        <GcpConnectModal
+          onClose={() => setShowConnectModal(false)}
+          onConnected={(account) => { onAccountAdded(account); onToast('success', 'GCP connected! 5 automated cloud security tests are being seeded.'); setShowConnectModal(false); }}
+        />
+      )}
+    </>
+  );
+}
+
+
 const ENGINEER_A_CARDS: EngineerACardConfig[] = [
   { key: 'workspace-directory', name: 'Google Workspace Directory', category: 'Identity', description: 'Directory posture, admin controls, and account lifecycle checks.', service: workspaceDirectoryService as any },
   { key: 'onelogin', name: 'OneLogin', category: 'Identity', description: 'Identity and SSO governance checks for OneLogin tenants.', service: oneLoginService as any },
