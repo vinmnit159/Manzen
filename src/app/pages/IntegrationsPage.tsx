@@ -127,6 +127,11 @@ import { harnessService } from '@/services/api/harness';
 import { githubActionsService } from '@/services/api/github-actions';
 import { manageengineService } from '@/services/api/manageengine';
 import { teamworkService } from '@/services/api/teamwork';
+import { comeetService } from '@/services/api/comeet';
+import { leverService } from '@/services/api/lever';
+import { fieldguideService } from '@/services/api/fieldguide';
+import { rampService } from '@/services/api/ramp';
+import { brexService } from '@/services/api/brex';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -6883,6 +6888,92 @@ const ENGINEER_A_CARDS: EngineerACardConfig[] = [
       </svg>
     ),
     service: teamworkService as any,
+  },
+  {
+    key: 'comeet',
+    name: 'Comeet',
+    subtitle: 'HR Recruiting · Candidate access and hiring workflow controls',
+    category: 'HR Recruiting',
+    description: 'Verify recruiter and hiring manager access permissions are reviewed, candidate profile data restrictions are validated, hiring workflow approvals are audited, and integration credentials are governed.',
+    brandColor: '#2563EB',
+    iconBg: 'bg-[#2563EB]',
+    isoTags: ['A.5.15 Access Permissions', 'A.5.34 Candidate Data Restrictions', 'A.8.32 Hiring Approvals', 'A.5.17 Integration Credentials'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="12" cy="12" r="3" fill="white"/>
+        <circle cx="20" cy="12" r="3" fill="white" opacity="0.7"/>
+        <path d="M8 23c0-3 2-5 4-5s4 2 4 5M16 23c0-3 2-5 4-5s4 2 4 5" stroke="white" strokeWidth="2" fill="none" strokeLinecap="round"/>
+      </svg>
+    ),
+    service: comeetService as any,
+  },
+  {
+    key: 'lever',
+    name: 'Lever',
+    subtitle: 'HR Recruiting · Role assignments and candidate visibility controls',
+    category: 'HR Recruiting',
+    description: 'Verify recruiter role assignments are reviewed, candidate data visibility restrictions are validated, hiring stage approval controls are audited, and API token governance is verified.',
+    brandColor: '#10B981',
+    iconBg: 'bg-[#10B981]',
+    isoTags: ['A.5.15 Role Assignments', 'A.5.34 Candidate Visibility', 'A.8.32 Stage Approvals', 'A.5.17 API Tokens'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <rect x="8" y="8" width="16" height="16" rx="2" fill="none" stroke="white" strokeWidth="2"/>
+        <path d="M12 16h8" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+      </svg>
+    ),
+    service: leverService as any,
+  },
+  {
+    key: 'fieldguide',
+    name: 'Fieldguide',
+    subtitle: 'Audit Management · Engagement access and evidence sharing controls',
+    category: 'Audit Management',
+    description: 'Verify engagement workspace access permissions are reviewed, evidence sharing controls are validated, reviewer approval workflows are audited, and admin API credentials are governed.',
+    brandColor: '#8B5CF6',
+    iconBg: 'bg-[#8B5CF6]',
+    isoTags: ['A.5.15 Workspace Access', 'A.5.14 Evidence Sharing', 'A.8.32 Reviewer Approvals', 'A.5.17 API Credentials'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <rect x="7" y="7" width="18" height="18" rx="2" fill="none" stroke="white" strokeWidth="2"/>
+        <path d="M11 12h10M11 16h10M11 20h6" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+      </svg>
+    ),
+    service: fieldguideService as any,
+  },
+  {
+    key: 'ramp',
+    name: 'Ramp',
+    subtitle: 'Finance · Spend policies and approval hierarchy controls',
+    category: 'Finance',
+    description: 'Verify spend policy and card access controls are reviewed, finance approval hierarchy is validated, payout workflow controls are audited, and integration token governance is verified.',
+    brandColor: '#111827',
+    iconBg: 'bg-[#111827]',
+    isoTags: ['A.5.15 Spend Controls', 'A.8.32 Approval Hierarchy', 'A.8.16 Workflow Controls', 'A.5.17 Integration Tokens'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <rect x="7" y="10" width="18" height="12" rx="2" fill="none" stroke="white" strokeWidth="2"/>
+        <path d="M11 16h6" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+      </svg>
+    ),
+    service: rampService as any,
+  },
+  {
+    key: 'brex',
+    name: 'Brex',
+    subtitle: 'Finance · Cardholder access and spend exception governance',
+    category: 'Finance',
+    description: 'Verify cardholder and admin access permissions are reviewed, transaction approval controls are validated, spend exception governance is audited, and API credential lifecycle controls are verified.',
+    brandColor: '#EF4444',
+    iconBg: 'bg-[#EF4444]',
+    isoTags: ['A.5.15 Access Permissions', 'A.8.32 Approval Controls', 'A.8.16 Exception Governance', 'A.5.17 API Credential Lifecycle'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="9" fill="none" stroke="white" strokeWidth="2"/>
+        <path d="M12 16h8M16 12v8" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+      </svg>
+    ),
+    service: brexService as any,
   },
   {
     key: 'sentinelone',
