@@ -122,6 +122,11 @@ import { envoyService } from '@/services/api/envoy';
 import { launchdarklyService } from '@/services/api/launchdarkly';
 import { buildkiteService } from '@/services/api/buildkite';
 import { circleciService } from '@/services/api/circleci';
+import { jenkinsService } from '@/services/api/jenkins';
+import { harnessService } from '@/services/api/harness';
+import { githubActionsService } from '@/services/api/github-actions';
+import { manageengineService } from '@/services/api/manageengine';
+import { teamworkService } from '@/services/api/teamwork';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -6793,6 +6798,91 @@ const ENGINEER_A_CARDS: EngineerACardConfig[] = [
       </svg>
     ),
     service: circleciService as any,
+  },
+  {
+    key: 'jenkins',
+    name: 'Jenkins',
+    subtitle: 'CI/CD · Job permissions, approvals, and secret controls',
+    category: 'CI/CD',
+    description: 'Verify job and folder permissions are reviewed, production approval gates are validated, credential store controls are audited, and build log retention is verified.',
+    brandColor: '#D24939',
+    iconBg: 'bg-[#D24939]',
+    isoTags: ['A.5.15 Job Permissions', 'A.8.32 Approval Gates', 'A.5.17 Credential Store', 'A.8.15 Build Logs'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="9" fill="none" stroke="white" strokeWidth="2"/>
+        <path d="M12 20l8-8" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+      </svg>
+    ),
+    service: jenkinsService as any,
+  },
+  {
+    key: 'harness',
+    name: 'Harness',
+    subtitle: 'CI/CD · Pipeline roles, deployment freezes, and secrets',
+    category: 'CI/CD',
+    description: 'Verify project and pipeline role assignments are reviewed, deployment freeze controls are validated, secret manager governance is audited, and execution audit trails are verified.',
+    brandColor: '#7C3AED',
+    iconBg: 'bg-[#7C3AED]',
+    isoTags: ['A.5.15 Pipeline Roles', 'A.8.32 Deployment Freeze', 'A.5.17 Secret Manager', 'A.8.15 Audit Trails'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <path d="M8 10h16v4H8zM8 18h10v4H8z" fill="white"/>
+      </svg>
+    ),
+    service: harnessService as any,
+  },
+  {
+    key: 'github-actions',
+    name: 'GitHub Actions',
+    subtitle: 'CI/CD · Workflow permissions and environment protection',
+    category: 'CI/CD',
+    description: 'Verify workflow permission model is reviewed, environment protections are validated, secret and token governance is audited, and run log provenance is verified.',
+    brandColor: '#24292E',
+    iconBg: 'bg-[#24292E]',
+    isoTags: ['A.5.15 Workflow Permissions', 'A.8.32 Environment Protection', 'A.5.17 Secrets and Tokens', 'A.8.15 Run Logs'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <path d="M16 6l8 5v10l-8 5-8-5V11l8-5z" fill="none" stroke="white" strokeWidth="2"/>
+        <path d="M16 12v8" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+      </svg>
+    ),
+    service: githubActionsService as any,
+  },
+  {
+    key: 'manageengine',
+    name: 'ManageEngine',
+    subtitle: 'IT Management · Admin roles and policy compliance controls',
+    category: 'IT Management',
+    description: 'Verify administrative role permissions are reviewed, endpoint policy compliance is validated, integration credential lifecycle governance is audited, and event log retention is verified.',
+    brandColor: '#EF4444',
+    iconBg: 'bg-[#EF4444]',
+    isoTags: ['A.5.15 Admin Roles', 'A.8.9 Policy Compliance', 'A.5.17 Credential Lifecycle', 'A.8.15 Event Logs'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <rect x="7" y="7" width="18" height="18" rx="2" fill="none" stroke="white" strokeWidth="2"/>
+        <path d="M11 12h10M11 16h10M11 20h6" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+      </svg>
+    ),
+    service: manageengineService as any,
+  },
+  {
+    key: 'teamwork',
+    name: 'Teamwork',
+    subtitle: 'Project Management · Member roles and sharing governance',
+    category: 'Project Management',
+    description: 'Verify project access and member roles are reviewed, external collaborator restrictions are validated, task and document sharing controls are audited, and admin API credentials are governed.',
+    brandColor: '#2563EB',
+    iconBg: 'bg-[#2563EB]',
+    isoTags: ['A.5.15 Member Roles', 'A.5.14 Collaborator Restrictions', 'A.5.15 Sharing Controls', 'A.5.17 API Credentials'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="11" cy="12" r="3" fill="white"/>
+        <circle cx="21" cy="12" r="3" fill="white" opacity="0.7"/>
+        <path d="M8 23c0-3 2-5 5-5s5 2 5 5" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+      </svg>
+    ),
+    service: teamworkService as any,
   },
   {
     key: 'sentinelone',
