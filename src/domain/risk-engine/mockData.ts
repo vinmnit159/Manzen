@@ -91,6 +91,20 @@ export const seedSignals: NormalizedSignal[] = [
     collectedAt: daysAgo(2),
   },
   {
+    id: 'sig-cloudflare-waf-zone',
+    organizationId: 'org_1',
+    integrationId: 'int_cloudflare_core',
+    provider: 'cloudflare',
+    signalType: 'NETWORK_WAF_ENABLED',
+    resourceType: 'application',
+    resourceId: 'cf-zone-app',
+    resourceName: 'app.manzen.io',
+    value: false,
+    metadata: { zoneName: 'app.manzen.io' },
+    observedAt: daysAgo(3),
+    collectedAt: daysAgo(3),
+  },
+  {
     id: 'sig-aws-bucket-public',
     organizationId: 'org_1',
     integrationId: 'int_aws_prod',
@@ -257,6 +271,18 @@ export const seedTests: ControlTestDefinition[] = [
     severityOnFail: RiskLevel.MEDIUM,
     condition: { operator: 'equals', expected: true },
   },
+  {
+    id: 'test-cloudflare-waf-enabled',
+    controlId: 'control-network-waf',
+    controlName: 'External applications require WAF',
+    version: 1,
+    signalType: 'NETWORK_WAF_ENABLED',
+    name: 'Cloudflare WAF enabled',
+    description: 'Fail when WAF protections are disabled on externally exposed applications.',
+    frameworkIds: ['SOC2-CC6.6', 'ISO27001-A.8.20'],
+    severityOnFail: RiskLevel.HIGH,
+    condition: { operator: 'equals', expected: true },
+  },
 ];
 
 export const seedRules: RiskRuleRecord[] = [
@@ -348,6 +374,16 @@ export const seedRules: RiskRuleRecord[] = [
     defaultLikelihood: RiskLevel.LOW,
     severityWeight: 50,
     assetCriticalityWeight: 15,
+    durationWeight: 1,
+  },
+  {
+    id: 'rule-cloudflare-waf',
+    name: 'WAF protection disabled',
+    signalType: 'NETWORK_WAF_ENABLED',
+    category: 'Network',
+    defaultLikelihood: RiskLevel.HIGH,
+    severityWeight: 75,
+    assetCriticalityWeight: 30,
     durationWeight: 1,
   },
 ];
