@@ -132,6 +132,8 @@ import { leverService } from '@/services/api/lever';
 import { fieldguideService } from '@/services/api/fieldguide';
 import { rampService } from '@/services/api/ramp';
 import { brexService } from '@/services/api/brex';
+import { netsuiteService } from '@/services/api/netsuite';
+import { xeroService } from '@/services/api/xero';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -6974,6 +6976,40 @@ const ENGINEER_A_CARDS: EngineerACardConfig[] = [
       </svg>
     ),
     service: brexService as any,
+  },
+  {
+    key: 'netsuite',
+    name: 'NetSuite',
+    subtitle: 'Finance · Role permissions and financial approval controls',
+    category: 'Finance',
+    description: 'Verify finance role permissions are reviewed, approval workflow controls are validated, financial data export restrictions are audited, and integration token lifecycle governance is verified.',
+    brandColor: '#0EA5E9',
+    iconBg: 'bg-[#0EA5E9]',
+    isoTags: ['A.5.15 Role Permissions', 'A.8.32 Approval Workflows', 'A.5.34 Data Export Restrictions', 'A.5.17 Token Lifecycle'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <rect x="7" y="8" width="18" height="16" rx="2" fill="none" stroke="white" strokeWidth="2"/>
+        <path d="M11 13h10M11 17h8M11 21h5" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+      </svg>
+    ),
+    service: netsuiteService as any,
+  },
+  {
+    key: 'xero',
+    name: 'Xero',
+    subtitle: 'Finance · Advisor access and payment approval governance',
+    category: 'Finance',
+    description: 'Verify advisor role permissions are reviewed, payment and reconciliation approvals are validated, financial report export restrictions are audited, and connected app token governance is verified.',
+    brandColor: '#13B5EA',
+    iconBg: 'bg-[#13B5EA]',
+    isoTags: ['A.5.15 Advisor Permissions', 'A.8.32 Payment Approvals', 'A.5.34 Report Export Restrictions', 'A.5.17 App Tokens'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="9" fill="none" stroke="white" strokeWidth="2"/>
+        <path d="M12 12l8 8M20 12l-8 8" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+      </svg>
+    ),
+    service: xeroService as any,
   },
   {
     key: 'sentinelone',
