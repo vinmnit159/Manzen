@@ -97,6 +97,11 @@ import { employmentHeroService } from '@/services/api/employment-hero';
 import { justworksService } from '@/services/api/justworks';
 import { factorialService } from '@/services/api/factorial';
 import { alexishrService } from '@/services/api/alexishr';
+import { addigyService } from '@/services/api/addigy';
+import { workspaceOneService } from '@/services/api/workspace-one';
+import { huntressService } from '@/services/api/huntress';
+import { intruderService } from '@/services/api/intruder';
+import { orcaSecurityService } from '@/services/api/orca-security';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -6343,6 +6348,91 @@ const ENGINEER_A_CARDS: EngineerACardConfig[] = [
       </svg>
     ),
     service: alexishrService as any,
+  },
+  {
+    key: 'addigy',
+    name: 'Addigy',
+    subtitle: 'MDM · Device enrollment and compliance governance',
+    category: 'MDM',
+    description: 'Verify MDM enrollment coverage is reviewed, device compliance policies are enforced, privileged admin access governance is audited, and API credential lifecycle controls are validated.',
+    brandColor: '#00A3E0',
+    iconBg: 'bg-[#00A3E0]',
+    isoTags: ['A.8.1 Enrollment Coverage', 'A.8.9 Compliance Policy', 'A.5.18 Admin Access Governance', 'A.5.17 Credential Lifecycle'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <rect x="9" y="6" width="14" height="20" rx="2" fill="none" stroke="white" strokeWidth="2"/>
+        <circle cx="16" cy="22" r="1.5" fill="white"/>
+      </svg>
+    ),
+    service: addigyService as any,
+  },
+  {
+    key: 'workspace-one',
+    name: 'Workspace One',
+    subtitle: 'MDM · Device ownership, baseline policy, and admin controls',
+    category: 'MDM',
+    description: 'Verify device enrollment and ownership coverage is reviewed, baseline security policy compliance is validated, admin role assignment governance is audited, and integration credential lifecycle controls are validated.',
+    brandColor: '#607D8B',
+    iconBg: 'bg-[#607D8B]',
+    isoTags: ['A.8.1 Device Coverage', 'A.8.9 Baseline Policy', 'A.5.18 Role Assignment Governance', 'A.5.17 Credential Lifecycle'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <rect x="6" y="8" width="20" height="14" rx="2" fill="none" stroke="white" strokeWidth="2"/>
+        <path d="M12 24h8" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+      </svg>
+    ),
+    service: workspaceOneService as any,
+  },
+  {
+    key: 'huntress',
+    name: 'Huntress',
+    subtitle: 'Endpoint Security · Managed detection and response posture',
+    category: 'Endpoint Security',
+    description: 'Verify endpoint coverage is reviewed, managed detection policy enforcement is validated, analyst and admin privilege governance is audited, and alert triage workflow compliance is validated.',
+    brandColor: '#111827',
+    iconBg: 'bg-[#111827]',
+    isoTags: ['A.8.7 Endpoint Coverage', 'A.8.16 Detection Policy', 'A.5.18 Privilege Governance', 'A.5.24 Triage Workflow'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <path d="M16 5l10 4v7c0 5.7-3.9 10.9-10 12-6.1-1.1-10-6.3-10-12V9l10-4z" fill="none" stroke="white" strokeWidth="2"/>
+        <path d="M12 16l3 3 5-6" stroke="white" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    ),
+    service: huntressService as any,
+  },
+  {
+    key: 'intruder',
+    name: 'Intruder',
+    subtitle: 'Vulnerability Scanner · External surface and remediation SLA',
+    category: 'Vulnerability Scanner',
+    description: 'Verify external attack surface scan coverage is reviewed, severity triage workflow is validated, stale finding remediation SLA compliance is audited, and scanner credential governance is verified.',
+    brandColor: '#8B5CF6',
+    iconBg: 'bg-[#8B5CF6]',
+    isoTags: ['A.8.8 Surface Scan Coverage', 'A.8.9 Severity Triage', 'A.5.24 Remediation SLA', 'A.5.17 Credential Governance'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="9" fill="none" stroke="white" strokeWidth="2"/>
+        <path d="M16 11v5l3 2" stroke="white" strokeWidth="2" fill="none" strokeLinecap="round"/>
+      </svg>
+    ),
+    service: intruderService as any,
+  },
+  {
+    key: 'orca-security',
+    name: 'Orca Security',
+    subtitle: 'Vulnerability Scanner · Cloud asset and misconfiguration risk',
+    category: 'Vulnerability Scanner',
+    description: 'Verify cloud asset inventory coverage is reviewed, critical misconfiguration detection policy is enforced, sensitive data exposure monitoring is validated, and admin plus API access governance is audited.',
+    brandColor: '#0EA5E9',
+    iconBg: 'bg-[#0EA5E9]',
+    isoTags: ['A.5.9 Asset Inventory', 'A.8.20 Misconfiguration Detection', 'A.5.34 Data Exposure Monitoring', 'A.5.15 Admin and API Governance'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <path d="M16 6c5.5 0 10 4.5 10 10s-4.5 10-10 10S6 21.5 6 16 10.5 6 16 6z" fill="none" stroke="white" strokeWidth="2"/>
+        <circle cx="16" cy="16" r="3" fill="white"/>
+      </svg>
+    ),
+    service: orcaSecurityService as any,
   },
   {
     key: 'sentinelone',
