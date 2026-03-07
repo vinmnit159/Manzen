@@ -102,6 +102,11 @@ import { workspaceOneService } from '@/services/api/workspace-one';
 import { huntressService } from '@/services/api/huntress';
 import { intruderService } from '@/services/api/intruder';
 import { orcaSecurityService } from '@/services/api/orca-security';
+import { hostedscanService } from '@/services/api/hostedscan';
+import { aikidoSecurityService } from '@/services/api/aikido-security';
+import { jitService } from '@/services/api/jit';
+import { knowbe4Service } from '@/services/api/knowbe4';
+import { cybereadyService } from '@/services/api/cybeready';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -6433,6 +6438,92 @@ const ENGINEER_A_CARDS: EngineerACardConfig[] = [
       </svg>
     ),
     service: orcaSecurityService as any,
+  },
+  {
+    key: 'hostedscan',
+    name: 'HostedScan',
+    subtitle: 'Vulnerability Scanner · Attack surface and remediation tracking',
+    category: 'Vulnerability Scanner',
+    description: 'Verify attack surface scan coverage is reviewed, vulnerability prioritization workflow is validated, remediation SLA compliance is audited, and scanner credential governance is verified.',
+    brandColor: '#6D28D9',
+    iconBg: 'bg-[#6D28D9]',
+    isoTags: ['A.8.8 Surface Scan Coverage', 'A.8.9 Prioritization Workflow', 'A.5.24 Remediation SLA', 'A.5.17 Scanner Credentials'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="9" fill="none" stroke="white" strokeWidth="2"/>
+        <path d="M16 10v6l4 2" stroke="white" strokeWidth="2" fill="none" strokeLinecap="round"/>
+      </svg>
+    ),
+    service: hostedscanService as any,
+  },
+  {
+    key: 'aikido-security',
+    name: 'Aikido Security',
+    subtitle: 'Vulnerability Scanner · Code and cloud findings governance',
+    category: 'Vulnerability Scanner',
+    description: 'Verify code and cloud finding coverage is reviewed, policy severity tuning is validated, stale critical remediation is audited, and integration token governance is verified.',
+    brandColor: '#14B8A6',
+    iconBg: 'bg-[#14B8A6]',
+    isoTags: ['A.8.9 Finding Coverage', 'A.8.16 Severity Tuning', 'A.5.24 Critical Remediation', 'A.5.17 Integration Tokens'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <path d="M16 6l9 5v10l-9 5-9-5V11l9-5z" fill="none" stroke="white" strokeWidth="2"/>
+        <circle cx="16" cy="16" r="3" fill="white"/>
+      </svg>
+    ),
+    service: aikidoSecurityService as any,
+  },
+  {
+    key: 'jit',
+    name: 'Jit',
+    subtitle: 'Vulnerability Scanner · Alert triage and control baseline',
+    category: 'Vulnerability Scanner',
+    description: 'Verify control coverage and baseline policy are reviewed, alert triage workflow compliance is validated, remediation SLA adherence is audited, and integration access governance is verified.',
+    brandColor: '#0F172A',
+    iconBg: 'bg-[#0F172A]',
+    isoTags: ['A.8.9 Control Baseline', 'A.8.16 Alert Triage', 'A.5.24 Remediation SLA', 'A.5.15 Integration Access'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <rect x="8" y="7" width="16" height="18" rx="2" fill="none" stroke="white" strokeWidth="2"/>
+        <path d="M12 12h8M12 16h5" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+      </svg>
+    ),
+    service: jitService as any,
+  },
+  {
+    key: 'knowbe4',
+    name: 'KnowBe4',
+    subtitle: 'Security Training · Phishing simulation and awareness cadence',
+    category: 'Security Training',
+    description: 'Verify phishing simulation coverage is reviewed, mandatory training completion is validated, high-risk user coaching assignment is audited, and admin campaign governance is verified.',
+    brandColor: '#F59E0B',
+    iconBg: 'bg-[#F59E0B]',
+    isoTags: ['A.6.3 Simulation Coverage', 'A.6.3 Training Completion', 'A.6.3 User Coaching', 'A.5.18 Campaign Governance'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <path d="M16 5l10 4v7c0 5.7-3.9 10.9-10 12-6.1-1.1-10-6.3-10-12V9l10-4z" fill="none" stroke="white" strokeWidth="2"/>
+        <path d="M16 11v6" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+        <circle cx="16" cy="20" r="1.5" fill="white"/>
+      </svg>
+    ),
+    service: knowbe4Service as any,
+  },
+  {
+    key: 'cybeready',
+    name: 'Cybeready',
+    subtitle: 'Security Training · Participation and risk behavior governance',
+    category: 'Security Training',
+    description: 'Verify training cadence compliance is reviewed, phishing campaign participation is validated, repeat-risk user interventions are audited, and admin access governance is verified.',
+    brandColor: '#DC2626',
+    iconBg: 'bg-[#DC2626]',
+    isoTags: ['A.6.3 Training Cadence', 'A.6.3 Campaign Participation', 'A.6.3 Risk Interventions', 'A.5.18 Admin Governance'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="10" fill="none" stroke="white" strokeWidth="2"/>
+        <path d="M10 16h12M16 10v12" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+      </svg>
+    ),
+    service: cybereadyService as any,
   },
   {
     key: 'sentinelone',
