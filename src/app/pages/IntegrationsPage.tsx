@@ -62,16 +62,21 @@ import { herokuService } from '@/services/api/heroku';
 import { renderService } from '@/services/api/render';
 import { netlifyService } from '@/services/api/netlify';
 import { vercelService } from '@/services/api/vercel';
-import { sentineloneService } from '@/services/api/sentinelone';
-import { grafanaService } from '@/services/api/grafana';
-import { sentryService } from '@/services/api/sentry';
-import { onepasswordService } from '@/services/api/onepassword';
-import { snowflakeService } from '@/services/api/snowflake';
 import { scalewayService } from '@/services/api/scaleway';
 import { gitlabSelfManagedService } from '@/services/api/gitlab-self-managed';
 import { azureDevopsService } from '@/services/api/azure-devops';
 import { auth0Service } from '@/services/api/auth0';
 import { pingoneService } from '@/services/api/pingone';
+import { tailscaleService } from '@/services/api/tailscale';
+import { mondaycomService } from '@/services/api/mondaycom';
+import { basecampService } from '@/services/api/basecamp';
+import { smartsheetService } from '@/services/api/smartsheet';
+import { zendeskService } from '@/services/api/zendesk';
+import { sentineloneService } from '@/services/api/sentinelone';
+import { grafanaService } from '@/services/api/grafana';
+import { sentryService } from '@/services/api/sentry';
+import { onepasswordService } from '@/services/api/onepassword';
+import { snowflakeService } from '@/services/api/snowflake';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -5812,7 +5817,7 @@ const ENGINEER_A_CARDS: EngineerACardConfig[] = [
     description: 'Verify IAM policy follows least-privilege principles, object storage has no public access, instance security group rules are reviewed, and API keys follow rotation compliance.',
     brandColor: '#4F0599',
     iconBg: 'bg-[#4F0599]',
-    isoTags: ['A.5.15 IAM Policy', 'A.8.20 Storage Access', 'A.8.20 Security Groups', 'A.5.17 API Key Rotation'],
+    isoTags: ['A.5.17 Admin MFA', 'A.8.20 Security Groups', 'A.8.24 Storage Encryption', 'A.8.15 Activity Logs'],
     iconSvg: (
       <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
         <rect x="6" y="6" width="20" height="20" rx="4" fill="white" opacity="0.9"/>
@@ -5823,13 +5828,13 @@ const ENGINEER_A_CARDS: EngineerACardConfig[] = [
   },
   {
     key: 'gitlab-self-managed',
-    name: 'GitLab Self-Managed',
+    name: 'GitLab Self Managed',
     subtitle: 'Version Control · On-premise source code management',
     category: 'Version Control',
     description: 'Verify branch protection rules are enforced, merge request approval policies are active, secret scanning is enabled, and admin accounts are regularly reviewed.',
     brandColor: '#FC6D26',
     iconBg: 'bg-[#FC6D26]',
-    isoTags: ['A.8.4 Branch Protection', 'A.8.32 MR Approvals', 'A.8.28 Secret Scanning', 'A.5.18 Admin Review'],
+    isoTags: ['A.8.4 Branch Protection', 'A.8.32 Merge Approvals', 'A.5.15 Admin Access', 'A.8.15 Audit Logging'],
     iconSvg: (
       <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
         <path d="M16 27L6 11l3-8 3 8h8l3-8 3 8z" fill="white" opacity="0.9"/>
@@ -5845,7 +5850,7 @@ const ENGINEER_A_CARDS: EngineerACardConfig[] = [
     description: 'Verify branch policies are enforced, pipeline secret variables are protected, project member access is reviewed, and audit log retention is configured.',
     brandColor: '#0078D7',
     iconBg: 'bg-[#0078D7]',
-    isoTags: ['A.8.4 Branch Policies', 'A.5.33 Secret Protection', 'A.5.15 Access Review', 'A.8.15 Audit Logs'],
+    isoTags: ['A.5.15 Repo Permissions', 'A.8.4 Branch Policies', 'A.8.32 Approval Gates', 'A.8.15 Audit Streams'],
     iconSvg: (
       <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
         <path d="M4 10l6-4v20l-6-4V10z" fill="white" opacity="0.9"/>
@@ -5881,7 +5886,7 @@ const ENGINEER_A_CARDS: EngineerACardConfig[] = [
     description: 'Verify MFA policy coverage, dormant identities are cleaned up, admin privilege assignments are reviewed, and application access policies are audited.',
     brandColor: '#B3282D',
     iconBg: 'bg-[#B3282D]',
-    isoTags: ['A.5.17 MFA Policy', 'A.5.18 Dormant Cleanup', 'A.5.2 Admin Privileges', 'A.5.15 App Access'],
+    isoTags: ['A.5.17 Strong Authentication', 'A.5.18 Dormant Identities', 'A.5.15 Role Governance', 'A.8.16 Risk Signals'],
     iconSvg: (
       <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
         <circle cx="16" cy="12" r="6" fill="white"/>
@@ -5889,6 +5894,181 @@ const ENGINEER_A_CARDS: EngineerACardConfig[] = [
       </svg>
     ),
     service: pingoneService as any,
+  },
+  {
+    key: 'tailscale',
+    name: 'Tailscale',
+    subtitle: 'Identity Provider · Network identity and access controls',
+    category: 'Identity Provider',
+    description: 'Verify MFA enforcement for all users, ACL policies are reviewed, device authorization remains compliant, and admin user access is regularly audited.',
+    brandColor: '#242424',
+    iconBg: 'bg-[#242424]',
+    isoTags: ['A.5.17 MFA Enforcement', 'A.8.20 ACL Policy', 'A.8.9 Device Authorization', 'A.5.18 Admin Access Audit'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <rect x="6" y="6" width="8" height="8" rx="2" fill="white"/>
+        <rect x="18" y="6" width="8" height="8" rx="2" fill="white"/>
+        <rect x="6" y="18" width="8" height="8" rx="2" fill="white"/>
+        <rect x="18" y="18" width="8" height="8" rx="2" fill="white"/>
+      </svg>
+    ),
+    service: tailscaleService as any,
+  },
+  {
+    key: 'mondaycom',
+    name: 'Monday.com',
+    subtitle: 'Task Management · Workspace sharing and member governance',
+    category: 'Task Management',
+    description: 'Verify workspace member access is reviewed, board sharing policies are audited, guest account governance is enforced, and integration permissions are reviewed.',
+    brandColor: '#FF3D57',
+    iconBg: 'bg-[#FF3D57]',
+    isoTags: ['A.5.15 Member Access', 'A.5.14 Board Sharing', 'A.6.6 Guest Governance', 'A.5.15 Integration Permissions'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <rect x="6" y="8" width="20" height="4" rx="2" fill="white"/>
+        <rect x="6" y="14" width="16" height="4" rx="2" fill="white" opacity="0.85"/>
+        <rect x="6" y="20" width="12" height="4" rx="2" fill="white" opacity="0.7"/>
+      </svg>
+    ),
+    service: mondaycomService as any,
+  },
+  {
+    key: 'basecamp',
+    name: 'Basecamp',
+    subtitle: 'Task Management · Project access and collaboration controls',
+    category: 'Task Management',
+    description: 'Verify project access controls are reviewed, external collaborators are audited, admin role assignments are reviewed, and file sharing policies remain compliant.',
+    brandColor: '#1D9BF0',
+    iconBg: 'bg-[#1D9BF0]',
+    isoTags: ['A.5.15 Project Access', 'A.6.6 External Collaborators', 'A.5.18 Admin Roles', 'A.5.14 File Sharing'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <path d="M16 5l11 7v13H5V12l11-7z" fill="white" opacity="0.9"/>
+        <path d="M12 18h8" stroke="#1D9BF0" strokeWidth="2" strokeLinecap="round"/>
+      </svg>
+    ),
+    service: basecampService as any,
+  },
+  {
+    key: 'smartsheet',
+    name: 'Smartsheet',
+    subtitle: 'Task Management · Sheet sharing and admin permission controls',
+    category: 'Task Management',
+    description: 'Verify workspace sharing controls are audited, external user access is reviewed, admin permissions are reviewed, and report sharing policy remains compliant.',
+    brandColor: '#1F6FEB',
+    iconBg: 'bg-[#1F6FEB]',
+    isoTags: ['A.5.14 Workspace Sharing', 'A.6.6 External User Access', 'A.5.18 Admin Permissions', 'A.5.15 Report Sharing'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <rect x="7" y="6" width="18" height="20" rx="2" fill="none" stroke="white" strokeWidth="2"/>
+        <path d="M11 11h10M11 16h10M11 21h6" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+      </svg>
+    ),
+    service: smartsheetService as any,
+  },
+  {
+    key: 'zendesk',
+    name: 'Zendesk',
+    subtitle: 'Task Management · Support access and ticket data governance',
+    category: 'Task Management',
+    description: 'Verify agent permissions are reviewed, customer data access is audited, admin role governance is enforced, and API token rotation remains compliant.',
+    brandColor: '#03363D',
+    iconBg: 'bg-[#03363D]',
+    isoTags: ['A.5.15 Agent Permissions', 'A.5.34 Customer Data Access', 'A.5.18 Admin Governance', 'A.5.17 API Token Rotation'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <path d="M8 9h16v14H8z" fill="none" stroke="white" strokeWidth="2"/>
+        <path d="M12 14h8M12 18h6" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+      </svg>
+    ),
+    service: zendeskService as any,
+  },
+  {
+    key: 'sentinelone',
+    name: 'SentinelOne',
+    subtitle: 'Endpoint Security · AI-powered EDR & XDR',
+    category: 'Endpoint Security',
+    description: 'Verify EDR agent coverage across all endpoints, critical threat detections are reviewed, tamper protection is enabled, and threat response SLAs are being met.',
+    brandColor: '#6300B3',
+    iconBg: 'bg-[#6300B3]',
+    isoTags: ['A.8.7 Agent Coverage', 'A.8.16 Threat Detection', 'A.8.9 Tamper Protection', 'A.5.24 Response SLA'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <path d="M16 4L5 9v8c0 6.1 4.7 11.8 11 13.3C22.3 28.8 27 23.1 27 17V9L16 4z" fill="none" stroke="white" strokeWidth="2"/>
+        <path d="M11 16l4 4 6-7" stroke="white" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    ),
+    service: sentineloneService as any,
+  },
+  {
+    key: 'grafana',
+    name: 'Grafana',
+    subtitle: 'Observability · Metrics, logs & alerting',
+    category: 'Observability',
+    description: 'Verify alerting rule coverage for security events, data source access controls are reviewed, dashboard permissions are scoped correctly, and log retention meets policy.',
+    brandColor: '#F46800',
+    iconBg: 'bg-[#F46800]',
+    isoTags: ['A.8.16 Alerting Coverage', 'A.5.15 Data Source Access', 'A.5.15 Dashboard Permissions', 'A.8.15 Log Retention'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="10" fill="none" stroke="white" strokeWidth="2"/>
+        <path d="M16 10v6l4 2" stroke="white" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    ),
+    service: grafanaService as any,
+  },
+  {
+    key: 'sentry',
+    name: 'Sentry',
+    subtitle: 'Observability · Error tracking & performance',
+    category: 'Observability',
+    description: 'Verify project member access is reviewed, DSN keys are rotated on schedule, sensitive data scrubbing rules are active, and security issue alerts are routed correctly.',
+    brandColor: '#362D59',
+    iconBg: 'bg-[#362D59]',
+    isoTags: ['A.5.15 Member Access Review', 'A.5.17 DSN Key Rotation', 'A.5.34 Data Scrubbing', 'A.8.16 Alert Routing'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <path d="M16 5a11 11 0 1 0 0 22A11 11 0 0 0 16 5z" fill="none" stroke="white" strokeWidth="2"/>
+        <path d="M16 10v7" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
+        <circle cx="16" cy="21" r="1.5" fill="white"/>
+      </svg>
+    ),
+    service: sentryService as any,
+  },
+  {
+    key: 'onepassword',
+    name: '1Password',
+    subtitle: 'Password Manager · Team credential security',
+    category: 'Password Manager',
+    description: 'Verify MFA enforcement for all team members, shared vault access is reviewed, stale guest accounts are cleaned up, and secret rotation policies are being followed.',
+    brandColor: '#1A8CFF',
+    iconBg: 'bg-[#1A8CFF]',
+    isoTags: ['A.5.17 MFA Enforcement', 'A.5.15 Vault Access Review', 'A.5.18 Guest Account Cleanup', 'A.5.33 Secret Rotation'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <rect x="8" y="14" width="16" height="12" rx="2" fill="none" stroke="white" strokeWidth="2"/>
+        <path d="M11 14v-4a5 5 0 0 1 10 0v4" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+        <circle cx="16" cy="20" r="2" fill="white"/>
+      </svg>
+    ),
+    service: onepasswordService as any,
+  },
+  {
+    key: 'snowflake',
+    name: 'Snowflake',
+    subtitle: 'Data Warehouse · Cloud data platform',
+    category: 'Data Warehouse',
+    description: 'Verify MFA is enforced for all Snowflake users, data sharing access is reviewed, network policies restrict ingress, and query audit logging is enabled.',
+    brandColor: '#29B5E8',
+    iconBg: 'bg-[#29B5E8]',
+    isoTags: ['A.5.17 MFA Enforcement', 'A.5.15 Data Sharing Access', 'A.8.20 Network Policy', 'A.8.15 Audit Logging'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <path d="M16 4v24M4 16h24M7.5 7.5l17 17M24.5 7.5l-17 17" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+        <circle cx="16" cy="16" r="3" fill="white"/>
+      </svg>
+    ),
+    service: snowflakeService as any,
   },
 ];
 
