@@ -117,6 +117,11 @@ import { googleDriveService } from '@/services/api/google-drive';
 import { docusignService } from '@/services/api/docusign';
 import { mongodbAtlasService } from '@/services/api/mongodb-atlas';
 import { supabaseService } from '@/services/api/supabase';
+import { rocksetService } from '@/services/api/rockset';
+import { envoyService } from '@/services/api/envoy';
+import { launchdarklyService } from '@/services/api/launchdarkly';
+import { buildkiteService } from '@/services/api/buildkite';
+import { circleciService } from '@/services/api/circleci';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -6704,6 +6709,90 @@ const ENGINEER_A_CARDS: EngineerACardConfig[] = [
       </svg>
     ),
     service: supabaseService as any,
+  },
+  {
+    key: 'rockset',
+    name: 'Rockset',
+    subtitle: 'Datastore · Workspace access and query governance',
+    category: 'Datastore',
+    description: 'Verify workspace access permissions are reviewed, collection and query restrictions are enforced, API key lifecycle governance is validated, and data source integration controls are audited.',
+    brandColor: '#7C3AED',
+    iconBg: 'bg-[#7C3AED]',
+    isoTags: ['A.5.15 Workspace Access', 'A.8.20 Query Restrictions', 'A.5.17 API Key Lifecycle', 'A.5.18 Integration Controls'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="9" fill="none" stroke="white" strokeWidth="2"/>
+        <path d="M11 16h10" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+      </svg>
+    ),
+    service: rocksetService as any,
+  },
+  {
+    key: 'envoy',
+    name: 'Envoy',
+    subtitle: 'Other · Visitor access and credential lifecycle governance',
+    category: 'Other',
+    description: 'Verify visitor access policy compliance is reviewed, badge lifecycle controls are validated, admin role governance is audited, and access event retention is verified.',
+    brandColor: '#2563EB',
+    iconBg: 'bg-[#2563EB]',
+    isoTags: ['A.7.2 Visitor Access Policy', 'A.5.18 Badge Lifecycle', 'A.5.15 Admin Roles', 'A.8.15 Event Retention'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <rect x="9" y="6" width="14" height="20" rx="2" fill="none" stroke="white" strokeWidth="2"/>
+        <path d="M12 12h8M12 16h8" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+      </svg>
+    ),
+    service: envoyService as any,
+  },
+  {
+    key: 'launchdarkly',
+    name: 'LaunchDarkly',
+    subtitle: 'DevOps · Feature flag change and token governance',
+    category: 'DevOps',
+    description: 'Verify environment access permissions are reviewed, production flag change approvals are enforced, service token lifecycle governance is audited, and audit log retention is verified.',
+    brandColor: '#6366F1',
+    iconBg: 'bg-[#6366F1]',
+    isoTags: ['A.5.15 Environment Access', 'A.8.32 Change Approvals', 'A.5.17 Service Tokens', 'A.8.15 Audit Logs'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <path d="M16 6l8 5v10l-8 5-8-5V11l8-5z" fill="none" stroke="white" strokeWidth="2"/>
+        <circle cx="16" cy="16" r="2" fill="white"/>
+      </svg>
+    ),
+    service: launchdarklyService as any,
+  },
+  {
+    key: 'buildkite',
+    name: 'Buildkite',
+    subtitle: 'CI/CD · Pipeline permissions and deployment gate controls',
+    category: 'CI/CD',
+    description: 'Verify pipeline permissions are reviewed, deployment approval gates are validated, agent token and secret controls are audited, and build log retention integrity is verified.',
+    brandColor: '#14B8A6',
+    iconBg: 'bg-[#14B8A6]',
+    isoTags: ['A.5.15 Pipeline Permissions', 'A.8.32 Deployment Gates', 'A.5.17 Agent Tokens', 'A.8.15 Build Log Integrity'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <path d="M9 10h14v4H9zM9 18h9v4H9z" fill="white"/>
+      </svg>
+    ),
+    service: buildkiteService as any,
+  },
+  {
+    key: 'circleci',
+    name: 'CircleCI',
+    subtitle: 'CI/CD · Workflow approvals and secret governance',
+    category: 'CI/CD',
+    description: 'Verify project roles are reviewed, workflow approval and deployment controls are validated, context secret governance is audited, and job log auditability is verified.',
+    brandColor: '#161616',
+    iconBg: 'bg-[#161616]',
+    isoTags: ['A.5.15 Project Roles', 'A.8.32 Workflow Approvals', 'A.5.17 Context Secrets', 'A.8.15 Job Log Auditability'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="9" fill="none" stroke="white" strokeWidth="2"/>
+        <circle cx="16" cy="16" r="3" fill="white"/>
+      </svg>
+    ),
+    service: circleciService as any,
   },
   {
     key: 'sentinelone',
