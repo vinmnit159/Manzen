@@ -92,6 +92,11 @@ import { trinetService } from '@/services/api/trinet';
 import { humaansService } from '@/services/api/humaans';
 import { personioService } from '@/services/api/personio';
 import { adpWorkforceNowService } from '@/services/api/adp-workforce-now';
+import { deelService } from '@/services/api/deel';
+import { employmentHeroService } from '@/services/api/employment-hero';
+import { justworksService } from '@/services/api/justworks';
+import { factorialService } from '@/services/api/factorial';
+import { alexishrService } from '@/services/api/alexishr';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -6254,6 +6259,90 @@ const ENGINEER_A_CARDS: EngineerACardConfig[] = [
       </svg>
     ),
     service: adpWorkforceNowService as any,
+  },
+  {
+    key: 'deel',
+    name: 'Deel',
+    subtitle: 'HRIS · Global payroll and contractor access governance',
+    category: 'HRIS',
+    description: 'Verify role-based user access is reviewed, payroll and contractor data controls are enforced, admin privilege assignments are audited, and API credential lifecycle controls are validated.',
+    brandColor: '#0A0A0A',
+    iconBg: 'bg-[#0A0A0A]',
+    isoTags: ['A.5.15 Role-Based Access', 'A.5.34 Payroll and Contractor Data', 'A.5.18 Admin Privileges', 'A.5.17 Credential Lifecycle'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <rect x="7" y="7" width="18" height="18" rx="3" fill="white" opacity="0.9"/>
+        <path d="M12 16h8" stroke="#0A0A0A" strokeWidth="2" strokeLinecap="round"/>
+      </svg>
+    ),
+    service: deelService as any,
+  },
+  {
+    key: 'employment-hero',
+    name: 'Employment Hero',
+    subtitle: 'HRIS · Employee record protection and admin access controls',
+    category: 'HRIS',
+    description: 'Verify role permissions are reviewed, employee record access restrictions are enforced, privileged admin account governance is audited, and API integration access controls are validated.',
+    brandColor: '#5A3E9A',
+    iconBg: 'bg-[#5A3E9A]',
+    isoTags: ['A.5.15 Role Permissions', 'A.5.34 Record Access Restrictions', 'A.5.18 Privileged Admin Governance', 'A.8.16 Integration Access Controls'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <path d="M16 6l10 6v8l-10 6-10-6v-8l10-6z" fill="white" opacity="0.9"/>
+      </svg>
+    ),
+    service: employmentHeroService as any,
+  },
+  {
+    key: 'justworks',
+    name: 'Justworks',
+    subtitle: 'HRIS · Payroll export controls and SSO governance',
+    category: 'HRIS',
+    description: 'Verify user access role policy is reviewed, payroll data export restrictions are enforced, admin privilege assignments are audited, and credential plus SSO integration controls are validated.',
+    brandColor: '#2F855A',
+    iconBg: 'bg-[#2F855A]',
+    isoTags: ['A.5.15 Access Role Policy', 'A.5.34 Payroll Export Restrictions', 'A.5.18 Admin Privilege Audit', 'A.5.17 Credential and SSO Controls'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="10" fill="none" stroke="white" strokeWidth="2"/>
+        <path d="M12 16l3 3 5-6" stroke="white" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    ),
+    service: justworksService as any,
+  },
+  {
+    key: 'factorial',
+    name: 'Factorial',
+    subtitle: 'HRIS · HR permission boundaries and document access controls',
+    category: 'HRIS',
+    description: 'Verify HR user permissions are reviewed, employee document access controls are enforced, admin role governance is audited, and API token management controls are validated.',
+    brandColor: '#F97316',
+    iconBg: 'bg-[#F97316]',
+    isoTags: ['A.5.15 HR Permissions', 'A.5.34 Document Access Controls', 'A.5.18 Admin Role Governance', 'A.5.17 API Token Controls'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <rect x="8" y="8" width="16" height="16" rx="2" fill="none" stroke="white" strokeWidth="2"/>
+        <path d="M12 12h8M12 16h8M12 20h5" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+      </svg>
+    ),
+    service: factorialService as any,
+  },
+  {
+    key: 'alexishr',
+    name: 'AlexisHR',
+    subtitle: 'HRIS · Sensitive profile access and credential lifecycle controls',
+    category: 'HRIS',
+    description: 'Verify role-based access configuration is reviewed, sensitive employee profile restrictions are enforced, admin privilege governance is audited, and integration credential lifecycle controls are validated.',
+    brandColor: '#2563EB',
+    iconBg: 'bg-[#2563EB]',
+    isoTags: ['A.5.15 RBAC Configuration', 'A.5.34 Sensitive Profile Restrictions', 'A.5.18 Admin Privilege Governance', 'A.5.17 Credential Lifecycle Controls'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="11" r="4" fill="white"/>
+        <path d="M8 24c0-4.2 3.6-7 8-7s8 2.8 8 7" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+      </svg>
+    ),
+    service: alexishrService as any,
   },
   {
     key: 'sentinelone',
