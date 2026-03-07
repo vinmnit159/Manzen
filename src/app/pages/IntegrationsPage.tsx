@@ -107,6 +107,11 @@ import { aikidoSecurityService } from '@/services/api/aikido-security';
 import { jitService } from '@/services/api/jit';
 import { knowbe4Service } from '@/services/api/knowbe4';
 import { cybereadyService } from '@/services/api/cybeready';
+import { hookSecurityService } from '@/services/api/hook-security';
+import { hoxhuntService } from '@/services/api/hoxhunt';
+import { certnService } from '@/services/api/certn';
+import { checkrService } from '@/services/api/checkr';
+import { dashlaneService } from '@/services/api/dashlane';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -6524,6 +6529,91 @@ const ENGINEER_A_CARDS: EngineerACardConfig[] = [
       </svg>
     ),
     service: cybereadyService as any,
+  },
+  {
+    key: 'hook-security',
+    name: 'Hook Security',
+    subtitle: 'Security Training · Phishing participation and coaching governance',
+    category: 'Security Training',
+    description: 'Verify phishing training cadence is reviewed, campaign participation is validated, repeat-risk user coaching is audited, and admin governance for campaigns is verified.',
+    brandColor: '#7C3AED',
+    iconBg: 'bg-[#7C3AED]',
+    isoTags: ['A.6.3 Training Cadence', 'A.6.3 Campaign Participation', 'A.6.3 User Coaching', 'A.5.18 Admin Governance'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <path d="M16 5l10 4v7c0 5.7-3.9 10.9-10 12-6.1-1.1-10-6.3-10-12V9l10-4z" fill="none" stroke="white" strokeWidth="2"/>
+        <path d="M12 16l3 3 5-6" stroke="white" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    ),
+    service: hookSecurityService as any,
+  },
+  {
+    key: 'hoxhunt',
+    name: 'HoxHunt',
+    subtitle: 'Security Training · Behavioral risk and simulation governance',
+    category: 'Security Training',
+    description: 'Verify simulation coverage is reviewed, training completion rates are validated, high-risk behavior interventions are audited, and tenant admin access governance is verified.',
+    brandColor: '#0EA5E9',
+    iconBg: 'bg-[#0EA5E9]',
+    isoTags: ['A.6.3 Simulation Coverage', 'A.6.3 Completion Rates', 'A.6.3 Risk Interventions', 'A.5.18 Admin Governance'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="9" fill="none" stroke="white" strokeWidth="2"/>
+        <path d="M11 16h10" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+        <circle cx="16" cy="16" r="2" fill="white"/>
+      </svg>
+    ),
+    service: hoxhuntService as any,
+  },
+  {
+    key: 'certn',
+    name: 'Certn',
+    subtitle: 'Background Checks · Screening policy and data access controls',
+    category: 'Background Checks',
+    description: 'Verify screening workflow access roles are reviewed, candidate PII access restrictions are enforced, adjudication privilege assignments are audited, and integration credentials are governed.',
+    brandColor: '#1E3A8A',
+    iconBg: 'bg-[#1E3A8A]',
+    isoTags: ['A.5.15 Access Roles', 'A.5.34 Candidate PII Access', 'A.5.18 Privilege Assignments', 'A.5.17 Integration Credentials'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <rect x="8" y="7" width="16" height="18" rx="2" fill="none" stroke="white" strokeWidth="2"/>
+        <path d="M12 13h8M12 17h8M12 21h5" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+      </svg>
+    ),
+    service: certnService as any,
+  },
+  {
+    key: 'checkr',
+    name: 'Checkr',
+    subtitle: 'Background Checks · Candidate screening and access governance',
+    category: 'Background Checks',
+    description: 'Verify screening access roles are reviewed, candidate record access controls are enforced, admin privilege governance is audited, and API token lifecycle controls are validated.',
+    brandColor: '#16A34A',
+    iconBg: 'bg-[#16A34A]',
+    isoTags: ['A.5.15 Screening Roles', 'A.5.34 Candidate Record Access', 'A.5.18 Admin Governance', 'A.5.17 Token Lifecycle'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <path d="M7 16l5 5 13-13" stroke="white" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    ),
+    service: checkrService as any,
+  },
+  {
+    key: 'dashlane',
+    name: 'Dashlane',
+    subtitle: 'Password Manager · Vault permissions and credential hygiene',
+    category: 'Password Manager',
+    description: 'Verify vault sharing permissions are reviewed, MFA policy coverage is validated, stale member cleanup is audited, and secret rotation plus credential risk alerts are monitored.',
+    brandColor: '#0F172A',
+    iconBg: 'bg-[#0F172A]',
+    isoTags: ['A.5.15 Vault Permissions', 'A.5.17 MFA Coverage', 'A.5.18 Member Cleanup', 'A.5.33 Secret Rotation'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <rect x="8" y="14" width="16" height="10" rx="2" fill="none" stroke="white" strokeWidth="2"/>
+        <path d="M11 14v-3a5 5 0 0110 0v3" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+      </svg>
+    ),
+    service: dashlaneService as any,
   },
   {
     key: 'sentinelone',
