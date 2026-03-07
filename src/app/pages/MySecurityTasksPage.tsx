@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   CheckCircle2,
   Circle,
@@ -19,9 +19,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { onboardingService, OnboardingStatus } from '@/services/api/onboarding';
 import { policiesService } from '@/services/api/policies';
 import { findingsService, FindingRecord, FindingSeverity, FindingStatus } from '@/services/api/findings';
-
-// Video is served as a Vite public asset — no backend dependency, full range-request support
-const TRAINING_VIDEO_URL = '/security-awareness-training.mp4';
+import { SecurityQuestApp } from '@/app/features/security-quest/components/SecurityQuestApp';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -254,7 +252,7 @@ function Task2Mdm({ status }: { status: OnboardingStatus }) {
   );
 }
 
-// ── Task 3 – Security Awareness Training Video ─────────────────────────────────
+// ── Task 3 – Security Awareness Training ──────────────────────────────────────
 
 function Task3Training({
   status,
@@ -263,36 +261,8 @@ function Task3Training({
   status: OnboardingStatus;
   onDone: (updated: OnboardingStatus) => void;
 }) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [started, setStarted] = useState(status.trainingStarted);
-  const [completed, setCompleted] = useState(status.trainingCompleted);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const videoUrl = TRAINING_VIDEO_URL;
-
-  const handlePlay = async () => {
-    if (started) return;
-    setStarted(true);
-    try {
-      await onboardingService.recordTrainingStart();
-    } catch { /* non-fatal */ }
-  };
-
-  const handleEnded = async () => {
-    if (completed || saving) return;
-    setSaving(true);
-    setError(null);
-    try {
-      const res = await onboardingService.recordTrainingComplete();
-      setCompleted(true);
-      onDone(res.data);
-    } catch (e: any) {
-      setError(e?.message ?? 'Failed to save completion');
-    } finally {
-      setSaving(false);
-    }
-  };
 
   if (status.trainingCompleted) {
     return (
@@ -303,32 +273,39 @@ function Task3Training({
     );
   }
 
+  const handleTrainingStart = async () => {
+    try {
+      await onboardingService.recordTrainingStart();
+    } catch { /* non-fatal */ }
+  };
+
+  const handleTrainingComplete = async () => {
+    if (saving) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await onboardingService.recordTrainingComplete();
+      onDone(res.data);
+    } catch (e: any) {
+      setError(e?.message ?? 'Failed to save completion');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
-      <p className="text-sm text-gray-600">
-        Watch the InfoSec awareness training video in full. The task marks complete automatically when the video ends.
-      </p>
-
-      {status.trainingStarted && !completed && (
+      {status.trainingStarted && !status.trainingCompleted && (
         <div className="flex items-center gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
           <Clock className="w-3.5 h-3.5" />
-          Training in progress — started {fmtDate(status.trainingStartedAt)}. Watch to completion.
+          Training in progress — started {fmtDate(status.trainingStartedAt)}. Complete all modules to finish.
         </div>
       )}
 
-      <div className="rounded-xl overflow-hidden border border-gray-200 bg-black">
-        <video
-          ref={videoRef}
-          src={videoUrl}
-          controls
-          controlsList="nodownload"
-          className="w-full max-h-[420px]"
-          onPlay={handlePlay}
-          onEnded={handleEnded}
-        >
-          Your browser does not support the video tag.
-        </video>
-      </div>
+      <SecurityQuestApp
+        onTrainingStart={handleTrainingStart}
+        onTrainingComplete={handleTrainingComplete}
+      />
 
       {saving && (
         <div className="flex items-center gap-2 text-sm text-blue-600">
@@ -336,10 +313,6 @@ function Task3Training({
         </div>
       )}
       {error && <p className="text-xs text-red-600">{error}</p>}
-
-      <p className="text-xs text-gray-400">
-        Do not skip ahead — the task only completes when the video reaches 100% playback.
-      </p>
     </div>
   );
 }
@@ -629,7 +602,7 @@ export function MySecurityTasksPage() {
           number={3}
           icon={BookOpen}
           title="Complete Security Awareness Training"
-          description="Watch the mandatory InfoSec awareness video from start to finish."
+          description="Complete the interactive security awareness training mission."
           done={status.trainingCompleted}
           inProgress={status.trainingStarted && !status.trainingCompleted}
         >

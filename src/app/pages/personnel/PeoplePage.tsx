@@ -188,7 +188,7 @@ function UserDetailPanel({
               ob.trainingCompleted
                 ? `Completed on ${fmtDate(ob.trainingCompletedAt)}`
                 : ob.trainingStarted
-                  ? `Started on ${fmtDate(ob.trainingStartedAt)} — video not finished yet`
+                  ? `Started on ${fmtDate(ob.trainingStartedAt)} — training not completed yet`
                   : "Not started"
             }
           />

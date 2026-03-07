@@ -264,7 +264,7 @@ export function MyWorkPage() {
                   label="Complete security training"
                   done={onboarding.trainingCompleted}
                   doneAt={onboarding.trainingCompletedAt}
-                  description="Watch the security awareness training video"
+                  description="Complete the interactive security awareness training"
                   linkTo="/my-security-tasks"
                 />
               </div>
