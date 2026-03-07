@@ -57,6 +57,11 @@ import { splunkService } from '@/services/api/splunk';
 import { sumologicService } from '@/services/api/sumologic';
 import { tenableService } from '@/services/api/tenable';
 import { qualysService } from '@/services/api/qualys';
+import { digitaloceanService } from '@/services/api/digitalocean';
+import { herokuService } from '@/services/api/heroku';
+import { renderService } from '@/services/api/render';
+import { netlifyService } from '@/services/api/netlify';
+import { vercelService } from '@/services/api/vercel';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -5704,6 +5709,90 @@ const ENGINEER_A_CARDS: EngineerACardConfig[] = [
       </svg>
     ),
     service: qualysService as any,
+  },
+  {
+    key: 'digitalocean',
+    name: 'DigitalOcean',
+    subtitle: 'Cloud Provider · Infrastructure access, network and encryption',
+    category: 'Cloud Provider',
+    description: 'Verify MFA coverage for team members, public ingress rules are restricted, block storage encryption is enabled, and stale API tokens are rotated.',
+    brandColor: '#0080FF',
+    iconBg: 'bg-[#0080FF]',
+    isoTags: ['A.5.17 MFA Coverage', 'A.8.20 Ingress Controls', 'A.8.24 Volume Encryption', 'A.5.18 Token Rotation'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="11" fill="white" opacity="0.2"/>
+        <circle cx="16" cy="16" r="6.5" fill="white"/>
+        <circle cx="23.5" cy="23.5" r="2.5" fill="white"/>
+      </svg>
+    ),
+    service: digitaloceanService as any,
+  },
+  {
+    key: 'heroku',
+    name: 'Heroku',
+    subtitle: 'Cloud Provider · App pipeline security and auditability',
+    category: 'Cloud Provider',
+    description: 'Verify production pipelines are protected, config var secrets follow rotation cadence, team access roles are reviewed, and log drains are enabled for critical apps.',
+    brandColor: '#79589F',
+    iconBg: 'bg-[#79589F]',
+    isoTags: ['A.8.32 Protected Pipelines', 'A.5.33 Secrets Rotation', 'A.5.18 Role Reviews', 'A.8.15 Log Drains'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <rect x="7" y="6" width="18" height="20" rx="2" fill="white" opacity="0.95"/>
+        <rect x="10" y="10" width="4" height="12" fill="#79589F"/>
+        <rect x="18" y="10" width="4" height="12" fill="#79589F"/>
+      </svg>
+    ),
+    service: herokuService as any,
+  },
+  {
+    key: 'render',
+    name: 'Render',
+    subtitle: 'Cloud Provider · Service access and deployment governance',
+    category: 'Cloud Provider',
+    description: 'Verify least-privilege access for production services, environment secrets are rotated regularly, private network rules are reviewed, and deploy audit logs are retained.',
+    brandColor: '#111111',
+    iconBg: 'bg-[#111111]',
+    isoTags: ['A.5.15 Least Privilege', 'A.5.33 Secrets Rotation', 'A.8.20 Network Rules', 'A.8.15 Deploy Logs'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <path d="M8 8h8l8 8-8 8H8l8-8-8-8z" fill="white"/>
+      </svg>
+    ),
+    service: renderService as any,
+  },
+  {
+    key: 'netlify',
+    name: 'Netlify',
+    subtitle: 'Cloud Provider · Deploy controls and build security hygiene',
+    category: 'Cloud Provider',
+    description: 'Verify SSO and MFA are enforced for admins, branch deploy controls are configured, environment variable access is restricted, and build logs are retained for investigations.',
+    brandColor: '#00C7B7',
+    iconBg: 'bg-[#00C7B7]',
+    isoTags: ['A.5.17 SSO and MFA', 'A.8.32 Branch Deploy Controls', 'A.5.15 Env Var Access', 'A.8.15 Build Logs'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <path d="M7 7h9v9H7zM16 16h9v9h-9zM16 7h9v9h-9zM7 16h9v9H7z" fill="white"/>
+      </svg>
+    ),
+    service: netlifyService as any,
+  },
+  {
+    key: 'vercel',
+    name: 'Vercel',
+    subtitle: 'Cloud Provider · Deployment protection and access monitoring',
+    category: 'Cloud Provider',
+    description: 'Verify production deployment protection is enabled, team role assignments are reviewed, environment secrets rotation policy is active, and access logs are monitored for anomalies.',
+    brandColor: '#000000',
+    iconBg: 'bg-[#000000]',
+    isoTags: ['A.8.32 Deployment Protection', 'A.5.18 Role Assignment Reviews', 'A.5.33 Secrets Policy', 'A.8.16 Access Monitoring'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <path d="M16 6l10 18H6L16 6z" fill="white"/>
+      </svg>
+    ),
+    service: vercelService as any,
   },
 ];
 
