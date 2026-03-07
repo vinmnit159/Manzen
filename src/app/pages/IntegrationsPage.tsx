@@ -87,6 +87,11 @@ import { copperService } from '@/services/api/copper';
 import { apolloService } from '@/services/api/apollo';
 import { gongService } from '@/services/api/gong';
 import { zoominfoService } from '@/services/api/zoominfo';
+import { gustoService } from '@/services/api/gusto';
+import { trinetService } from '@/services/api/trinet';
+import { humaansService } from '@/services/api/humaans';
+import { personioService } from '@/services/api/personio';
+import { adpWorkforceNowService } from '@/services/api/adp-workforce-now';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -6163,6 +6168,92 @@ const ENGINEER_A_CARDS: EngineerACardConfig[] = [
       </svg>
     ),
     service: zoominfoService as any,
+  },
+  {
+    key: 'gusto',
+    name: 'Gusto',
+    subtitle: 'HRIS · Payroll data access and admin governance controls',
+    category: 'HRIS',
+    description: 'Verify employee access roles are reviewed, payroll data access controls are enforced, admin privilege governance is audited, and API credential lifecycle controls are validated.',
+    brandColor: '#F45D48',
+    iconBg: 'bg-[#F45D48]',
+    isoTags: ['A.5.15 Access Roles', 'A.5.34 Payroll Data Controls', 'A.5.18 Admin Governance', 'A.5.17 Credential Lifecycle'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="10" fill="white" opacity="0.2"/>
+        <path d="M12 16h8M16 12v8" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+      </svg>
+    ),
+    service: gustoService as any,
+  },
+  {
+    key: 'trinet',
+    name: 'TriNet',
+    subtitle: 'HRIS · Role assignment, data export, and admin audit controls',
+    category: 'HRIS',
+    description: 'Verify user role assignments are reviewed, employee data export restrictions are enforced, privileged admin accounts are audited, and API and SSO integration governance is validated.',
+    brandColor: '#003A70',
+    iconBg: 'bg-[#003A70]',
+    isoTags: ['A.5.15 Role Assignments', 'A.5.34 Data Export Restrictions', 'A.5.18 Admin Account Audit', 'A.8.16 Integration Governance'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <rect x="7" y="7" width="18" height="18" rx="3" fill="none" stroke="white" strokeWidth="2"/>
+        <path d="M11 12h10M16 12v10" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+      </svg>
+    ),
+    service: trinetService as any,
+  },
+  {
+    key: 'humaans',
+    name: 'Humaans',
+    subtitle: 'HRIS · Lifecycle workflows and PII field access controls',
+    category: 'HRIS',
+    description: 'Verify HR user permissions are reviewed, lifecycle workflow boundaries are enforced, PII field access controls are audited, and API token governance is monitored.',
+    brandColor: '#3B82F6',
+    iconBg: 'bg-[#3B82F6]',
+    isoTags: ['A.5.15 HR Permissions', 'A.6.5 Lifecycle Workflow Boundaries', 'A.5.34 PII Field Controls', 'A.5.17 API Token Governance'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="11" cy="12" r="3" fill="white"/>
+        <circle cx="21" cy="12" r="3" fill="white" opacity="0.7"/>
+        <path d="M7 23c0-3 2-5 4-5s4 2 4 5M17 23c0-3 2-5 4-5s4 2 4 5" stroke="white" strokeWidth="2" fill="none" strokeLinecap="round"/>
+      </svg>
+    ),
+    service: humaansService as any,
+  },
+  {
+    key: 'personio',
+    name: 'Personio',
+    subtitle: 'HRIS · Role-based access and document permission governance',
+    category: 'HRIS',
+    description: 'Verify role-based access configuration is reviewed, employee document access restrictions are enforced, admin account governance is audited, and API credential controls are validated.',
+    brandColor: '#1B7F5C',
+    iconBg: 'bg-[#1B7F5C]',
+    isoTags: ['A.5.15 RBAC Review', 'A.5.34 Document Access Restrictions', 'A.5.18 Admin Governance', 'A.5.17 API Credential Controls'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <rect x="8" y="6" width="16" height="20" rx="2" fill="none" stroke="white" strokeWidth="2"/>
+        <path d="M12 12h8M12 16h8M12 20h5" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+      </svg>
+    ),
+    service: personioService as any,
+  },
+  {
+    key: 'adp-workforce-now',
+    name: 'ADP Workforce Now',
+    subtitle: 'HRIS · Payroll and PII access policy governance',
+    category: 'HRIS',
+    description: 'Verify access role policy is reviewed, payroll and PII access controls are enforced, admin privilege assignments are audited, and integration token lifecycle controls are validated.',
+    brandColor: '#D30000',
+    iconBg: 'bg-[#D30000]',
+    isoTags: ['A.5.15 Access Role Policy', 'A.5.34 Payroll and PII Controls', 'A.5.18 Admin Privilege Audit', 'A.5.17 Token Lifecycle Controls'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <path d="M7 8h18v16H7z" fill="none" stroke="white" strokeWidth="2"/>
+        <path d="M11 12h10M11 16h7M11 20h5" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+      </svg>
+    ),
+    service: adpWorkforceNowService as any,
   },
   {
     key: 'sentinelone',
