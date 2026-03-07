@@ -5,6 +5,12 @@ export interface GitHubRepo {
   defaultBranch: string; visibility: string; lastScannedAt: string | null; rawData: any;
 }
 
+export interface TriggerGitHubScanRequest {
+  integrationId?: string;
+  organizationId?: string;
+  repos?: GitHubRepo[];
+}
+
 export interface Integration {
   id: string; provider: string; status: 'ACTIVE' | 'DISCONNECTED';
   createdAt: string; updatedAt: string; repos: GitHubRepo[];
@@ -37,8 +43,8 @@ export const integrationsService = {
   async getGitHubRepos(): Promise<{ repos: GitHubRepo[] }> {
     return apiClient.get('/api/integrations/github/repos');
   },
-  async triggerScan(): Promise<{ success: boolean; message: string }> {
-    return apiClient.post('/api/integrations/github/scan', {});
+  async triggerScan(payload?: TriggerGitHubScanRequest): Promise<{ success: boolean; message: string; data?: { signals: number; testResults: number; risks: number } }> {
+    return apiClient.post('/api/integrations/github/scan', payload ?? {});
   },
   async disconnect(): Promise<{ success: boolean }> {
     return apiClient.delete('/api/integrations/github');

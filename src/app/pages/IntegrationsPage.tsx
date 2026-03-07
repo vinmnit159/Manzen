@@ -238,6 +238,7 @@ function GitHubCard({
 }) {
   const [disconnecting, setDisconnecting] = useState(false);
   const [showRepos, setShowRepos] = useState(false);
+  const [scanning, setScanning] = useState(false);
   const isConnected = !!githubIntegration;
 
   const handleDisconnect = async () => {
@@ -256,6 +257,22 @@ function GitHubCard({
 
   const handleConnect = () => {
     window.location.href = integrationsService.getConnectUrl();
+  };
+
+  const handleScan = async () => {
+    if (!githubIntegration) return;
+    setScanning(true);
+    try {
+      const result = await integrationsService.triggerScan({
+        integrationId: githubIntegration.id,
+        repos,
+      });
+      onToast('success', result.message || 'GitHub scan completed');
+    } catch {
+      onToast('error', 'Failed to run GitHub scan');
+    } finally {
+      setScanning(false);
+    }
   };
 
   return (
@@ -307,6 +324,9 @@ function GitHubCard({
         )}
         {isConnected && (
           <>
+            <Button onClick={handleScan} disabled={scanning}>
+              {scanning ? 'Scanning...' : 'Run Scan'}
+            </Button>
             <Button variant="outline" onClick={() => setShowRepos((v) => !v)}>
               {showRepos ? 'Hide Repos' : `View Repos (${repos.length})`}
             </Button>
