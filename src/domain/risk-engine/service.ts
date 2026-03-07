@@ -257,6 +257,90 @@ export class RiskEngineFoundationService {
   async listScanRuns(): Promise<ScanRunRecord[]> { return this.repository.listScanRuns(); }
   async listEvents(): Promise<RiskEngineEventRecord[]> { return this.repository.listEvents(); }
 
+  async ingestNormalizedSignals(params: {
+    execution: IntegrationJobExecutionRecord;
+    scanRun: ScanRunRecord;
+    signals: NormalizedSignal[];
+  }) {
+    const { execution, scanRun, signals } = params;
+    const currentStatuses = await this.repository.listProviderStatuses();
+    const matchingStatus = currentStatuses.find((status) => status.provider === execution.provider && status.integrationId === execution.integrationId);
+
+    const nextStatus: ProviderSyncStatusRecord = matchingStatus
+      ? {
+          ...matchingStatus,
+          status: execution.status === 'FAILED' ? 'ERROR' : 'HEALTHY',
+          lastSyncAt: execution.completedAt,
+          lastSuccessAt: execution.status === 'SUCCEEDED' ? execution.completedAt : matchingStatus.lastSuccessAt,
+          signalsCollected: signals.length,
+        }
+      : {
+          id: `provider-${execution.provider}-${execution.integrationId}`,
+          provider: execution.provider === 'risk-engine' ? 'system' : execution.provider,
+          integrationId: execution.integrationId,
+          status: execution.status === 'FAILED' ? 'ERROR' : 'HEALTHY',
+          lastSyncAt: execution.completedAt,
+          lastSuccessAt: execution.status === 'SUCCEEDED' ? execution.completedAt : execution.startedAt,
+          signalsCollected: signals.length,
+          testsEvaluated: 0,
+          openRisks: 0,
+        };
+
+    const statuses = matchingStatus
+      ? currentStatuses.map((status) => (status.id === matchingStatus.id ? nextStatus : status))
+      : [nextStatus, ...currentStatuses];
+
+    const ingestions: SignalIngestionRecord[] = signals.map((signal) => ({
+      id: `ingest-${signal.id}-${Date.now()}`,
+      signalId: signal.id,
+      provider: signal.provider,
+      integrationId: signal.integrationId,
+      organizationId: signal.organizationId,
+      resourceId: signal.resourceId,
+      ingestedAt: execution.completedAt,
+      normalizedAt: execution.completedAt,
+      jobExecutionId: execution.id,
+    }));
+
+    const events: RiskEngineEventRecord[] = [
+      {
+        id: `event-exec-${execution.id}`,
+        eventType: 'integration.sync.completed',
+        provider: execution.provider,
+        integrationId: execution.integrationId,
+        organizationId: execution.organizationId,
+        resourceId: execution.integrationId,
+        severity: execution.status === 'FAILED' ? 'critical' : 'info',
+        message: execution.status === 'FAILED' ? `Integration execution failed: ${execution.errorMessage ?? 'unknown error'}` : `Integration execution completed with ${signals.length} normalized signals.`,
+        createdAt: execution.completedAt,
+        metadata: execution.metadata,
+      },
+      ...ingestions.map((record) => ({
+        id: `event-ingest-${record.id}`,
+        eventType: 'signal.normalized' as const,
+        provider: record.provider,
+        integrationId: record.integrationId,
+        organizationId: record.organizationId,
+        resourceId: record.resourceId,
+        severity: 'info' as const,
+        message: `Signal ${record.signalId} normalized for ${record.resourceId}.`,
+        createdAt: record.normalizedAt,
+        metadata: { signalId: record.signalId, jobExecutionId: record.jobExecutionId },
+      })),
+    ];
+
+    await Promise.all([
+      this.repository.saveSignals(signals),
+      this.repository.saveIntegrationExecutions([execution]),
+      this.repository.saveSignalIngestions(ingestions),
+      this.repository.saveProviderStatuses(statuses),
+      this.repository.saveScanRun(scanRun),
+      this.repository.appendEvents(events),
+    ]);
+
+    return this.runEvaluationCycle();
+  }
+
   async recordIntegrationExecution(execution: IntegrationJobExecutionRecord, relatedScanRun?: ScanRunRecord) {
     const currentStatuses = await this.repository.listProviderStatuses();
     const matchingStatus = currentStatuses.find((status) => status.provider === execution.provider && status.integrationId === execution.integrationId);

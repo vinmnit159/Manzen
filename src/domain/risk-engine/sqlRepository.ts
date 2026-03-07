@@ -22,6 +22,16 @@ export class SqlRiskEngineRepository implements RiskEngineRepository {
     return result.rows.map((row) => riskEngineMappers.fromSignalRow(row as any));
   }
 
+  async saveSignals(signals: NormalizedSignal[]): Promise<void> {
+    for (const signal of signals) {
+      const row = riskEngineMappers.toSignalRow(signal);
+      await this.db.query(
+        'insert into signals_normalized (id, organization_id, integration_id, provider, signal_type, resource_type, resource_id, resource_name, signal_value_text, signal_value_number, signal_value_boolean, metadata_json, observed_at, collected_at) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) on conflict (id) do update set signal_value_text = excluded.signal_value_text, signal_value_number = excluded.signal_value_number, signal_value_boolean = excluded.signal_value_boolean, metadata_json = excluded.metadata_json, observed_at = excluded.observed_at, collected_at = excluded.collected_at',
+        [row.id, row.organization_id, row.integration_id, row.provider, row.signal_type, row.resource_type, row.resource_id, row.resource_name, row.signal_value_text, row.signal_value_number, row.signal_value_boolean, JSON.stringify(row.metadata_json), row.observed_at, row.collected_at],
+      );
+    }
+  }
+
   async listTests(): Promise<ControlTestDefinition[]> {
     const result = await this.db.query('select * from control_test_versions order by created_at desc');
     return result.rows.map((row: any) => ({

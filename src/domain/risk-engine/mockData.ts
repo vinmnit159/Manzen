@@ -21,6 +21,20 @@ function daysAgo(days: number) {
 
 export const seedSignals: NormalizedSignal[] = [
   {
+    id: 'sig-github-repo-private',
+    organizationId: 'org_1',
+    integrationId: 'int_github_core',
+    provider: 'github',
+    signalType: 'SOURCE_CODE_REPO_PRIVATE',
+    resourceType: 'repository',
+    resourceId: 'repo_manzen_app',
+    resourceName: 'Manzen',
+    value: false,
+    metadata: { defaultBranch: 'main', branchProtection: false },
+    observedAt: daysAgo(2),
+    collectedAt: daysAgo(2),
+  },
+  {
     id: 'sig-aws-bucket-public',
     organizationId: 'org_1',
     integrationId: 'int_aws_prod',
@@ -127,6 +141,18 @@ export const seedTests: ControlTestDefinition[] = [
     severityOnFail: RiskLevel.MEDIUM,
     condition: { operator: 'equals', expected: true },
   },
+  {
+    id: 'test-github-private-repo',
+    controlId: 'control-repository-privacy',
+    controlName: 'Source repositories must be private',
+    version: 1,
+    signalType: 'SOURCE_CODE_REPO_PRIVATE',
+    name: 'GitHub repositories private',
+    description: 'Fail when an organizational GitHub repository is publicly visible.',
+    frameworkIds: ['SOC2-CC6.6', 'ISO27001-A.8.32'],
+    severityOnFail: RiskLevel.HIGH,
+    condition: { operator: 'equals', expected: true },
+  },
 ];
 
 export const seedRules: RiskRuleRecord[] = [
@@ -168,6 +194,16 @@ export const seedRules: RiskRuleRecord[] = [
     defaultLikelihood: RiskLevel.MEDIUM,
     severityWeight: 50,
     assetCriticalityWeight: 20,
+    durationWeight: 1,
+  },
+  {
+    id: 'rule-github-repository-exposure',
+    name: 'Repository visibility exposure',
+    signalType: 'SOURCE_CODE_REPO_PRIVATE',
+    category: 'Application',
+    defaultLikelihood: RiskLevel.MEDIUM,
+    severityWeight: 75,
+    assetCriticalityWeight: 35,
     durationWeight: 1,
   },
 ];
@@ -242,6 +278,17 @@ export const seedProviderStatuses: ProviderSyncStatusRecord[] = [
     testsEvaluated: 3,
     openRisks: 1,
   },
+  {
+    id: 'provider-github',
+    provider: 'github',
+    integrationId: 'int_github_core',
+    status: 'HEALTHY',
+    lastSyncAt: daysAgo(2),
+    lastSuccessAt: daysAgo(2),
+    signalsCollected: 1,
+    testsEvaluated: 1,
+    openRisks: 1,
+  },
 ];
 
 export const seedScanRuns: ScanRunRecord[] = [
@@ -292,6 +339,18 @@ export const seedScanRuns: ScanRunRecord[] = [
     testsExecuted: 3,
     risksGenerated: 1,
     trigger: 'manual',
+  },
+  {
+    id: 'scan-github-1',
+    provider: 'github',
+    integrationId: 'int_github_core',
+    startedAt: daysAgo(2),
+    completedAt: daysAgo(2),
+    status: 'SUCCEEDED',
+    signalsIngested: 1,
+    testsExecuted: 1,
+    risksGenerated: 1,
+    trigger: 'scheduled',
   },
 ];
 
@@ -356,6 +415,18 @@ export const seedEvents: RiskEngineEventRecord[] = [
     createdAt: daysAgo(0),
     metadata: { evidenceId: 'ev-aws-public-bucket' },
   },
+  {
+    id: 'event-6',
+    eventType: 'signal.normalized',
+    provider: 'github',
+    integrationId: 'int_github_core',
+    organizationId: 'org_1',
+    resourceId: 'repo_manzen_app',
+    severity: 'warning',
+    message: 'GitHub repository visibility signal normalized for Manzen.',
+    createdAt: daysAgo(2),
+    metadata: { signalId: 'sig-github-repo-private' },
+  },
 ];
 
 export const seedIntegrationExecutions: IntegrationJobExecutionRecord[] = [
@@ -393,6 +464,17 @@ export const seedIntegrationExecutions: IntegrationJobExecutionRecord[] = [
     errorMessage: 'Timed out while fetching findings from Snyk API.',
     metadata: { scanRunId: 'scan-3' },
   },
+  {
+    id: 'job-github-sync-1',
+    provider: 'github',
+    integrationId: 'int_github_core',
+    organizationId: 'org_1',
+    jobType: 'sync',
+    status: 'SUCCEEDED',
+    startedAt: daysAgo(2),
+    completedAt: daysAgo(2),
+    metadata: { scanRunId: 'scan-github-1' },
+  },
 ];
 
 export const seedSignalIngestions: SignalIngestionRecord[] = [
@@ -417,5 +499,16 @@ export const seedSignalIngestions: SignalIngestionRecord[] = [
     ingestedAt: daysAgo(0),
     normalizedAt: daysAgo(0),
     jobExecutionId: 'job-okta-sync-1',
+  },
+  {
+    id: 'ingest-3',
+    signalId: 'sig-github-repo-private',
+    provider: 'github',
+    integrationId: 'int_github_core',
+    organizationId: 'org_1',
+    resourceId: 'repo_manzen_app',
+    ingestedAt: daysAgo(2),
+    normalizedAt: daysAgo(2),
+    jobExecutionId: 'job-github-sync-1',
   },
 ];

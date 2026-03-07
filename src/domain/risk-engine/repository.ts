@@ -14,6 +14,7 @@ import type {
 
 export interface RiskEngineRepository {
   listSignals(): Promise<NormalizedSignal[]>;
+  saveSignals(signals: NormalizedSignal[]): Promise<void>;
   listTests(): Promise<ControlTestDefinition[]>;
   listRules(): Promise<RiskRuleRecord[]>;
   listEvidence(): Promise<EvidenceSnapshotRecord[]>;
@@ -51,6 +52,7 @@ export class InMemoryRiskEngineRepository implements RiskEngineRepository {
   ) {}
 
   async listSignals() { return [...this.state.signals]; }
+  async saveSignals(signals: NormalizedSignal[]) { this.state.signals = [...signals, ...this.state.signals.filter((item) => !signals.some((entry) => entry.id === item.id))]; }
   async listTests() { return [...this.state.tests]; }
   async listRules() { return [...this.state.rules]; }
   async listEvidence() { return [...this.state.evidence]; }
