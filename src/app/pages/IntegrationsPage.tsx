@@ -77,6 +77,11 @@ import { grafanaService } from '@/services/api/grafana';
 import { sentryService } from '@/services/api/sentry';
 import { onepasswordService } from '@/services/api/onepassword';
 import { snowflakeService } from '@/services/api/snowflake';
+import { microsoftTeamsService } from '@/services/api/microsoft-teams';
+import { zoomService } from '@/services/api/zoom';
+import { webexService } from '@/services/api/webex';
+import { hubspotService } from '@/services/api/hubspot';
+import { salesforceService } from '@/services/api/salesforce';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -5982,6 +5987,94 @@ const ENGINEER_A_CARDS: EngineerACardConfig[] = [
       </svg>
     ),
     service: zendeskService as any,
+  },
+  {
+    key: 'microsoft-teams',
+    name: 'Microsoft Teams',
+    subtitle: 'Communication · Messaging, collaboration and admin governance',
+    category: 'Communication',
+    description: 'Verify external guest access policy is enforced, admin role assignments are reviewed, channel retention settings remain compliant, and security alerting is monitored.',
+    brandColor: '#6264A7',
+    iconBg: 'bg-[#6264A7]',
+    isoTags: ['A.5.14 Guest Access Policy', 'A.5.18 Admin Role Review', 'A.8.15 Channel Retention', 'A.8.16 Security Alerting'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <rect x="6" y="8" width="12" height="16" rx="2" fill="white" opacity="0.95"/>
+        <rect x="18" y="10" width="8" height="12" rx="2" fill="white" opacity="0.7"/>
+        <path d="M10 13h4M10 17h4" stroke="#6264A7" strokeWidth="2" strokeLinecap="round"/>
+      </svg>
+    ),
+    service: microsoftTeamsService as any,
+  },
+  {
+    key: 'zoom',
+    name: 'Zoom',
+    subtitle: 'Communication · Meeting security and host control posture',
+    category: 'Communication',
+    description: 'Verify passcode and waiting room policy is enforced, recording access restrictions are configured, host privileges are reviewed, and suspicious sign-in alerts are monitored.',
+    brandColor: '#2D8CFF',
+    iconBg: 'bg-[#2D8CFF]',
+    isoTags: ['A.5.17 Meeting Security Defaults', 'A.5.15 Recording Access', 'A.5.18 Host Privileges', 'A.8.16 Sign-in Alerts'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="14" cy="16" r="8" fill="white"/>
+        <path d="M20 13l6-3v12l-6-3z" fill="white" opacity="0.85"/>
+      </svg>
+    ),
+    service: zoomService as any,
+  },
+  {
+    key: 'webex',
+    name: 'Webex',
+    subtitle: 'Communication · Meeting governance and external access controls',
+    category: 'Communication',
+    description: 'Verify meeting security defaults are enforced, external federation policy is reviewed, admin access roles are audited, and audit event retention is configured.',
+    brandColor: '#00BCEB',
+    iconBg: 'bg-[#00BCEB]',
+    isoTags: ['A.5.17 Meeting Security', 'A.5.14 Federation Policy', 'A.5.15 Admin Access Roles', 'A.8.15 Audit Event Retention'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <path d="M16 6a10 10 0 1010 10" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round"/>
+        <path d="M16 26a10 10 0 01-10-10" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" opacity="0.7"/>
+      </svg>
+    ),
+    service: webexService as any,
+  },
+  {
+    key: 'hubspot',
+    name: 'HubSpot',
+    subtitle: 'CRM · Customer data access and token governance',
+    category: 'CRM',
+    description: 'Verify user role permissions are reviewed, customer data export controls are enforced, private app token rotation is compliant, and admin activity is monitored.',
+    brandColor: '#FF7A59',
+    iconBg: 'bg-[#FF7A59]',
+    isoTags: ['A.5.15 Role Permissions', 'A.5.34 Data Export Controls', 'A.5.17 Token Rotation', 'A.8.16 Admin Activity Monitoring'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="4" fill="white"/>
+        <circle cx="9" cy="11" r="2" fill="white" opacity="0.8"/>
+        <circle cx="23" cy="11" r="2" fill="white" opacity="0.8"/>
+        <circle cx="9" cy="21" r="2" fill="white" opacity="0.8"/>
+        <path d="M11 12.5l3 2M21 12.5l-3 2M11 19.5l3-2" stroke="white" strokeWidth="1.8" strokeLinecap="round"/>
+      </svg>
+    ),
+    service: hubspotService as any,
+  },
+  {
+    key: 'salesforce',
+    name: 'Salesforce',
+    subtitle: 'CRM · Permission model, session controls and data governance',
+    category: 'CRM',
+    description: 'Verify profile and permission sets are reviewed, login IP and session controls are enforced, connected app policy is audited, and field-level data access governance is verified.',
+    brandColor: '#00A1E0',
+    iconBg: 'bg-[#00A1E0]',
+    isoTags: ['A.5.15 Permission Sets', 'A.5.17 Session Controls', 'A.8.16 Connected App Policy', 'A.5.34 Field-Level Data Access'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <path d="M10 21h12a4 4 0 100-8 5 5 0 00-9.7-1.7A3.8 3.8 0 0010 21z" fill="white"/>
+      </svg>
+    ),
+    service: salesforceService as any,
   },
   {
     key: 'sentinelone',
