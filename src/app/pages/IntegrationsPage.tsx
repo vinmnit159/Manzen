@@ -112,6 +112,11 @@ import { hoxhuntService } from '@/services/api/hoxhunt';
 import { certnService } from '@/services/api/certn';
 import { checkrService } from '@/services/api/checkr';
 import { dashlaneService } from '@/services/api/dashlane';
+import { boxService } from '@/services/api/box';
+import { googleDriveService } from '@/services/api/google-drive';
+import { docusignService } from '@/services/api/docusign';
+import { mongodbAtlasService } from '@/services/api/mongodb-atlas';
+import { supabaseService } from '@/services/api/supabase';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -6614,6 +6619,91 @@ const ENGINEER_A_CARDS: EngineerACardConfig[] = [
       </svg>
     ),
     service: dashlaneService as any,
+  },
+  {
+    key: 'box',
+    name: 'Box',
+    subtitle: 'Document Management · Sharing controls and sensitive file governance',
+    category: 'Document Management',
+    description: 'Verify folder sharing permissions are reviewed, external collaborator restrictions are enforced, sensitive file access monitoring is validated, and admin privilege governance is audited.',
+    brandColor: '#0061D5',
+    iconBg: 'bg-[#0061D5]',
+    isoTags: ['A.5.15 Sharing Permissions', 'A.5.14 External Collaborators', 'A.5.34 Sensitive File Access', 'A.5.18 Admin Governance'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <rect x="7" y="9" width="18" height="14" rx="2" fill="none" stroke="white" strokeWidth="2"/>
+        <path d="M11 9l2-3h6l2 3" stroke="white" strokeWidth="2" fill="none" strokeLinecap="round"/>
+      </svg>
+    ),
+    service: boxService as any,
+  },
+  {
+    key: 'google-drive',
+    name: 'Google Drive',
+    subtitle: 'Document Management · External sharing and document access policy',
+    category: 'Document Management',
+    description: 'Verify external sharing policy compliance is reviewed, sensitive document access restrictions are validated, stale file permission cleanup is audited, and admin plus API governance is verified.',
+    brandColor: '#0F9D58',
+    iconBg: 'bg-[#0F9D58]',
+    isoTags: ['A.5.14 External Sharing Policy', 'A.5.34 Sensitive Document Access', 'A.5.18 Permission Cleanup', 'A.5.15 Admin and API Governance'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <path d="M16 6l8 14H8l8-14z" fill="none" stroke="white" strokeWidth="2"/>
+        <path d="M12 20h8" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+      </svg>
+    ),
+    service: googleDriveService as any,
+  },
+  {
+    key: 'docusign',
+    name: 'DocuSign',
+    subtitle: 'Document Management · Envelope security and audit retention',
+    category: 'Document Management',
+    description: 'Verify envelope access control policy is reviewed, signer authentication baseline is enforced, admin role assignment governance is audited, and audit trail retention compliance is validated.',
+    brandColor: '#FFCC00',
+    iconBg: 'bg-[#FFCC00]',
+    isoTags: ['A.5.15 Envelope Access Controls', 'A.5.17 Signer Authentication', 'A.5.18 Role Governance', 'A.8.15 Audit Trail Retention'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <rect x="8" y="8" width="16" height="16" rx="2" fill="none" stroke="white" strokeWidth="2"/>
+        <path d="M10 12l6 5 6-5" stroke="white" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    ),
+    service: docusignService as any,
+  },
+  {
+    key: 'mongodb-atlas',
+    name: 'MongoDB Atlas',
+    subtitle: 'Datastore · Network controls and database access governance',
+    category: 'Datastore',
+    description: 'Verify network access list restrictions are reviewed, database user privilege model is validated, backup and encryption posture is audited, and admin API key lifecycle controls are verified.',
+    brandColor: '#00ED64',
+    iconBg: 'bg-[#00ED64]',
+    isoTags: ['A.8.20 Network Access Lists', 'A.5.15 DB User Privileges', 'A.8.24 Backup and Encryption', 'A.5.17 API Key Lifecycle'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="16" cy="10" rx="7" ry="3" fill="none" stroke="white" strokeWidth="2"/>
+        <path d="M9 10v8c0 1.7 3.1 3 7 3s7-1.3 7-3v-8" fill="none" stroke="white" strokeWidth="2"/>
+      </svg>
+    ),
+    service: mongodbAtlasService as any,
+  },
+  {
+    key: 'supabase',
+    name: 'Supabase',
+    subtitle: 'Datastore · RLS policy and project membership governance',
+    category: 'Datastore',
+    description: 'Verify row-level security policy coverage is reviewed, service role key governance is validated, database and storage access restrictions are audited, and admin project membership controls are verified.',
+    brandColor: '#3ECF8E',
+    iconBg: 'bg-[#3ECF8E]',
+    isoTags: ['A.5.15 RLS Coverage', 'A.5.17 Service Role Keys', 'A.8.20 Access Restrictions', 'A.5.18 Project Membership'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <path d="M10 8h10a4 4 0 014 4v12H14a4 4 0 01-4-4V8z" fill="white" opacity="0.9"/>
+        <path d="M10 8l10 16" stroke="#3ECF8E" strokeWidth="2"/>
+      </svg>
+    ),
+    service: supabaseService as any,
   },
   {
     key: 'sentinelone',
