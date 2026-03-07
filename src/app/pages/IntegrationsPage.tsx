@@ -82,6 +82,11 @@ import { zoomService } from '@/services/api/zoom';
 import { webexService } from '@/services/api/webex';
 import { hubspotService } from '@/services/api/hubspot';
 import { salesforceService } from '@/services/api/salesforce';
+import { pipedriveService } from '@/services/api/pipedrive';
+import { copperService } from '@/services/api/copper';
+import { apolloService } from '@/services/api/apollo';
+import { gongService } from '@/services/api/gong';
+import { zoominfoService } from '@/services/api/zoominfo';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -6075,6 +6080,89 @@ const ENGINEER_A_CARDS: EngineerACardConfig[] = [
       </svg>
     ),
     service: salesforceService as any,
+  },
+  {
+    key: 'pipedrive',
+    name: 'Pipedrive',
+    subtitle: 'CRM · Deal pipeline governance and API token hygiene',
+    category: 'CRM',
+    description: 'Verify user role permissions are reviewed, pipeline visibility restrictions are enforced, API token rotation is compliant, and deal export controls are audited.',
+    brandColor: '#1A9F60',
+    iconBg: 'bg-[#1A9F60]',
+    isoTags: ['A.5.15 Role Permissions', 'A.5.14 Pipeline Visibility', 'A.5.17 Token Rotation', 'A.5.34 Deal Export Controls'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="10" fill="white" opacity="0.2"/>
+        <circle cx="16" cy="16" r="5" fill="white"/>
+      </svg>
+    ),
+    service: pipedriveService as any,
+  },
+  {
+    key: 'copper',
+    name: 'Copper',
+    subtitle: 'CRM · Workspace member governance and sharing controls',
+    category: 'CRM',
+    description: 'Verify workspace member access is reviewed, account sharing policy is compliant, admin role governance is verified, and API key lifecycle controls are enforced.',
+    brandColor: '#B87333',
+    iconBg: 'bg-[#B87333]',
+    isoTags: ['A.5.15 Member Access', 'A.5.14 Sharing Policy', 'A.5.18 Admin Governance', 'A.5.17 API Key Lifecycle'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <rect x="7" y="7" width="18" height="18" rx="4" fill="white" opacity="0.9"/>
+        <path d="M12 16h8" stroke="#B87333" strokeWidth="2" strokeLinecap="round"/>
+      </svg>
+    ),
+    service: copperService as any,
+  },
+  {
+    key: 'apollo',
+    name: 'Apollo',
+    subtitle: 'Sales · Prospecting data access and workflow permissions',
+    category: 'Sales',
+    description: 'Verify prospect data access controls are reviewed, enrichment workflow permissions are bounded, API token and integration scopes are audited, and export governance is verified.',
+    brandColor: '#2B6CB0',
+    iconBg: 'bg-[#2B6CB0]',
+    isoTags: ['A.5.15 Data Access', 'A.5.15 Workflow Permissions', 'A.5.17 Token and Scope Audit', 'A.5.34 Export Governance'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <path d="M16 6l8 20h-3l-1.5-4h-7L11 26H8l8-20z" fill="white"/>
+      </svg>
+    ),
+    service: apolloService as any,
+  },
+  {
+    key: 'gong',
+    name: 'Gong',
+    subtitle: 'Sales · Recording access and external sharing governance',
+    category: 'Sales',
+    description: 'Verify recording access permissions are reviewed, team role governance is enforced, external sharing restrictions are validated, and API credential usage is monitored.',
+    brandColor: '#FF7A00',
+    iconBg: 'bg-[#FF7A00]',
+    isoTags: ['A.5.15 Recording Access', 'A.5.18 Team Role Governance', 'A.5.14 External Sharing', 'A.8.16 Credential Monitoring'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="9" fill="none" stroke="white" strokeWidth="2"/>
+        <circle cx="16" cy="16" r="3" fill="white"/>
+      </svg>
+    ),
+    service: gongService as any,
+  },
+  {
+    key: 'zoominfo',
+    name: 'ZoomInfo',
+    subtitle: 'Sales · Data access, export policy, and admin controls',
+    category: 'Sales',
+    description: 'Verify user access permissions are reviewed, data export restrictions are enforced, admin privilege assignments are audited, and API key controls are validated.',
+    brandColor: '#0052CC',
+    iconBg: 'bg-[#0052CC]',
+    isoTags: ['A.5.15 Access Permissions', 'A.5.34 Export Restrictions', 'A.5.18 Admin Privileges', 'A.5.17 API Key Controls'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <path d="M8 9h16v4H8zM8 15h16v4H8zM8 21h16v2H8z" fill="white"/>
+      </svg>
+    ),
+    service: zoominfoService as any,
   },
   {
     key: 'sentinelone',
