@@ -62,6 +62,16 @@ import { herokuService } from '@/services/api/heroku';
 import { renderService } from '@/services/api/render';
 import { netlifyService } from '@/services/api/netlify';
 import { vercelService } from '@/services/api/vercel';
+import { sentineloneService } from '@/services/api/sentinelone';
+import { grafanaService } from '@/services/api/grafana';
+import { sentryService } from '@/services/api/sentry';
+import { onepasswordService } from '@/services/api/onepassword';
+import { snowflakeService } from '@/services/api/snowflake';
+import { scalewayService } from '@/services/api/scaleway';
+import { gitlabSelfManagedService } from '@/services/api/gitlab-self-managed';
+import { azureDevopsService } from '@/services/api/azure-devops';
+import { auth0Service } from '@/services/api/auth0';
+import { pingoneService } from '@/services/api/pingone';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -5793,6 +5803,92 @@ const ENGINEER_A_CARDS: EngineerACardConfig[] = [
       </svg>
     ),
     service: vercelService as any,
+  },
+  {
+    key: 'scaleway',
+    name: 'Scaleway',
+    subtitle: 'Cloud Provider · European cloud infrastructure',
+    category: 'Cloud Provider',
+    description: 'Verify IAM policy follows least-privilege principles, object storage has no public access, instance security group rules are reviewed, and API keys follow rotation compliance.',
+    brandColor: '#4F0599',
+    iconBg: 'bg-[#4F0599]',
+    isoTags: ['A.5.15 IAM Policy', 'A.8.20 Storage Access', 'A.8.20 Security Groups', 'A.5.17 API Key Rotation'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <rect x="6" y="6" width="20" height="20" rx="4" fill="white" opacity="0.9"/>
+        <path d="M11 16h10M16 11v10" stroke="#4F0599" strokeWidth="2" strokeLinecap="round"/>
+      </svg>
+    ),
+    service: scalewayService as any,
+  },
+  {
+    key: 'gitlab-self-managed',
+    name: 'GitLab Self-Managed',
+    subtitle: 'Version Control · On-premise source code management',
+    category: 'Version Control',
+    description: 'Verify branch protection rules are enforced, merge request approval policies are active, secret scanning is enabled, and admin accounts are regularly reviewed.',
+    brandColor: '#FC6D26',
+    iconBg: 'bg-[#FC6D26]',
+    isoTags: ['A.8.4 Branch Protection', 'A.8.32 MR Approvals', 'A.8.28 Secret Scanning', 'A.5.18 Admin Review'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <path d="M16 27L6 11l3-8 3 8h8l3-8 3 8z" fill="white" opacity="0.9"/>
+      </svg>
+    ),
+    service: gitlabSelfManagedService as any,
+  },
+  {
+    key: 'azure-devops',
+    name: 'Azure DevOps',
+    subtitle: 'Version Control · CI/CD and project management',
+    category: 'Version Control',
+    description: 'Verify branch policies are enforced, pipeline secret variables are protected, project member access is reviewed, and audit log retention is configured.',
+    brandColor: '#0078D7',
+    iconBg: 'bg-[#0078D7]',
+    isoTags: ['A.8.4 Branch Policies', 'A.5.33 Secret Protection', 'A.5.15 Access Review', 'A.8.15 Audit Logs'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <path d="M4 10l6-4v20l-6-4V10z" fill="white" opacity="0.9"/>
+        <path d="M10 6l12 4v12l-12 4V6z" fill="white" opacity="0.7"/>
+        <path d="M22 10l6 4v8l-6 4V10z" fill="white" opacity="0.5"/>
+      </svg>
+    ),
+    service: azureDevopsService as any,
+  },
+  {
+    key: 'auth0',
+    name: 'Auth0',
+    subtitle: 'Identity Provider · Authentication and authorization',
+    category: 'Identity Provider',
+    description: 'Verify MFA enforcement across all applications, anomaly detection rules are active, tenant admin roles are reviewed, and token expiry policies are compliant.',
+    brandColor: '#EB5424',
+    iconBg: 'bg-[#EB5424]',
+    isoTags: ['A.5.17 MFA Enforcement', 'A.8.16 Anomaly Detection', 'A.5.18 Admin Review', 'A.5.15 Token Policy'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="10" fill="none" stroke="white" strokeWidth="2"/>
+        <circle cx="16" cy="16" r="4" fill="white"/>
+        <path d="M16 6v4M16 22v4M6 16h4M22 16h4" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+      </svg>
+    ),
+    service: auth0Service as any,
+  },
+  {
+    key: 'pingone',
+    name: 'PingOne',
+    subtitle: 'Identity Provider · Cloud identity management',
+    category: 'Identity Provider',
+    description: 'Verify MFA policy coverage, dormant identities are cleaned up, admin privilege assignments are reviewed, and application access policies are audited.',
+    brandColor: '#B3282D',
+    iconBg: 'bg-[#B3282D]',
+    isoTags: ['A.5.17 MFA Policy', 'A.5.18 Dormant Cleanup', 'A.5.2 Admin Privileges', 'A.5.15 App Access'],
+    iconSvg: (
+      <svg viewBox="0 0 32 32" className="w-6 h-6" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="12" r="6" fill="white"/>
+        <path d="M6 26c0-5.5 4.5-10 10-10s10 4.5 10 10" fill="white" opacity="0.8"/>
+      </svg>
+    ),
+    service: pingoneService as any,
   },
 ];
 
