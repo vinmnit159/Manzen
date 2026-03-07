@@ -1,119 +1,212 @@
-import { useEffect, useState } from 'react';
 import { PageTemplate } from '@/app/components/PageTemplate';
 import { Card } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
-import { AlertTriangle, CheckCircle, Clock, Shield, Loader2 } from 'lucide-react';
-import { apiClient } from '@/services/api/client';
+import { Progress } from '@/app/components/ui/progress';
+import { Button } from '@/app/components/ui/button';
+import { Loader2, RefreshCw, Radar, ShieldCheck, Siren, Files, Clock3 } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router';
+import { riskCenterService } from '@/services/api/riskCenter';
+import { riskLevelVariant, riskStatusVariant, trendLabel } from '@/services/api/riskFormatting';
+import { QK } from '@/lib/queryKeys';
+import { STALE } from '@/lib/queryClient';
 
-interface RiskOverview {
-  total: number; open: number; mitigated: number; accepted: number; transferred: number;
-  critical: number; high: number; medium: number; low: number; recentRisks: any[];
-}
-
-function severityColor(impact: string) {
-  const m: Record<string, string> = {
-    CRITICAL: 'bg-red-100 text-red-800', HIGH: 'bg-orange-100 text-orange-800',
-    MEDIUM: 'bg-yellow-100 text-yellow-800', LOW: 'bg-green-100 text-green-800',
-  };
-  return m[impact] ?? 'bg-gray-100 text-gray-700';
-}
-
-function statusVariant(s: string): 'default' | 'outline' | 'secondary' | 'destructive' {
-  if (s === 'OPEN') return 'destructive';
-  if (s === 'MITIGATED') return 'default';
-  if (s === 'ACCEPTED') return 'secondary';
-  return 'outline';
-}
+const severityColors: Record<string, string> = {
+  CRITICAL: 'bg-red-500',
+  HIGH: 'bg-orange-500',
+  MEDIUM: 'bg-amber-400',
+  LOW: 'bg-emerald-500',
+};
 
 export function RiskOverviewPage() {
-  const [data, setData] = useState<RiskOverview | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    apiClient.get<any>('/api/risks/overview')
-      .then((res) => setData(res?.data ?? res))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+  const qc = useQueryClient();
+  const navigate = useNavigate();
+  const { data, isLoading, isFetching } = useQuery({
+    queryKey: QK.riskCenterOverview(),
+    queryFn: () => riskCenterService.getOverview(),
+    staleTime: STALE.RISKS,
+  });
 
   const stats = [
-    { label: 'Total Risks', value: data?.total ?? 0, icon: AlertTriangle, color: 'text-gray-600' },
-    { label: 'Open Risks', value: data?.open ?? 0, icon: AlertTriangle, color: 'text-red-600' },
-    { label: 'Mitigated', value: data?.mitigated ?? 0, icon: CheckCircle, color: 'text-green-600' },
-    { label: 'Accepted / Transferred', value: (data?.accepted ?? 0) + (data?.transferred ?? 0), icon: Clock, color: 'text-orange-600' },
-  ];
-
-  const impactBreakdown = [
-    { label: 'Critical', count: data?.critical ?? 0, cls: 'bg-red-500' },
-    { label: 'High', count: data?.high ?? 0, cls: 'bg-orange-400' },
-    { label: 'Medium', count: data?.medium ?? 0, cls: 'bg-yellow-400' },
-    { label: 'Low', count: data?.low ?? 0, cls: 'bg-green-400' },
+    { label: 'Open risks', value: data?.open ?? 0, icon: Siren, tone: 'text-red-600', detail: `${data?.overdue ?? 0} overdue` },
+    { label: 'High-risk assets', value: data?.highRiskAssets ?? 0, icon: Radar, tone: 'text-orange-600', detail: 'Critical or high exposure' },
+    { label: 'Evidence coverage', value: `${data?.evidenceCoverage ?? 0}%`, icon: Files, tone: 'text-blue-600', detail: 'Risks with evidence snapshots' },
+    { label: 'Framework coverage', value: `${data?.frameworkCoverage ?? 0}%`, icon: ShieldCheck, tone: 'text-emerald-600', detail: `MTTR ${data?.mttrDays ?? 0} days` },
   ];
 
   return (
-    <PageTemplate title="Risk Overview" description="Monitor your organisation's risk posture.">
-      {loading ? (
-        <div className="flex items-center justify-center h-48"><Loader2 className="w-8 h-8 animate-spin text-gray-400" /></div>
+    <PageTemplate
+      title="Risk Overview"
+      description="Enterprise risk posture across automated monitoring, evidence, and remediation workflows."
+      actions={
+        <Button variant="outline" size="sm" disabled={isFetching} onClick={() => qc.invalidateQueries({ queryKey: QK.riskCenterOverview() })}>
+          <RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
+      }
+    >
+      {isLoading || !data ? (
+        <div className="flex h-48 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-gray-400" /></div>
       ) : (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {stats.map((stat) => {
               const Icon = stat.icon;
               return (
                 <Card key={stat.label} className="p-6">
-                  <Icon className={`w-8 h-8 ${stat.color} mb-3`} />
-                  <div className="text-3xl font-bold text-gray-900 mb-1">{stat.value}</div>
-                  <div className="text-sm text-gray-600">{stat.label}</div>
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-sm text-gray-500">{stat.label}</p>
+                      <p className="mt-2 text-3xl font-semibold text-gray-900">{stat.value}</p>
+                      <p className="mt-2 text-xs text-gray-500">{stat.detail}</p>
+                    </div>
+                    <div className="rounded-xl bg-gray-50 p-3">
+                      <Icon className={`h-5 w-5 ${stat.tone}`} />
+                    </div>
+                  </div>
                 </Card>
               );
             })}
           </div>
 
-          <Card className="p-6">
-            <h3 className="text-base font-semibold text-gray-900 mb-4">Risk by Impact Level</h3>
-            <div className="space-y-3">
-              {impactBreakdown.map((item) => {
-                const pct = data?.total ? Math.round((item.count / data.total) * 100) : 0;
-                return (
-                  <div key={item.label} className="flex items-center gap-3">
-                    <span className="w-16 text-sm text-gray-600">{item.label}</span>
-                    <div className="flex-1 bg-gray-100 rounded-full h-2.5">
-                      <div className={`${item.cls} h-2.5 rounded-full transition-all`} style={{ width: `${pct}%` }} />
-                    </div>
-                    <span className="w-8 text-sm text-gray-500 text-right">{item.count}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </Card>
-
-          {(data?.recentRisks?.length ?? 0) > 0 && (
+          <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
             <Card className="p-6">
-              <h3 className="text-base font-semibold text-gray-900 mb-4">Recently Identified Risks</h3>
-              <div className="space-y-1">
-                {data!.recentRisks.map((risk: any) => (
-                  <div key={risk.id} className="flex items-start justify-between py-2.5 border-b border-gray-50 last:border-0">
-                    <div className="flex-1 min-w-0 mr-4">
-                      <p className="text-sm font-medium text-gray-900 truncate">{risk.title}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{risk.asset?.name ?? '—'}</p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-base font-semibold text-gray-900">Severity posture</h3>
+                  <p className="mt-1 text-sm text-gray-500">Current exposure split across the risk engine.</p>
+                </div>
+                <Badge variant="outline">{data.total} tracked</Badge>
+              </div>
+              <div className="mt-6 space-y-4">
+                {data.severityBreakdown.map((item) => {
+                  const pct = data.total > 0 ? Math.round((item.count / data.total) * 100) : 0;
+                  return (
+                    <div key={item.label} className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2">
+                          <span className={`h-2.5 w-2.5 rounded-full ${severityColors[item.label]}`} />
+                          <span className="text-gray-700">{item.label}</span>
+                        </div>
+                        <span className="text-gray-500">{item.count} ({pct}%)</span>
+                      </div>
+                      <Progress value={pct} className="h-2.5" />
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${severityColor(risk.impact)}`}>{risk.impact}</span>
-                      <Badge variant={statusVariant(risk.status)} className="text-xs">{risk.status}</Badge>
+                  );
+                })}
+              </div>
+              <div className="mt-6 grid gap-4 border-t pt-4 sm:grid-cols-3">
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-gray-500">Automated controls</p>
+                  <p className="mt-1 text-xl font-semibold text-gray-900">{data.automatedCoverage}%</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-gray-500">Accepted risks</p>
+                  <p className="mt-1 text-xl font-semibold text-gray-900">{data.accepted}</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-gray-500">Transferred risks</p>
+                  <p className="mt-1 text-xl font-semibold text-gray-900">{data.transferred}</p>
+                </div>
+              </div>
+            </Card>
+
+            <Card className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-base font-semibold text-gray-900">Risk concentration</h3>
+                  <p className="mt-1 text-sm text-gray-500">Where the platform is detecting the most risk pressure.</p>
+                </div>
+                <Clock3 className="h-5 w-5 text-gray-400" />
+              </div>
+              <div className="mt-5 space-y-4">
+                {data.categoryBreakdown.slice(0, 6).map((item) => {
+                  const pct = data.total > 0 ? Math.round((item.count / data.total) * 100) : 0;
+                  return (
+                    <div key={item.label}>
+                      <div className="mb-1 flex items-center justify-between text-sm">
+                        <span className="text-gray-700">{item.label}</span>
+                        <span className="text-gray-500">{item.count}</span>
+                      </div>
+                      <Progress value={pct} className="h-2" />
                     </div>
-                  </div>
+                  );
+                })}
+              </div>
+              <div className="mt-6 border-t pt-4">
+                <p className="text-xs uppercase tracking-wide text-gray-500">Most impacted frameworks</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {data.frameworkBreakdown.slice(0, 5).map((item) => (
+                    <Badge key={item.framework} variant="outline">{item.framework} ({item.count})</Badge>
+                  ))}
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+            <Card className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-base font-semibold text-gray-900">Recently created or updated risks</h3>
+                  <p className="mt-1 text-sm text-gray-500">Latest detections from the automated monitoring pipeline.</p>
+                </div>
+                <Badge variant="secondary">Continuous monitoring</Badge>
+              </div>
+              <div className="mt-5 space-y-3">
+                {data.recentRisks.map((risk) => (
+                  <button
+                    key={risk.id}
+                    type="button"
+                    onClick={() => navigate(`/risk/risks/${risk.id}`)}
+                    className="w-full rounded-xl border border-gray-100 p-4 text-left transition hover:border-gray-200 hover:bg-gray-50"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="font-medium text-gray-900">{risk.title}</p>
+                        <p className="mt-1 text-sm text-gray-500">{risk.assetName} · {risk.owner.team} · {risk.category}</p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant={riskLevelVariant(risk.impact)}>{risk.impact}</Badge>
+                        <Badge variant={riskStatusVariant(risk.status)}>{risk.status}</Badge>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                      <span>Score {risk.riskScore}</span>
+                      <span>•</span>
+                      <span>{risk.evidenceCount} evidence items</span>
+                      <span>•</span>
+                      <span>{trendLabel(risk.trend)}</span>
+                    </div>
+                  </button>
                 ))}
               </div>
             </Card>
-          )}
 
-          {data?.total === 0 && (
-            <Card className="p-10 text-center">
-              <Shield className="w-12 h-12 text-green-400 mx-auto mb-3" />
-              <p className="text-gray-600 font-medium">No risks detected yet</p>
-              <p className="text-sm text-gray-400 mt-1">Connect GitHub and run a scan to automatically identify risks</p>
+            <Card className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-base font-semibold text-gray-900">Owner workload</h3>
+                  <p className="mt-1 text-sm text-gray-500">Who is carrying current remediation demand.</p>
+                </div>
+                <Badge variant="outline">Auto-assigned owners</Badge>
+              </div>
+              <div className="mt-5 space-y-4">
+                {data.ownerBreakdown.map((item) => {
+                  const pct = data.total > 0 ? Math.round((item.count / data.total) * 100) : 0;
+                  return (
+                    <div key={item.team} className="rounded-xl bg-gray-50 p-4">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="font-medium text-gray-900">{item.team}</span>
+                        <span className="text-gray-500">{item.count} risks</span>
+                      </div>
+                      <Progress value={pct} className="mt-3 h-2" />
+                    </div>
+                  );
+                })}
+              </div>
             </Card>
-          )}
+          </div>
         </div>
       )}
     </PageTemplate>

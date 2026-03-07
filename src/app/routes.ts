@@ -34,6 +34,8 @@ import { RiskLibraryPage } from "@/app/pages/risk/RiskLibraryPage";
 import { ActionTrackerPage } from "@/app/pages/risk/ActionTrackerPage";
 import { SnapshotPage } from "@/app/pages/risk/SnapshotPage";
 import { RiskSettingsPage } from "@/app/pages/risk/SettingsPage";
+import { RiskDetailPage } from "@/app/pages/risk/RiskDetailPage";
+import { RiskEnginePage } from "@/app/pages/risk/EnginePage";
 
 // Vendors
 import { VendorsPage } from "@/app/pages/vendors/VendorsPage";
@@ -127,9 +129,11 @@ export const router = createBrowserRouter([
       // Risk routes
       { path: "risk/overview", Component: RiskOverviewPage },
       { path: "risk/risks", Component: RisksPage },
+      { path: "risk/risks/:riskId", Component: RiskDetailPage },
       { path: "risk/library", Component: RiskLibraryPage },
       { path: "risk/action-tracker", Component: ActionTrackerPage },
       { path: "risk/snapshot", Component: SnapshotPage },
+      { path: "risk/engine", Component: RiskEnginePage },
       { path: "risk/settings", Component: RiskSettingsPage },
 
       // Vendors

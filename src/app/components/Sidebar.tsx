@@ -88,6 +88,7 @@ const navigation: NavItem[] = [
       { title: "Risk Library",   href: "/risk/library" },
       { title: "Action Tracker", href: "/risk/action-tracker" },
       { title: "Snapshot",       href: "/risk/snapshot" },
+      { title: "Risk Engine",    href: "/risk/engine", roles: [...ADMIN_ROLES] },
       { title: "Settings",       href: "/risk/settings", roles: [...ADMIN_ROLES] },
     ],
   },

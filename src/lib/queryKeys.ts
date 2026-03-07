@@ -19,6 +19,12 @@ export const QK = {
 
   // Risks
   risks: () => ['risks', 'list'] as const,
+  riskCenterOverview: () => ['risks', 'overview-v2'] as const,
+  riskActions: () => ['risks', 'actions'] as const,
+  riskSnapshot: () => ['risks', 'snapshot'] as const,
+  riskLibrary: () => ['risks', 'library'] as const,
+  riskSettings: () => ['risks', 'settings'] as const,
+  riskDetail: (id: string) => ['risks', 'detail', id] as const,
 
   // MDM / Computers
   mdmDevices: () => ['mdm', 'devices'] as const,

@@ -32,6 +32,7 @@ const searchablePages: SearchResult[] = [
   { title: "Risk Library", path: "/risk/library", category: "Risk" },
   { title: "Action Tracker", path: "/risk/action-tracker", category: "Risk" },
   { title: "Risk Snapshot", path: "/risk/snapshot", category: "Risk" },
+  { title: "Risk Engine", path: "/risk/engine", category: "Risk" },
   
   // Customer Trust
   { title: "Trust Overview", path: "/customer-trust/overview", category: "Customer Trust" },
