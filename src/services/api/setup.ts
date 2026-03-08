@@ -8,6 +8,7 @@ export interface SetupRequest {
   orgAdminName: string;
   orgAdminEmail: string;
   orgAdminPassword: string;
+  selectedFrameworks?: string[];
 }
 
 export interface SetupResponse {

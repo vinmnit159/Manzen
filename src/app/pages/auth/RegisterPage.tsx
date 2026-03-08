@@ -17,7 +17,10 @@ import {
 import { toast } from "sonner";
 import { setupService, SetupRequest } from "@/services/api/setup";
 import { authService } from "@/services/api/auth";
+import { testsService } from "@/services/api/tests";
 import { Eye, EyeOff, ShieldCheck, Building2, Users, ChevronLeft } from "lucide-react";
+import { Checkbox } from "@/app/components/ui/checkbox";
+import { FRAMEWORK_SUITE_OPTIONS } from "@/app/features/tests/frameworkSuites";
 
 const registerSchema = z
   .object({
@@ -40,6 +43,7 @@ const registerSchema = z
       .regex(/[a-z]/, "Must contain at least one lowercase letter")
       .regex(/[0-9]/, "Must contain at least one number")
       .regex(/[^A-Za-z0-9]/, "Must contain at least one special character"),
+    selectedFrameworks: z.array(z.string()).default([]),
   })
   .refine((data) => data.adminEmail !== data.orgAdminEmail, {
     message: "Admin emails must be different",
@@ -136,6 +140,7 @@ export function RegisterPage() {
       orgAdminName: "",
       orgAdminEmail: "",
       orgAdminPassword: "",
+      selectedFrameworks: ['iso-cloud-hardening'],
     },
   });
 
@@ -148,6 +153,15 @@ export function RegisterPage() {
         // Store JWT token if returned
         if (response.data.token) {
           authService.setToken(response.data.token);
+        }
+        if (data.selectedFrameworks.length > 0) {
+          const results = await Promise.allSettled(
+            data.selectedFrameworks.map((templateId) => testsService.createSuiteFromTemplate(templateId))
+          );
+          const succeeded = results.filter((result) => result.status === 'fulfilled').length;
+          if (succeeded > 0) {
+            toast.success(`Created ${succeeded} framework suite${succeeded === 1 ? '' : 's'} during setup.`);
+          }
         }
         toast.success("Organization registered successfully! Please sign in to continue.");
         navigate("/login");
@@ -297,6 +311,55 @@ export function RegisterPage() {
                   name="orgAdminPassword"
                   control={form.control}
                   placeholder="Create a strong password"
+                />
+              </section>
+
+              <section className="space-y-4">
+                <div className="flex items-center gap-2 pb-2 border-b border-gray-100">
+                  <ShieldCheck className="w-5 h-5 text-blue-600" />
+                  <div>
+                    <h3 className="text-base font-semibold text-gray-900">Framework Setup</h3>
+                    <p className="text-xs text-gray-500">Choose which pre-built framework suites to create right after registration</p>
+                  </div>
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="selectedFrameworks"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                          {FRAMEWORK_SUITE_OPTIONS.map((option) => {
+                            const checked = field.value.includes(option.id);
+                            return (
+                              <label
+                                key={option.id}
+                                className={`flex gap-3 rounded-xl border p-4 transition-colors cursor-pointer ${checked ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white hover:border-gray-300'}`}
+                              >
+                                <Checkbox
+                                  checked={checked}
+                                  onCheckedChange={(value) => {
+                                    const next = value
+                                      ? [...field.value, option.id]
+                                      : field.value.filter((item) => item !== option.id);
+                                    field.onChange(next);
+                                  }}
+                                  className="mt-0.5"
+                                />
+                                <div>
+                                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">{option.framework}</p>
+                                  <p className="mt-1 text-sm font-semibold text-gray-900">{option.name}</p>
+                                  <p className="mt-1 text-xs leading-5 text-gray-600">{option.description}</p>
+                                </div>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
               </section>
 

@@ -3,7 +3,6 @@ import { Layout } from "@/app/components/Layout";
 import { HomePage } from "@/app/pages/HomePage";
 import { MyWorkPage } from "@/app/pages/MyWorkPage";
 import { TestsPage } from "@/app/pages/TestsPage";
-import { TestLibraryPage } from "@/app/pages/tests/TestLibraryPage";
 import { TestDetailPage } from "@/app/pages/tests/TestDetailPage";
 import { ReportsPage } from "@/app/pages/ReportsPage";
 import { ReportViewerPage } from "@/app/pages/reports/ReportViewerPage";
@@ -123,7 +122,7 @@ export const router = createBrowserRouter([
       { path: "my-work", Component: MyWorkPage },
       { path: "tests", Component: TestsPage },
       { path: "tests/:testId", Component: TestDetailPage },
-      { path: "tests/library", Component: TestLibraryPage, loader: requireAdmin },
+      { path: "tests/library", loader: async () => redirect('/compliance/frameworks') },
       { path: "reports", Component: ReportsPage },
       { path: "reports/viewer/:reportId", Component: ReportViewerPage },
 

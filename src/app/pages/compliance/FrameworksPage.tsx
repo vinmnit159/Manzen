@@ -5,6 +5,7 @@ import { Badge } from "@/app/components/ui/badge";
 import { Progress } from "@/app/components/ui/progress";
 import { Separator } from "@/app/components/ui/separator";
 import { controlsService } from "@/services/api/controls";
+import { FrameworkSuiteLibrary } from "@/app/components/compliance/FrameworkSuiteLibrary";
 import {
   ShieldCheck,
   CheckCircle2,
@@ -214,6 +215,13 @@ export function FrameworksPage() {
           </div>
         </CardContent>
       </Card>
+
+      <div className="mt-6">
+        <FrameworkSuiteLibrary
+          title="Available Frameworks"
+          description="Use these framework-aligned suites to stand up your initial control testing program faster."
+        />
+      </div>
     </PageTemplate>
   );
 }

@@ -32,6 +32,7 @@ import { auditsService } from '@/services/api/audits';
 import { usersService } from '@/services/api/users';
 import { authService } from '@/services/api/auth';
 import { notionService, NotionAvailableDatabase } from '@/services/api/notion';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/tabs';
 import type {
   TestRecord,
   TestStatus,
@@ -187,6 +188,29 @@ function Section({
         </div>
       </button>
       {open && <div className="p-4">{children}</div>}
+    </div>
+  );
+}
+
+function DetailStatCard({
+  label,
+  value,
+  tone = 'default',
+}: {
+  label: string;
+  value: React.ReactNode;
+  tone?: 'default' | 'attention' | 'success';
+}) {
+  const toneClass = tone === 'attention'
+    ? 'border-amber-200 bg-amber-50'
+    : tone === 'success'
+      ? 'border-green-200 bg-green-50'
+      : 'border-gray-200 bg-gray-50';
+
+  return (
+    <div className={`rounded-2xl border p-4 ${toneClass}`}>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-500">{label}</p>
+      <div className="mt-2 text-sm font-semibold text-gray-900">{value}</div>
     </div>
   );
 }
@@ -1087,21 +1111,63 @@ export function TestDetailPanel({ testId, onClose, onMutated, pageMode = false }
 
   const body = (
     <div className={`${pageMode ? 'px-5 py-4' : 'flex-1 overflow-y-auto px-5 py-4'} space-y-4`}>
-          {isLoading && (
-            <div className="space-y-3">
-              {[...Array(4)].map((_, i) => <div key={i} className="h-14 bg-gray-100 rounded-xl animate-pulse" />)}
+      {isLoading && (
+        <div className="space-y-3">
+          {[...Array(4)].map((_, i) => <div key={i} className="h-14 bg-gray-100 rounded-xl animate-pulse" />)}
+        </div>
+      )}
+
+      {isError && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">Failed to load test details.</div>
+      )}
+
+      {test && (
+        <>
+          <div className="rounded-3xl border border-gray-200 bg-gradient-to-br from-slate-50 via-white to-slate-100 p-5 shadow-sm">
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              <DetailStatCard label="Owner" value={test.owner?.name ?? test.owner?.email ?? test.ownerId} />
+              <DetailStatCard label="Due Date" value={fmtDate(test.dueDate)} tone={test.status === 'Overdue' || test.status === 'Due_soon' ? 'attention' : 'default'} />
+              <DetailStatCard label="Evidence" value={`${test.evidences.length} linked item${test.evidences.length === 1 ? '' : 's'}`} />
+              <DetailStatCard
+                label={isSystemDriven ? 'Last Result' : 'Completion'}
+                value={isSystemDriven ? <LastResultBadge result={test.lastResult ?? 'Not_Run'} /> : test.status === 'OK' ? `Completed ${fmtDate(test.completedAt)}` : 'Pending completion'}
+                tone={test.status === 'OK' ? 'success' : test.status === 'Overdue' || test.lastResult === 'Fail' ? 'attention' : 'default'}
+              />
             </div>
-          )}
+            {(test.status === 'Needs_remediation' || test.status === 'Overdue' || test.lastResult === 'Fail') && (
+              <div className="mt-4 flex flex-wrap items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+                <div className="flex-1 min-w-[220px]">
+                  <p className="text-sm font-semibold text-amber-900">Needs follow-up</p>
+                  <p className="text-xs text-amber-700">Create a remediation task or update evidence before the next review cycle.</p>
+                </div>
+                <button
+                  onClick={() => setShowNotionModal(true)}
+                  className="inline-flex items-center gap-2 rounded-lg border border-amber-300 bg-white px-4 py-2 text-sm font-medium text-amber-900 transition-colors hover:bg-amber-100"
+                >
+                  <NotionPanelIcon />
+                  Create Notion Task
+                </button>
+              </div>
+            )}
+            {notionTaskUrl && (
+              <p className="mt-3 text-xs text-green-700">
+                Task created:{' '}
+                <a href={notionTaskUrl} target="_blank" rel="noreferrer" className="underline hover:text-green-900">Open in Notion</a>
+              </p>
+            )}
+          </div>
 
-          {isError && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">Failed to load test details.</div>
-          )}
+          <Tabs defaultValue="summary" className="space-y-4">
+            <TabsList className="h-auto flex-wrap justify-start rounded-2xl bg-slate-100 p-1">
+              <TabsTrigger value="summary">Summary</TabsTrigger>
+              <TabsTrigger value="evidence">Evidence</TabsTrigger>
+              <TabsTrigger value="mapping">Mappings</TabsTrigger>
+              <TabsTrigger value="activity">Activity</TabsTrigger>
+            </TabsList>
 
-          {test && (
-            <>
-              {/* ── Overview ── */}
+            <TabsContent value="summary" className="space-y-4 mt-0">
               <Section title="Overview" icon={<FileText className="w-4 h-4 text-gray-500" />}>
-                <dl className="grid grid-cols-2 gap-3 text-sm">
+                <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                   {[
                     { label: 'Due Date', value: fmtDate(test.dueDate) },
                     { label: 'Next Due', value: fmtDate(test.nextDueDate) },
@@ -1117,8 +1183,7 @@ export function TestDetailPanel({ testId, onClose, onMutated, pageMode = false }
                       <dd className="mt-0.5 font-medium text-gray-800">{value}</dd>
                     </div>
                   ))}
-                  {/* Owner field -- editable for admins */}
-                  <div className="col-span-2">
+                  <div className="sm:col-span-2">
                     <dt className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Owner</dt>
                     {canEditTest && usersData && usersData.length > 0 ? (
                       <select
@@ -1137,14 +1202,13 @@ export function TestDetailPanel({ testId, onClose, onMutated, pageMode = false }
                   </div>
                 </dl>
 
-                {/* Automated-test metadata */}
                 {isSystemDriven && (
-                  <div className="mt-4 p-3 rounded-lg bg-violet-50 border border-violet-200 space-y-2">
+                  <div className="mt-4 rounded-2xl border border-violet-200 bg-violet-50 p-4 space-y-2">
                     <div className="flex items-center gap-2 text-xs font-semibold text-violet-700 uppercase tracking-wide">
                       <Zap className="w-3.5 h-3.5" />
-                        Automated via {providerLabel ?? test.pipelineProvider ?? 'Integration'}
+                      Automated via {providerLabel ?? test.pipelineProvider ?? 'Integration'}
                     </div>
-                    <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                       <div>
                         <dt className="text-xs font-medium text-gray-400 uppercase tracking-wide">Last Scan</dt>
                         <dd className="mt-0.5 font-medium text-gray-800">{fmtDateTime(test.lastRunAt)}</dd>
@@ -1154,114 +1218,72 @@ export function TestDetailPanel({ testId, onClose, onMutated, pageMode = false }
                         <dd className="mt-0.5"><LastResultBadge result={test.lastResult ?? 'Not_Run'} /></dd>
                       </div>
                     </div>
-                    {test.lastResultDetails?.summary && (
-                      <p className="text-xs text-gray-600 mt-1">{test.lastResultDetails.summary}</p>
-                    )}
+                    {test.lastResultDetails?.summary && <p className="text-xs text-gray-600">{test.lastResultDetails.summary}</p>}
                   </div>
                 )}
 
-                {/* Action buttons */}
-                {isSystemDriven ? (
-                  <div className="mt-4 space-y-2">
-                    {test.type === 'Pipeline' ? (
-                      <button
-                        onClick={async () => {
-                          await testsService.ingestPipelineRun({
-                            pipelineName: test.name,
-                            provider: test.pipelineProvider ?? 'GitHub Actions',
-                            status: 'success',
-                            summary: 'Pipeline execution imported from CI/CD webhook.',
-                            branch: 'main',
-                          });
-                          qc.invalidateQueries({ queryKey: QK.testDetail(testId) });
-                          qc.invalidateQueries({ queryKey: ['tests'] });
-                          qc.invalidateQueries({ queryKey: QK.testRuns(testId) });
-                        }}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium shadow-sm transition-colors"
-                      >
-                        <RefreshCw className="w-4 h-4" />
-                        Ingest Pipeline Run
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => runMutation.mutate()}
-                        disabled={runMutation.isPending}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium shadow-sm transition-colors disabled:opacity-50"
-                      >
-                        <RefreshCw className={`w-4 h-4 ${runMutation.isPending ? 'animate-spin' : ''}`} />
-                        {runMutation.isPending ? 'Running...' : 'Run Scan Now'}
-                      </button>
-                    )}
-                    {runMsg && <p className="text-xs text-gray-500">{runMsg}</p>}
-                    <p className="text-xs text-gray-400">
-                      This test is system-driven via {providerLabel ?? test.pipelineProvider ?? 'the integration'}. Results update automatically on every scan.
-                    </p>
-                    {test.autoRemediationSupported && test.lastResult === 'Fail' && (
-                      <button
-                        onClick={() => autoRemediateMutation.mutate()}
-                        disabled={autoRemediateMutation.isPending}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-sm font-medium disabled:opacity-50"
-                      >
-                        <Wrench className="w-4 h-4" />
-                        {autoRemediateMutation.isPending ? 'Executing remediation...' : 'Run Auto-remediation'}
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  <>
-                    {test.status !== 'OK' && canEditTest && (
-                      <button
-                        onClick={() => completeMutation.mutate()}
-                        disabled={completeMutation.isPending}
-                        className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-medium shadow-sm transition-colors disabled:opacity-50"
-                      >
-                        <CheckCircle className="w-4 h-4" />
-                        {completeMutation.isPending ? 'Marking...' : 'Mark Complete'}
-                      </button>
-                    )}
-                    {test.status === 'OK' && (
-                      <div className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-green-50 text-green-700 text-sm font-medium border border-green-200">
-                        <CheckCircle className="w-4 h-4" />
-                        Completed {fmtDate(test.completedAt)}
-                      </div>
-                    )}
-                    {!canEditTest && (
-                      <p className="mt-4 text-xs text-gray-500">Only the assigned owner, team lead, or CISO override roles can change this test.</p>
-                    )}
-                  </>
-                )}
-
-                {/* Create Notion Task -- shown for any failing/needs-remediation test */}
-                {(test.status === 'Needs_remediation' || test.status === 'Overdue' || test.lastResult === 'Fail') && (
-                  <div className="mt-3">
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {isSystemDriven ? (
+                    <>
+                      {test.type === 'Pipeline' ? (
+                        <button
+                          onClick={async () => {
+                            await testsService.ingestPipelineRun({
+                              pipelineName: test.name,
+                              provider: test.pipelineProvider ?? 'GitHub Actions',
+                              status: 'success',
+                              summary: 'Pipeline execution imported from CI/CD webhook.',
+                              branch: 'main',
+                            });
+                            qc.invalidateQueries({ queryKey: QK.testDetail(testId) });
+                            qc.invalidateQueries({ queryKey: ['tests'] });
+                            qc.invalidateQueries({ queryKey: QK.testRuns(testId) });
+                          }}
+                          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium shadow-sm transition-colors"
+                        >
+                          <RefreshCw className="w-4 h-4" />
+                          Ingest Pipeline Run
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => runMutation.mutate()}
+                          disabled={runMutation.isPending}
+                          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium shadow-sm transition-colors disabled:opacity-50"
+                        >
+                          <RefreshCw className={`w-4 h-4 ${runMutation.isPending ? 'animate-spin' : ''}`} />
+                          {runMutation.isPending ? 'Running...' : 'Run Scan Now'}
+                        </button>
+                      )}
+                      {test.autoRemediationSupported && test.lastResult === 'Fail' && (
+                        <button
+                          onClick={() => autoRemediateMutation.mutate()}
+                          disabled={autoRemediateMutation.isPending}
+                          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-sm font-medium disabled:opacity-50"
+                        >
+                          <Wrench className="w-4 h-4" />
+                          {autoRemediateMutation.isPending ? 'Executing remediation...' : 'Run Auto-remediation'}
+                        </button>
+                      )}
+                    </>
+                  ) : test.status !== 'OK' && canEditTest ? (
                     <button
-                      onClick={() => setShowNotionModal(true)}
-                      className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-gray-800 text-sm font-medium shadow-sm transition-colors"
+                      onClick={() => completeMutation.mutate()}
+                      disabled={completeMutation.isPending}
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-medium shadow-sm transition-colors disabled:opacity-50"
                     >
-                      <NotionPanelIcon />
-                      Create Notion Task
+                      <CheckCircle className="w-4 h-4" />
+                      {completeMutation.isPending ? 'Marking...' : 'Mark Complete'}
                     </button>
-                    {notionTaskUrl && (
-                      <p className="mt-1.5 text-xs text-green-700">
-                        Task created:{' '}
-                        <a href={notionTaskUrl} target="_blank" rel="noreferrer" className="underline hover:text-green-900">Open in Notion</a>
-                      </p>
-                    )}
-                  </div>
-                )}
-              </Section>
-
-              {/* ── How to Remediate ── */}
-              <Section title="How to Remediate" icon={<Wrench className="w-4 h-4 text-gray-500" />}>
-                <RemediationGuide test={test} />
-              </Section>
-
-              <Section title="Result Trend" icon={<Activity className="w-4 h-4 text-gray-500" />}>
-                <TrendSparkline testId={testId} />
-              </Section>
-
-              <Section title="Risk Context" icon={<AlertTriangle className="w-4 h-4 text-gray-500" />}>
-                <RiskContextSection testId={testId} />
+                  ) : test.status === 'OK' ? (
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-green-50 text-green-700 text-sm font-medium border border-green-200">
+                      <CheckCircle className="w-4 h-4" />
+                      Completed {fmtDate(test.completedAt)}
+                    </div>
+                  ) : null}
+                </div>
+                {runMsg && <p className="mt-2 text-xs text-gray-500">{runMsg}</p>}
+                {isSystemDriven && <p className="mt-2 text-xs text-gray-400">This test is system-driven via {providerLabel ?? test.pipelineProvider ?? 'the integration'}. Results update automatically on every scan.</p>}
+                {!canEditTest && !isSystemDriven && <p className="mt-2 text-xs text-gray-500">Only the assigned owner, team lead, or CISO override roles can change this test.</p>}
               </Section>
 
               <Section title="Governance" icon={<ClipboardCheck className="w-4 h-4 text-gray-500" />}>
@@ -1292,43 +1314,31 @@ export function TestDetailPanel({ testId, onClose, onMutated, pageMode = false }
                       </button>
                     )}
                   </div>
-                  {securityEvents.length > 0 && (
-                    <div className="rounded-lg border border-amber-100 bg-amber-50 p-3">
-                      <p className="text-xs uppercase tracking-wide text-amber-700">SIEM / SOAR</p>
-                      <div className="mt-2 space-y-1">
-                        {securityEvents.slice(0, 3).map((item) => (
-                          <p key={item.id} className="text-xs text-amber-900">{item.eventType} to {item.destination} ({item.status})</p>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                   <p className="text-xs text-gray-500">Owners can edit and complete, auditors can attest, and CISO/admin roles retain override authority.</p>
                 </div>
               </Section>
 
-              {/* ── Scan Run History (Automated only) ── */}
-              {isSystemDriven && (
-                <Section title="Scan Run History" icon={<Zap className="w-4 h-4 text-gray-500" />}>
-                  <RunsSection testId={testId} />
-                </Section>
-              )}
+              <Section title="How to Remediate" icon={<Wrench className="w-4 h-4 text-gray-500" />}>
+                <RemediationGuide test={test} />
+              </Section>
+            </TabsContent>
 
-              {/* ── Evidence ── */}
+            <TabsContent value="evidence" className="space-y-4 mt-0">
               <Section title={`Evidence (${test.evidences.length})`} icon={<Shield className="w-4 h-4 text-gray-500" />}>
                 {test.evidences.length === 0 ? (
                   <p className="text-sm text-gray-400">No evidence attached.</p>
                 ) : (
                   <ul className="space-y-2">
                     {test.evidences.map(({ id, evidenceId, evidence }) => (
-                      <li key={id} className="flex items-center justify-between p-2.5 rounded-lg border border-gray-100 bg-gray-50">
+                      <li key={id} className="flex items-center justify-between gap-3 p-3 rounded-xl border border-gray-100 bg-gray-50">
                         <div>
                           <p className="text-sm font-medium text-gray-800">{evidence.fileName ?? evidence.type}</p>
                           {evidence.fileUrl && (
-                            <a href={evidence.fileUrl} target="_blank" rel="noreferrer" className="text-xs text-blue-600 hover:underline inline-flex items-center gap-1">
+                            <a href={evidence.fileUrl} target="_blank" rel="noreferrer" className="text-xs text-blue-600 hover:underline inline-flex items-center gap-1 mt-1">
                               <ExternalLink className="w-3 h-3" /> View file
                             </a>
                           )}
-                          <p className="text-xs text-gray-400 mt-0.5">{fmtDate(evidence.createdAt)}</p>
+                          <p className="text-xs text-gray-400 mt-1">{fmtDate(evidence.createdAt)}</p>
                         </div>
                         <button
                           onClick={() => detachEvidence.mutate(evidenceId)}
@@ -1342,12 +1352,7 @@ export function TestDetailPanel({ testId, onClose, onMutated, pageMode = false }
                     ))}
                   </ul>
                 )}
-                {canEditTest && (
-                  <AttachEvidenceSection
-                    testId={testId}
-                    existingIds={new Set(test.evidences.map((e) => e.evidenceId))}
-                  />
-                )}
+                {canEditTest && <AttachEvidenceSection testId={testId} existingIds={new Set(test.evidences.map((e) => e.evidenceId))} />}
               </Section>
 
               <Section title={`Unified Evidence (${unifiedEvidence.length})`} icon={<Shield className="w-4 h-4 text-gray-500" />}>
@@ -1356,7 +1361,7 @@ export function TestDetailPanel({ testId, onClose, onMutated, pageMode = false }
                 ) : (
                   <div className="space-y-2">
                     {unifiedEvidence.slice(0, 6).map((item) => (
-                      <div key={item.id} className="rounded-lg border border-gray-100 p-3 bg-gray-50">
+                      <div key={item.id} className="rounded-xl border border-gray-100 p-3 bg-gray-50">
                         <div className="flex items-center justify-between gap-3">
                           <p className="text-sm font-medium text-gray-900">{item.title}</p>
                           <span className="text-xs text-gray-500">{item.sourceType}</span>
@@ -1367,15 +1372,16 @@ export function TestDetailPanel({ testId, onClose, onMutated, pageMode = false }
                   </div>
                 )}
               </Section>
+            </TabsContent>
 
-              {/* ── Linked Controls ── */}
+            <TabsContent value="mapping" className="space-y-4 mt-0">
               <Section title={`Controls (${test.controls.length})`} icon={<Shield className="w-4 h-4 text-gray-500" />}>
                 {test.controls.length === 0 ? (
                   <p className="text-sm text-gray-400">No controls linked.</p>
                 ) : (
                   <ul className="space-y-2">
                     {test.controls.map(({ id, controlId, control }) => (
-                      <li key={id} className="flex items-center justify-between p-2.5 rounded-lg border border-gray-100 bg-gray-50">
+                      <li key={id} className="flex items-center justify-between gap-3 p-3 rounded-xl border border-gray-100 bg-gray-50">
                         <div>
                           <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-mono font-semibold bg-blue-50 text-blue-800 border border-blue-200 mr-2">
                             {control.isoReference}
@@ -1397,15 +1403,9 @@ export function TestDetailPanel({ testId, onClose, onMutated, pageMode = false }
                     ))}
                   </ul>
                 )}
-                {canEditTest && (
-                  <AttachControlSection
-                    testId={testId}
-                    existingIds={new Set(test.controls.map((c) => c.controlId))}
-                  />
-                )}
+                {canEditTest && <AttachControlSection testId={testId} existingIds={new Set(test.controls.map((c) => c.controlId))} />}
               </Section>
 
-              {/* ── Linked Frameworks ── */}
               <Section title={`Frameworks (${test.frameworks.length})`} icon={<Tag className="w-4 h-4 text-gray-500" />}>
                 {test.frameworks.length === 0 ? (
                   <p className="text-sm text-gray-400">No frameworks linked.</p>
@@ -1424,14 +1424,13 @@ export function TestDetailPanel({ testId, onClose, onMutated, pageMode = false }
                 {canEditTest && <AddFrameworkSection testId={testId} />}
               </Section>
 
-              {/* ── Linked Audits ── */}
               <Section title={`Audits (${test.audits.length})`} icon={<Link2 className="w-4 h-4 text-gray-500" />}>
                 {test.audits.length === 0 ? (
                   <p className="text-sm text-gray-400">No audits linked.</p>
                 ) : (
                   <ul className="space-y-2">
                     {test.audits.map(({ id, audit }) => (
-                      <li key={id} className="p-2.5 rounded-lg border border-gray-100 bg-gray-50 text-sm">
+                      <li key={id} className="p-3 rounded-xl border border-gray-100 bg-gray-50 text-sm">
                         <p className="font-medium text-gray-800">{audit.type}</p>
                         <p className="text-xs text-gray-500 mt-0.5">Auditor: {audit.auditor}</p>
                         {audit.scope && <p className="text-xs text-gray-400 mt-0.5">{audit.scope}</p>}
@@ -1439,21 +1438,46 @@ export function TestDetailPanel({ testId, onClose, onMutated, pageMode = false }
                     ))}
                   </ul>
                 )}
-                {canEditTest && (
-                  <AttachAuditSection
-                    testId={testId}
-                    existingIds={new Set(test.audits.map((a) => a.auditId))}
-                  />
-                )}
+                {canEditTest && <AttachAuditSection testId={testId} existingIds={new Set(test.audits.map((a) => a.auditId))} />}
+              </Section>
+            </TabsContent>
+
+            <TabsContent value="activity" className="space-y-4 mt-0">
+              <Section title="Result Trend" icon={<Activity className="w-4 h-4 text-gray-500" />}>
+                <TrendSparkline testId={testId} />
               </Section>
 
-              {/* ── History ── */}
+              {isSystemDriven && (
+                <Section title="Scan Run History" icon={<Zap className="w-4 h-4 text-gray-500" />}>
+                  <RunsSection testId={testId} />
+                </Section>
+              )}
+
+              <Section title="Risk Context" icon={<AlertTriangle className="w-4 h-4 text-gray-500" />}>
+                <RiskContextSection testId={testId} />
+              </Section>
+
+              {securityEvents.length > 0 && (
+                <Section title="Security Workflow" icon={<ArrowRight className="w-4 h-4 text-gray-500" />}>
+                  <div className="rounded-lg border border-amber-100 bg-amber-50 p-3">
+                    <p className="text-xs uppercase tracking-wide text-amber-700">SIEM / SOAR</p>
+                    <div className="mt-2 space-y-1">
+                      {securityEvents.slice(0, 6).map((item) => (
+                        <p key={item.id} className="text-xs text-amber-900">{item.eventType} to {item.destination} ({item.status})</p>
+                      ))}
+                    </div>
+                  </div>
+                </Section>
+              )}
+
               <Section title="History" icon={<History className="w-4 h-4 text-gray-500" />}>
                 <HistorySection testId={testId} />
               </Section>
-            </>
-          )}
-        </div>
+            </TabsContent>
+          </Tabs>
+        </>
+      )}
+    </div>
   );
 
   const notionModal = showNotionModal && test && (

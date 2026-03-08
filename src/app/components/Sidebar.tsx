@@ -52,7 +52,6 @@ const navigation: NavItem[] = [
     icon: FileCheck,
     children: [
       { title: "Tests", href: "/tests" },
-      { title: "Test Library", href: "/tests/library", roles: [...ADMIN_ROLES] },
     ],
   },
   { title: "Reports", href: "/reports", icon: BarChart3 },

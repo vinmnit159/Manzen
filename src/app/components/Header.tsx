@@ -17,11 +17,11 @@ const searchablePages: SearchResult[] = [
   { title: "Dashboard", path: "/", category: "Main" },
   { title: "My Work", path: "/my-work", category: "Main" },
   { title: "Tests", path: "/tests", category: "Main" },
-  { title: "Test Library", path: "/tests/library", category: "Main" },
   { title: "Reports", path: "/reports", category: "Main" },
   
   // Compliance
   { title: "Frameworks", path: "/compliance/frameworks", category: "Compliance" },
+  { title: "Available Frameworks", path: "/compliance/frameworks", category: "Compliance" },
   { title: "Controls", path: "/compliance/controls", category: "Compliance" },
   { title: "Policies", path: "/compliance/policies", category: "Compliance" },
   { title: "Documents", path: "/compliance/documents", category: "Compliance" },

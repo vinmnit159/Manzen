@@ -16,7 +16,10 @@ import {
 } from "@/app/components/ui/form";
 import { toast } from "sonner";
 import { setupService, SetupRequest } from "@/services/api/setup";
+import { testsService } from "@/services/api/tests";
 import { Eye, EyeOff, Settings, ShieldCheck, Users } from "lucide-react";
+import { Checkbox } from "@/app/components/ui/checkbox";
+import { FRAMEWORK_SUITE_OPTIONS } from "@/app/features/tests/frameworkSuites";
 
 const setupSchema = z.object({
   organizationName: z.string().min(2, "Organization name must be at least 2 characters"),
@@ -36,6 +39,7 @@ const setupSchema = z.object({
     .regex(/[a-z]/, "Password must contain at least one lowercase letter")
     .regex(/[0-9]/, "Password must contain at least one number")
     .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character"),
+  selectedFrameworks: z.array(z.string()).default([]),
 }).refine((data) => data.adminEmail !== data.orgAdminEmail, {
   message: "Admin emails must be different",
   path: ["orgAdminEmail"],
@@ -59,6 +63,7 @@ export function SetupFormPage() {
       orgAdminName: "",
       orgAdminEmail: "",
       orgAdminPassword: "",
+      selectedFrameworks: ['iso-cloud-hardening'],
     },
   });
 
@@ -73,6 +78,15 @@ export function SetupFormPage() {
         // Store the token for future use
         if (response.data?.token) {
           localStorage.setItem('isms_token', response.data.token);
+        }
+        if (data.selectedFrameworks.length > 0) {
+          const results = await Promise.allSettled(
+            data.selectedFrameworks.map((templateId) => testsService.createSuiteFromTemplate(templateId))
+          );
+          const succeeded = results.filter((result) => result.status === 'fulfilled').length;
+          if (succeeded > 0) {
+            toast.success(`Created ${succeeded} framework suite${succeeded === 1 ? '' : 's'} during setup.`);
+          }
         }
         
         // Navigate to home page after successful setup
@@ -311,6 +325,53 @@ export function SetupFormPage() {
                         </div>
                       </FormControl>
                       <PasswordStrengthIndicator password={field.value} />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="space-y-4 pt-6 border-t">
+                <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                  <ShieldCheck className="w-5 h-5" />
+                  Framework Setup
+                </h3>
+                <p className="text-sm text-gray-600">Choose which framework-aligned suites should be created immediately after setup.</p>
+
+                <FormField
+                  control={form.control}
+                  name="selectedFrameworks"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                          {FRAMEWORK_SUITE_OPTIONS.map((option) => {
+                            const checked = field.value.includes(option.id);
+                            return (
+                              <label
+                                key={option.id}
+                                className={`flex gap-3 rounded-xl border p-4 transition-colors cursor-pointer ${checked ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white hover:border-gray-300'}`}
+                              >
+                                <Checkbox
+                                  checked={checked}
+                                  onCheckedChange={(value) => {
+                                    const next = value
+                                      ? [...field.value, option.id]
+                                      : field.value.filter((item) => item !== option.id);
+                                    field.onChange(next);
+                                  }}
+                                  className="mt-0.5"
+                                />
+                                <div>
+                                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">{option.framework}</p>
+                                  <p className="mt-1 text-sm font-semibold text-gray-900">{option.name}</p>
+                                  <p className="mt-1 text-xs leading-5 text-gray-600">{option.description}</p>
+                                </div>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}

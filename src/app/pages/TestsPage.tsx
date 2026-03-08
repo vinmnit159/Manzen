@@ -483,11 +483,11 @@ export function TestsPage() {
             </span>
           )}
           <button
-            onClick={() => navigate('/tests/library')}
+            onClick={() => navigate('/compliance/frameworks')}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 transition-colors shadow-sm"
           >
             <Database className="w-4 h-4" />
-            <span className="hidden sm:inline">Test Library</span>
+            <span className="hidden sm:inline">Frameworks</span>
           </button>
           <button
             onClick={() => downloadExport('csv')}
@@ -539,7 +539,7 @@ export function TestsPage() {
       {/* ── Summary panels ── */}
       {summary && !isLoading && (
         <div className="px-6 pt-4 pb-2">
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
 
             {/* Pass % */}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-4">
@@ -606,56 +606,7 @@ export function TestsPage() {
               )}
             </div>
 
-            {dashboard && (
-              <>
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-4">
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Control Coverage</p>
-                  <p className="text-4xl font-bold text-gray-900">{dashboard.controlCoverage}%</p>
-                  <p className="text-sm text-gray-500 mt-1">Controls with linked tests</p>
-                </div>
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-4">
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Automation Coverage</p>
-                  <p className="text-4xl font-bold text-gray-900">{dashboard.automationCoverage}%</p>
-                  <p className="text-sm text-gray-500 mt-1">Automated and pipeline tests</p>
-                </div>
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-4">
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Evidence Freshness</p>
-                  <p className="text-4xl font-bold text-gray-900">{dashboard.evidenceFreshness}%</p>
-                  <p className="text-sm text-gray-500 mt-1">Current evidence quality signal</p>
-                </div>
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-4">
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">SLA Compliance</p>
-                  <p className="text-4xl font-bold text-gray-900">{dashboard.slaCompliance}%</p>
-                  <p className="text-sm text-gray-500 mt-1">Completed before due date</p>
-                </div>
-              </>
-            )}
           </div>
-          {(gaps || escalations.length > 0) && (
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-3 mt-3">
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Controls Without Tests</p>
-                <div className="space-y-1 text-sm text-gray-700">
-                  {(gaps?.controlsWithoutTests ?? []).slice(0, 4).map((item) => <p key={item}>{item}</p>)}
-                  {!(gaps?.controlsWithoutTests?.length) && <p className="text-gray-400">No control gaps detected.</p>}
-                </div>
-              </div>
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Framework Gaps</p>
-                <div className="space-y-1 text-sm text-gray-700">
-                  {(gaps?.frameworksWithoutCoverage ?? []).slice(0, 4).map((item) => <p key={item}>{item}</p>)}
-                  {!(gaps?.frameworksWithoutCoverage?.length) && <p className="text-gray-400">All core frameworks have coverage.</p>}
-                </div>
-              </div>
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Escalations</p>
-                <div className="space-y-1 text-sm text-gray-700">
-                  {escalations.slice(0, 4).map((item) => <p key={item.id}>{item.stage} - {item.owner}</p>)}
-                  {!escalations.length && <p className="text-gray-400">No overdue escalation chains active.</p>}
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       )}
 
