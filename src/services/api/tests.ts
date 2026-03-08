@@ -72,7 +72,7 @@ export interface TestRecord {
   lastResult?: 'Pass' | 'Fail' | 'Warning' | 'Not_Run';
   lastResultDetails?: any;
   autoRemediationSupported?: boolean;
-  integration?: { id: string; provider: string; status: string } | null;
+  integration?: { id: string; provider: string; status: string; metadata?: Record<string, string> } | null;
 }
 
 // ─── Summary ──────────────────────────────────────────────────────────────────
