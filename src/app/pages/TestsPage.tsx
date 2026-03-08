@@ -10,7 +10,6 @@ import { usersService } from '@/services/api/users';
 import type { TestRecord, TestStatus, TestCategory, TestType, ListTestsParams } from '@/services/api/tests';
 import type { Control } from '@/services/api/types';
 import { authService } from '@/services/api/auth';
-import { TestDetailPanel } from './tests/TestDetailPanel';
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
@@ -226,7 +225,6 @@ export function TestsPage() {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [columns, setColumns] = useState<ColumnConfig[]>(DEFAULT_COLUMNS);
   const [filterOpen, setFilterOpen] = useState(false);
-  const [selectedTestId, setSelectedTestId] = useState<string | null>(null);
   const [statusFilterOverride, setStatusFilterOverride] = useState<string>('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [bulkOwnerId, setBulkOwnerId] = useState('');
@@ -795,7 +793,7 @@ export function TestsPage() {
                         <tr
                           key={test.id}
                           className="hover:bg-blue-50/40 transition-colors cursor-pointer"
-                          onClick={() => setSelectedTestId(test.id)}
+                          onClick={() => navigate(`/tests/${test.id}`)}
                         >
                           <td className="px-4 py-3 align-middle" onClick={(e) => e.stopPropagation()}>
                             <input
@@ -853,14 +851,6 @@ export function TestsPage() {
         </div>
       </div>
 
-      {/* ── Detail panel ── */}
-      {selectedTestId && (
-        <TestDetailPanel
-          testId={selectedTestId}
-          onClose={() => setSelectedTestId(null)}
-          onMutated={() => qc.invalidateQueries({ queryKey: ['tests'] })}
-        />
-      )}
     </div>
   );
 }

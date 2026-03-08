@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   X,
@@ -910,18 +911,26 @@ function RemediationGuide({ test }: { test: TestRecord }) {
 
 interface TestDetailPanelProps {
   testId: string;
-  onClose: () => void;
+  onClose?: () => void;
   onMutated?: () => void;
+  /** When true, renders as a full page instead of a slide-over panel */
+  pageMode?: boolean;
 }
 
 const ADMIN_ROLES = ['ORG_ADMIN', 'SUPER_ADMIN', 'SECURITY_OWNER'];
 const AUDIT_REVIEW_ROLES = ['AUDITOR', 'ORG_ADMIN', 'SUPER_ADMIN', 'SECURITY_OWNER'];
 
-export function TestDetailPanel({ testId, onClose, onMutated }: TestDetailPanelProps) {
+export function TestDetailPanel({ testId, onClose, onMutated, pageMode = false }: TestDetailPanelProps) {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const [runMsg, setRunMsg] = useState<string | null>(null);
   const [showNotionModal, setShowNotionModal] = useState(false);
   const [notionTaskUrl, setNotionTaskUrl] = useState<string | null>(null);
+
+  function handleClose() {
+    if (onClose) { onClose(); }
+    else if (pageMode) { navigate(-1); }
+  }
 
   const currentUser = authService.getCachedUser();
   const isAdmin = ADMIN_ROLES.includes(currentUser?.role ?? '');
@@ -1044,35 +1053,40 @@ export function TestDetailPanel({ testId, onClose, onMutated }: TestDetailPanelP
   const canEditTest = isAdmin || isOwner;
   const canAttest = Boolean(test && isReviewer && currentUser?.id && currentUser.id !== test.ownerId);
 
-  return (
-    // Overlay
-    <div className="fixed inset-0 z-40 flex justify-end" aria-modal="true">
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
-
-      {/* Panel */}
-      <div className="relative z-50 w-full max-w-xl bg-white shadow-2xl flex flex-col h-full overflow-hidden">
-        {/* Header */}
-        <div className="flex items-start justify-between px-5 py-4 border-b border-gray-200 bg-white sticky top-0">
-          {isLoading ? (
-            <div className="h-5 w-40 bg-gray-200 rounded animate-pulse" />
-          ) : test ? (
-            <div>
-              <h2 className="text-base font-semibold text-gray-900 leading-snug">{test.name}</h2>
-              <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                <StatusBadge status={test.status} />
-                <span className={`px-2 py-0.5 rounded text-xs font-medium ${CATEGORY_COLOR[test.category]}`}>{test.category}</span>
-                <span className={`px-2 py-0.5 rounded text-xs font-medium ${isSystemDriven ? 'bg-violet-100 text-violet-700' : 'bg-gray-100 text-gray-600'}`}>{test.type}</span>
-              </div>
-            </div>
-          ) : null}
-          <button onClick={onClose} className="ml-4 p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors flex-shrink-0" aria-label="Close panel">
-            <X className="w-5 h-5" />
-          </button>
+  // ── Shared header + body content ──
+  const header = (
+    <div className={`flex items-start justify-between px-5 py-4 border-b border-gray-200 bg-white ${pageMode ? '' : 'sticky top-0'}`}>
+      {isLoading ? (
+        <div className="h-5 w-40 bg-gray-200 rounded animate-pulse" />
+      ) : test ? (
+        <div>
+          {pageMode && (
+            <button
+              onClick={handleClose}
+              className="mb-2 inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+              Back to Tests
+            </button>
+          )}
+          <h2 className={`font-semibold text-gray-900 leading-snug ${pageMode ? 'text-2xl' : 'text-base'}`}>{test.name}</h2>
+          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+            <StatusBadge status={test.status} />
+            <span className={`px-2 py-0.5 rounded text-xs font-medium ${CATEGORY_COLOR[test.category]}`}>{test.category}</span>
+            <span className={`px-2 py-0.5 rounded text-xs font-medium ${isSystemDriven ? 'bg-violet-100 text-violet-700' : 'bg-gray-100 text-gray-600'}`}>{test.type}</span>
+          </div>
         </div>
+      ) : null}
+      {!pageMode && (
+        <button onClick={handleClose} className="ml-4 p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors flex-shrink-0" aria-label="Close panel">
+          <X className="w-5 h-5" />
+        </button>
+      )}
+    </div>
+  );
 
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+  const body = (
+    <div className={`${pageMode ? 'px-5 py-4' : 'flex-1 overflow-y-auto px-5 py-4'} space-y-4`}>
           {isLoading && (
             <div className="space-y-3">
               {[...Array(4)].map((_, i) => <div key={i} className="h-14 bg-gray-100 rounded-xl animate-pulse" />)}
@@ -1440,18 +1454,42 @@ export function TestDetailPanel({ testId, onClose, onMutated }: TestDetailPanelP
             </>
           )}
         </div>
-      </div>
+  );
 
-      {/* Notion task creation modal */}
-      {showNotionModal && test && (
-        <CreateNotionTaskModal
-          testId={testId}
-          testName={test.name}
-          controlId={test.controls[0]?.control?.isoReference}
-          onClose={() => setShowNotionModal(false)}
-          onCreated={(url) => setNotionTaskUrl(url)}
-        />
-      )}
+  const notionModal = showNotionModal && test && (
+    <CreateNotionTaskModal
+      testId={testId}
+      testName={test.name}
+      controlId={test.controls[0]?.control?.isoReference}
+      onClose={() => setShowNotionModal(false)}
+      onCreated={(url) => setNotionTaskUrl(url)}
+    />
+  );
+
+  // ── Page mode: full-page layout ──
+  if (pageMode) {
+    return (
+      <div className="min-h-full bg-white">
+        {header}
+        <div className="max-w-4xl mx-auto">
+          {body}
+        </div>
+        {notionModal}
+      </div>
+    );
+  }
+
+  // ── Panel mode: fixed slide-over ──
+  return (
+    <div className="fixed inset-0 z-40 flex justify-end" aria-modal="true">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/30" onClick={handleClose} />
+      {/* Panel */}
+      <div className="relative z-50 w-full max-w-xl bg-white shadow-2xl flex flex-col h-full overflow-hidden">
+        {header}
+        {body}
+      </div>
+      {notionModal}
     </div>
   );
 }

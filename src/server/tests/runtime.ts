@@ -583,7 +583,6 @@ class TestsRuntimeService {
 
   applyAutomationMappings(testId: string) {
     return this.updateRecord(testId, (record) => {
-      if (record.type === 'Document') return record;
       const mapping = this.resolveMapping(record);
       if (mapping.controls.length === 0 && mapping.frameworks.length === 0) return record;
 
@@ -615,9 +614,7 @@ class TestsRuntimeService {
 
   runAutomationBackfillOnce() {
     for (const test of [...this.state.tests]) {
-      if (test.type !== 'Document') {
-        this.applyAutomationMappings(test.id);
-      }
+      this.applyAutomationMappings(test.id);
 
       for (const run of this.state.runs[test.id] ?? []) {
         if (run.status === 'Pass' || run.status === 'Fail') {

@@ -4,6 +4,7 @@ import { HomePage } from "@/app/pages/HomePage";
 import { MyWorkPage } from "@/app/pages/MyWorkPage";
 import { TestsPage } from "@/app/pages/TestsPage";
 import { TestLibraryPage } from "@/app/pages/tests/TestLibraryPage";
+import { TestDetailPage } from "@/app/pages/tests/TestDetailPage";
 import { ReportsPage } from "@/app/pages/ReportsPage";
 import { ReportViewerPage } from "@/app/pages/reports/ReportViewerPage";
 import { AuditorDashboardPage } from "@/app/pages/auditor/AuditorDashboardPage";
@@ -76,6 +77,20 @@ function requireAuth() {
   return null;
 }
 
+// Admin guard: redirect to /tests if not an admin role
+function requireAdmin() {
+  const token = localStorage.getItem("isms_token");
+  if (!token) return redirect("/login");
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    const adminRoles = ["SUPER_ADMIN", "ORG_ADMIN", "SECURITY_OWNER"];
+    if (!adminRoles.includes(payload.role)) return redirect("/tests");
+  } catch {
+    // If token is malformed, fall through (auth middleware will catch it)
+  }
+  return null;
+}
+
 export const router = createBrowserRouter([
   // Public auth routes (no layout)
   {
@@ -107,7 +122,8 @@ export const router = createBrowserRouter([
       { index: true, Component: HomePage },
       { path: "my-work", Component: MyWorkPage },
       { path: "tests", Component: TestsPage },
-      { path: "tests/library", Component: TestLibraryPage },
+      { path: "tests/:testId", Component: TestDetailPage },
+      { path: "tests/library", Component: TestLibraryPage, loader: requireAdmin },
       { path: "reports", Component: ReportsPage },
       { path: "reports/viewer/:reportId", Component: ReportViewerPage },
 
