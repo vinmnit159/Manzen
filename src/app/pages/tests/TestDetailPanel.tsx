@@ -20,6 +20,7 @@ import {
   ExternalLink,
   Lightbulb,
   ClipboardCheck,
+  Activity,
 } from 'lucide-react';
 import { QK } from '@/lib/queryKeys';
 import { STALE } from '@/lib/queryClient';
