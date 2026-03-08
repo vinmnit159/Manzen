@@ -266,11 +266,42 @@ export class TestsService {
   }
 
   async getDashboard(): Promise<ApiResponse<TestDashboard>> {
-    return apiClient.get('/api/tests/dashboard');
+    try {
+      return await apiClient.get('/api/tests/dashboard');
+    } catch (error: any) {
+      if (error?.statusCode === 404) {
+        return {
+          success: true,
+          data: {
+            controlCoverage: 0,
+            frameworkCoverage: [],
+            automationCoverage: 0,
+            evidenceFreshness: 0,
+            slaCompliance: 0,
+            statusBreakdown: [],
+          },
+        };
+      }
+      throw error;
+    }
   }
 
   async getGapAnalysis(): Promise<ApiResponse<TestGapAnalysis>> {
-    return apiClient.get('/api/tests/gaps');
+    try {
+      return await apiClient.get('/api/tests/gaps');
+    } catch (error: any) {
+      if (error?.statusCode === 404) {
+        return {
+          success: true,
+          data: {
+            controlsWithoutTests: [],
+            frameworksWithoutCoverage: [],
+            testsWithoutEvidence: [],
+          },
+        };
+      }
+      throw error;
+    }
   }
 
   async getLibrary(): Promise<ApiResponse<TestTemplate[]>> {
@@ -340,15 +371,36 @@ export class TestsService {
   }
 
   async listSecurityEvents(): Promise<ApiResponse<TestSecurityEvent[]>> {
-    return apiClient.get('/api/tests/security-events');
+    try {
+      return await apiClient.get('/api/tests/security-events');
+    } catch (error: any) {
+      if (error?.statusCode === 404) {
+        return { success: true, data: [] };
+      }
+      throw error;
+    }
   }
 
   async listUnifiedEvidence(): Promise<ApiResponse<UnifiedTestEvidence[]>> {
-    return apiClient.get('/api/tests/unified-evidence');
+    try {
+      return await apiClient.get('/api/tests/unified-evidence');
+    } catch (error: any) {
+      if (error?.statusCode === 404) {
+        return { success: true, data: [] };
+      }
+      throw error;
+    }
   }
 
   async listEscalations(): Promise<ApiResponse<TestEscalation[]>> {
-    return apiClient.get('/api/tests/escalations');
+    try {
+      return await apiClient.get('/api/tests/escalations');
+    } catch (error: any) {
+      if (error?.statusCode === 404) {
+        return { success: true, data: [] };
+      }
+      throw error;
+    }
   }
 
   async listWorkflowIntegrationConfigStatus(): Promise<ApiResponse<WorkflowIntegrationConfigStatus[]>> {
