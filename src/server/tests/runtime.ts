@@ -113,6 +113,7 @@ interface CreateTestInput {
   dueDate: string;
   recurrenceRule?: RecurrenceRule | null;
   riskEngineTestId?: string | null;
+  templateId?: string | null;
 }
 
 interface UpdateTestInput {
@@ -163,6 +164,60 @@ const POLICY_TEST_TEMPLATES = [
   'Privilege recertification',
   'Policy acknowledgement sample',
   'Change management walkthrough',
+];
+
+const TEMPLATE_AUTOMATION_MAPPINGS: Record<string, { controls: string[]; frameworks: string[] }> = {
+  'iso-cloud-hardening': {
+    controls: ['Cloud configuration baseline', 'Perimeter hardening'],
+    frameworks: ['ISO 27001'],
+  },
+  'nist-devsecops': {
+    controls: ['Secure SDLC guardrails', 'Vulnerability remediation SLA'],
+    frameworks: ['NIST'],
+  },
+};
+
+const PROVIDER_AUTOMATION_MAPPINGS: Array<{ providers: string[]; controls: string[]; frameworks: string[] }> = [
+  {
+    providers: ['AWS', 'CLOUD_AWS'],
+    controls: ['Cloud configuration baseline', 'Infrastructure exposure checks'],
+    frameworks: ['ISO 27001', 'SOC 2'],
+  },
+  {
+    providers: ['AZURE', 'CLOUD_AZURE'],
+    controls: ['Cloud configuration baseline', 'Identity and access baseline'],
+    frameworks: ['ISO 27001', 'SOC 2'],
+  },
+  {
+    providers: ['GCP', 'CLOUD_GCP'],
+    controls: ['Cloud configuration baseline', 'Identity and access baseline'],
+    frameworks: ['ISO 27001', 'SOC 2'],
+  },
+  {
+    providers: ['CLOUDFLARE', 'NETWORK_CLOUDFLARE'],
+    controls: ['Perimeter hardening', 'Network edge protection'],
+    frameworks: ['ISO 27001', 'SOC 2'],
+  },
+  {
+    providers: ['GITHUB_ACTIONS', 'GITHUB', 'SOURCE_CODE_GITHUB'],
+    controls: ['Secure SDLC guardrails', 'Vulnerability remediation SLA'],
+    frameworks: ['NIST', 'SOC 2'],
+  },
+  {
+    providers: ['SPLUNK', 'SIEM', 'SUMOLOGIC'],
+    controls: ['Security monitoring and alerting', 'Retention and encryption checks'],
+    frameworks: ['SOC 2', 'ISO 27001'],
+  },
+  {
+    providers: ['JIRA'],
+    controls: ['Remediation workflow governance'],
+    frameworks: ['SOC 2'],
+  },
+  {
+    providers: ['SLACK'],
+    controls: ['Incident communication workflow'],
+    frameworks: ['SOC 2'],
+  },
 ];
 
 interface TestsState {
@@ -233,6 +288,14 @@ function controlLink(controlId: string, title: string): TestControlLinkDto {
       status: 'IMPLEMENTED',
     },
   };
+}
+
+function normalizeProviderToken(value?: string | null) {
+  return (value ?? '').trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_');
+}
+
+function slug(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '').slice(0, 64) || 'run';
 }
 
 function frameworkLinks(testId: string, frameworkIds: string[]) {
@@ -416,7 +479,7 @@ class TestsRuntimeService {
       createdAt: now.toISOString(),
       updatedAt: now.toISOString(),
       riskEngineTestId: input.riskEngineTestId ?? null,
-      templateId: null,
+      templateId: input.templateId ?? null,
       attestationStatus: 'Not_requested',
       reviewerId: null,
       reviewer: null,
@@ -437,7 +500,7 @@ class TestsRuntimeService {
     };
     this.state.tests = [record, ...this.state.tests];
     this.addHistory(record.id, 'Test created', null, record.name, 'api');
-    return record;
+    return this.applyAutomationMappings(record.id);
   }
 
   updateTest(id: string, input: UpdateTestInput) {
@@ -457,7 +520,111 @@ class TestsRuntimeService {
       return next;
     });
     this.addHistory(id, 'Test updated', null, updated.name, 'api');
-    return updated;
+    return this.applyAutomationMappings(id);
+  }
+
+  private buildRunEvidenceLink(test: TestRecordDto, run: TestRunRecordDto): TestEvidenceLinkDto | null {
+    if (run.status !== 'Pass' && run.status !== 'Fail') return null;
+    const evidenceId = `run-evidence-${run.id}`;
+    const resultLabel = run.status.toLowerCase();
+    return {
+      id: `evidence-link-${evidenceId}`,
+      evidenceId,
+      evidence: {
+        id: evidenceId,
+        type: run.status === 'Pass' ? 'automated-pass' : 'automated-fail',
+        fileName: `${slug(test.name)}-${resultLabel}-run.json`,
+        fileUrl: null,
+        createdAt: run.executedAt,
+      },
+    };
+  }
+
+  attachRunEvidenceFromRun(testId: string, run: TestRunRecordDto) {
+    const test = this.getTest(testId);
+    const runEvidence = this.buildRunEvidenceLink(test, run);
+    if (!runEvidence) return test;
+    return this.updateRecord(testId, (record) => {
+      if (record.evidences.some((item) => item.evidenceId === runEvidence.evidenceId)) return record;
+      return {
+        ...record,
+        evidences: [...record.evidences, runEvidence],
+        updatedAt: new Date().toISOString(),
+      };
+    });
+  }
+
+  private resolveMapping(record: TestRecordDto) {
+    const controls = new Set<string>();
+    const frameworks = new Set<string>();
+
+    const templateMapping = record.templateId ? TEMPLATE_AUTOMATION_MAPPINGS[record.templateId] : null;
+    if (templateMapping) {
+      templateMapping.controls.forEach((control) => controls.add(control));
+      templateMapping.frameworks.forEach((framework) => frameworks.add(framework));
+    }
+
+    const providerCandidates = [
+      record.integration?.provider,
+      record.pipelineProvider,
+      record.integrationId,
+      record.integration?.metadata?.signalType,
+    ].map((item) => normalizeProviderToken(item)).filter(Boolean);
+
+    for (const mapping of PROVIDER_AUTOMATION_MAPPINGS) {
+      if (mapping.providers.some((provider) => providerCandidates.some((candidate) => candidate.includes(provider)))) {
+        mapping.controls.forEach((control) => controls.add(control));
+        mapping.frameworks.forEach((framework) => frameworks.add(framework));
+      }
+    }
+
+    return { controls: Array.from(controls), frameworks: Array.from(frameworks) };
+  }
+
+  applyAutomationMappings(testId: string) {
+    return this.updateRecord(testId, (record) => {
+      if (record.type === 'Document') return record;
+      const mapping = this.resolveMapping(record);
+      if (mapping.controls.length === 0 && mapping.frameworks.length === 0) return record;
+
+      const controls = [...record.controls];
+      const frameworks = [...record.frameworks];
+      let changed = false;
+
+      for (const controlId of mapping.controls) {
+        if (controls.some((item) => item.controlId === controlId)) continue;
+        controls.push(controlLink(controlId, controlId));
+        changed = true;
+      }
+
+      for (const frameworkName of mapping.frameworks) {
+        if (frameworks.some((item) => item.frameworkName === frameworkName)) continue;
+        frameworks.push({ id: makeId('test-framework'), testId: record.id, frameworkName });
+        changed = true;
+      }
+
+      if (!changed) return record;
+      return {
+        ...record,
+        controls,
+        frameworks,
+        updatedAt: new Date().toISOString(),
+      };
+    });
+  }
+
+  runAutomationBackfillOnce() {
+    for (const test of [...this.state.tests]) {
+      if (test.type !== 'Document') {
+        this.applyAutomationMappings(test.id);
+      }
+
+      for (const run of this.state.runs[test.id] ?? []) {
+        if (run.status === 'Pass' || run.status === 'Fail') {
+          this.attachRunEvidenceFromRun(test.id, run);
+        }
+      }
+    }
   }
 
   deleteTest(id: string) {
@@ -670,21 +837,9 @@ class TestsRuntimeService {
           mergedEvidence.push(evidenceItem);
         }
       }
-      if (runStatus === 'Pass') {
-        const autoEvidenceId = `auto-evidence-${record.id}`;
-        if (!mergedEvidence.some((item) => item.evidenceId === autoEvidenceId)) {
-          mergedEvidence.push({
-            id: `evidence-link-${autoEvidenceId}`,
-            evidenceId: autoEvidenceId,
-            evidence: {
-              id: autoEvidenceId,
-              type: 'automated-pass',
-              fileName: `${definition.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-snapshot.json`,
-              fileUrl: null,
-              createdAt: result.executedAt,
-            },
-          });
-        }
+      const runEvidence = this.buildRunEvidenceLink(record, run);
+      if (runEvidence && !mergedEvidence.some((item) => item.evidenceId === runEvidence.evidenceId)) {
+        mergedEvidence.push(runEvidence);
       }
 
       const nextStatus = runStatus === 'Fail'
@@ -726,6 +881,7 @@ class TestsRuntimeService {
       }));
 
       this.addHistory(record.id, 'Risk engine sync', existing ? existing.status : null, nextStatus, 'risk-engine');
+      this.applyAutomationMappings(record.id);
     }
   }
 }
@@ -746,7 +902,11 @@ let runtimePromise: Promise<TestsRuntimeService> | null = null;
 
 export async function getTestsRuntimeService() {
   if (!runtimePromise) {
-    runtimePromise = createInitialState().then((state) => new TestsRuntimeService(state));
+    runtimePromise = createInitialState().then((state) => {
+      const service = new TestsRuntimeService(state);
+      service.runAutomationBackfillOnce();
+      return service;
+    });
   }
   return runtimePromise;
 }

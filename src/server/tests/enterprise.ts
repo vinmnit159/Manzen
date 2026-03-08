@@ -250,6 +250,7 @@ export async function createTestSuiteFromTemplate(templateId: string) {
       ownerId: 'user-compliance',
       dueDate: new Date().toISOString(),
       recurrenceRule: template.recurrenceRule,
+      templateId: template.id,
     }) as TestRecordDto;
     service.attachFramework(record.id, template.framework);
     service.attachControl(record.id, control);
@@ -371,6 +372,8 @@ export async function ingestPipelineRun(input: { pipelineName: string; provider:
     lastResultDetails: { summary: input.summary, branch: input.branch ?? 'main', provider: input.provider },
     updatedAt: now,
   }));
+  service.applyAutomationMappings(test.id);
+  service.attachRunEvidenceFromRun(test.id, run);
   service.addHistory(test.id, 'Pipeline run ingested', null, run.status, 'ci');
   if (run.status === 'Fail') {
     await Promise.all([
