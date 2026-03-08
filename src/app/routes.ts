@@ -67,6 +67,11 @@ import { MyAccessRequestsPage } from "@/app/pages/MyAccessRequestsPage";
 // Account
 import { AccountSettingsPage } from "@/app/pages/account/AccountSettingsPage";
 
+// Access Management (RBAC)
+import { AccessUsersPage } from "@/app/pages/access/AccessUsersPage";
+import { AccessRolesPage } from "@/app/pages/access/AccessRolesPage";
+import { AccessRequestsPage } from "@/app/pages/access/AccessRequestsPage";
+
 // Auth guard: redirect to /login if no token
 function requireAuth() {
   const token = localStorage.getItem("isms_token");
@@ -178,6 +183,11 @@ export const router = createBrowserRouter([
       { path: "integrations/partner-api", Component: PartnerApiPage },
       { path: "my-security-tasks", Component: MySecurityTasksPage },
       { path: "my-access-requests", Component: MyAccessRequestsPage },
+
+      // Access Management (RBAC)
+      { path: "access/users",    Component: AccessUsersPage },
+      { path: "access/roles",    Component: AccessRolesPage },
+      { path: "access/requests", Component: AccessRequestsPage },
 
       // Account
       { path: "account-settings", Component: AccountSettingsPage },

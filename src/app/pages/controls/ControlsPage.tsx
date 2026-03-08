@@ -6,6 +6,7 @@ import { Control, ControlFilter, ColumnConfig, DEFAULT_COLUMNS } from './types';
 import { ControlsFilter } from './ControlsFilter';
 import { ControlsTable } from './ControlsTable';
 import { ColumnSelector } from './ColumnSelector';
+import { ControlDetailPanel } from './ControlDetailPanel';
 import { SlidersHorizontal, X, RefreshCw } from 'lucide-react';
 import { QK } from '@/lib/queryKeys';
 import { STALE } from '@/lib/queryClient';
@@ -22,6 +23,7 @@ export function ControlsPage() {
   const [sortColumn, setSortColumn] = useState<string>('isoReference');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [filterOpen, setFilterOpen] = useState(false);
+  const [selectedControl, setSelectedControl] = useState<Control | null>(null);
 
   // Load / persist column preferences in localStorage (unchanged)
   useEffect(() => {
@@ -110,6 +112,9 @@ export function ControlsPage() {
 
   return (
     <div className="flex flex-col bg-gray-50">
+      {selectedControl && (
+        <ControlDetailPanel control={selectedControl} onClose={() => setSelectedControl(null)} />
+      )}
       {/* ── Top App Bar (Material-style) ── */}
       <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
         <div>
@@ -257,6 +262,7 @@ export function ControlsPage() {
                 onSort={handleSort}
                 sortColumn={sortColumn}
                 sortDirection={sortDirection}
+                onSelect={setSelectedControl}
               />
               <div className="flex items-center justify-between px-4 py-2 bg-white rounded-xl border border-gray-200 shadow-sm">
                 <span className="text-sm text-gray-500">

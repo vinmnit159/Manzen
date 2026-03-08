@@ -33,6 +33,10 @@ export const QK = {
   // Personnel
   users: () => ['users', 'list'] as const,
 
+  // Access Management
+  accessRequests: (filter?: object) => ['access', 'requests', filter] as const,
+  auditLog: (filter?: object)       => ['access', 'audit-log', filter] as const,
+
   // Onboarding
   onboardingMe:    () => ['onboarding', 'me']       as const,
   onboardingUsers: () => ['onboarding', 'users']    as const,

@@ -24,6 +24,9 @@ import {
 import { usersService, UserWithGit } from "@/services/api/users";
 import { onboardingService, UserOnboardingSummary } from "@/services/api/onboarding";
 import { Role } from "@/services/api/types";
+import { ROLE_LABELS, ROLE_CONFIG, AppRole } from "@/lib/rbac/permissions";
+import { useHasPermission, useCurrentUser } from "@/hooks/useCurrentUser";
+import { PERMISSIONS } from "@/lib/rbac/permissions";
 
 // ─── Role badge colour map ─────────────────────────────────────────────────
 
@@ -215,8 +218,12 @@ function UserDetailPanel({
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+const ALL_ROLES: AppRole[] = ['SUPER_ADMIN', 'ORG_ADMIN', 'SECURITY_OWNER', 'AUDITOR', 'CONTRIBUTOR', 'VIEWER'];
+
 export function PeoplePage() {
   const qc = useQueryClient();
+  const currentUser = useCurrentUser();
+  const canAssignRoles = useHasPermission(PERMISSIONS.USERS_ROLES_ASSIGN);
   const [selectedUser, setSelectedUser] = useState<UserOnboardingSummary | null>(null);
 
   const { data: usersData, isLoading: loadingUsers, isFetching, error: usersError } = useQuery({
@@ -328,10 +335,31 @@ export function PeoplePage() {
                       </td>
 
                       {/* Role */}
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Badge variant={ROLE_VARIANT[user.role] ?? "outline"}>
-                          {roleLabel(user.role)}
-                        </Badge>
+                      <td className="px-6 py-4 whitespace-nowrap" onClick={e => e.stopPropagation()}>
+                        {canAssignRoles && currentUser?.id !== user.id ? (
+                          <select
+                            value={user.role}
+                            onChange={async (e) => {
+                              const newRole = e.target.value as Role;
+                              try {
+                                await usersService.updateUser(user.id, { role: newRole });
+                                qc.invalidateQueries({ queryKey: QK.users() });
+                              } catch {
+                                // silently fail — user sees no change
+                              }
+                            }}
+                            className="text-xs font-medium px-2 py-1 rounded-md border border-gray-300 bg-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            title="Change role"
+                          >
+                            {ALL_ROLES.map(r => (
+                              <option key={r} value={r}>{ROLE_LABELS[r]}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <Badge variant={ROLE_VARIANT[user.role] ?? "outline"}>
+                            {roleLabel(user.role)}
+                          </Badge>
+                        )}
                       </td>
 
                       {/* GitHub accounts */}

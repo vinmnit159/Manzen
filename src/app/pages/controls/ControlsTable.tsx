@@ -7,6 +7,7 @@ interface ControlsTableProps {
   onSort?: (column: string) => void;
   sortColumn?: string;
   sortDirection?: 'asc' | 'desc';
+  onSelect?: (control: Control) => void;
 }
 
 const STATUS_CONFIG: Record<
@@ -39,6 +40,7 @@ export function ControlsTable({
   onSort,
   sortColumn,
   sortDirection,
+  onSelect,
 }: ControlsTableProps) {
   const visibleColumns = columns.filter((c) => c.visible);
 
@@ -155,7 +157,8 @@ export function ControlsTable({
             {controls.map((control) => (
               <tr
                 key={control.id}
-                className="hover:bg-blue-50/40 transition-colors group"
+                onClick={() => onSelect?.(control)}
+                className={`hover:bg-blue-50/40 transition-colors group ${onSelect ? 'cursor-pointer' : ''}`}
               >
                 {visibleColumns.map((col) => (
                   <td
@@ -166,6 +169,11 @@ export function ControlsTable({
                     {renderCell(control, col)}
                   </td>
                 ))}
+                {onSelect && (
+                  <td className="px-3 py-3 text-right align-middle">
+                    <span className="opacity-0 group-hover:opacity-100 transition-opacity text-xs text-blue-600 font-medium">View →</span>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
