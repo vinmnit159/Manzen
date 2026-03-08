@@ -5,6 +5,7 @@ import { policiesService, PolicyTemplate } from '@/services/api/policies';
 import { Policy } from '@/services/api/types';
 import { QK } from '@/lib/queryKeys';
 import { STALE } from '@/lib/queryClient';
+import { PolicyDetailPanel } from '@/app/components/compliance/PolicyDetailPanel';
 import {
   FileText,
   CheckCircle2,
@@ -565,6 +566,7 @@ export function PoliciesPage() {
   const [uploadPolicy, setUploadPolicy] = useState<Policy | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
+  const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
 
   const filterKey = { search: filter.search, status: filter.status };
 
@@ -651,6 +653,18 @@ export function PoliciesPage() {
         <CreatePolicyModal
           onClose={() => setShowCreate(false)}
           onCreated={handleCreated}
+        />
+      )}
+
+      {/* Policy detail slide-over */}
+      {selectedPolicy && (
+        <PolicyDetailPanel
+          policy={selectedPolicy}
+          onClose={() => setSelectedPolicy(null)}
+          onMutated={() => {
+            qc.invalidateQueries({ queryKey: ['policies'] });
+            setSelectedPolicy(null);
+          }}
         />
       )}
 
@@ -766,6 +780,7 @@ export function PoliciesPage() {
                 sortDir={sortDir}
                 onSort={handleSort}
                 onUpload={setUploadPolicy}
+                onSelect={setSelectedPolicy}
               />
               <div className="flex items-center justify-between px-4 py-2 bg-white rounded-xl border border-gray-200 shadow-sm">
                 <span className="text-sm text-gray-500">
@@ -858,13 +873,14 @@ function FilterChip({ label, onRemove }: { label: string; onRemove: () => void }
 // ── Policies Table ──────────────────────────────────────────────────────────
 
 function PoliciesTable({
-  policies, sortKey, sortDir, onSort, onUpload,
+  policies, sortKey, sortDir, onSort, onUpload, onSelect,
 }: {
   policies: Policy[];
   sortKey: SortKey;
   sortDir: 'asc' | 'desc';
   onSort: (key: SortKey) => void;
   onUpload: (p: Policy) => void;
+  onSelect?: (p: Policy) => void;
 }) {
   const [downloading, setDownloading] = useState<string | null>(null);
 
@@ -927,14 +943,21 @@ function PoliciesTable({
               const isDownloading = downloading === policy.id;
 
               return (
-                <tr key={policy.id} className="hover:bg-blue-50/40 transition-colors group">
+                <tr
+                  key={policy.id}
+                  className="hover:bg-blue-50/40 transition-colors group cursor-pointer"
+                  onClick={() => onSelect?.(policy)}
+                >
                   {/* Name */}
                   <td className="px-4 py-3.5 align-middle" style={{ minWidth: 240 }}>
                     <div className="flex items-center gap-2.5">
                       <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center flex-shrink-0">
                         <FileText className="w-4 h-4 text-blue-600" />
                       </div>
-                      <p className="font-medium text-gray-900 leading-snug">{policy.name}</p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="font-medium text-gray-900 leading-snug">{policy.name}</p>
+                        <span className="opacity-0 group-hover:opacity-100 text-xs text-blue-500 transition-opacity">View →</span>
+                      </div>
                     </div>
                   </td>
 
@@ -973,7 +996,7 @@ function PoliciesTable({
                   </td>
 
                   {/* Document actions */}
-                  <td className="px-4 py-3.5 align-middle" style={{ minWidth: 140 }}>
+                  <td className="px-4 py-3.5 align-middle" style={{ minWidth: 140 }} onClick={e => e.stopPropagation()}>
                     <div className="flex items-center justify-center gap-1.5">
                       {/* Upload / Replace */}
                       <button
