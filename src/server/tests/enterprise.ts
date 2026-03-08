@@ -159,6 +159,11 @@ function asRecords(service: any): TestRecordDto[] {
   return service.listTests({ page: 1, limit: 1000 });
 }
 
+function getOrgIdForTest(service: any, testId: string) {
+  const test = service.getTest(testId) as TestRecordDto;
+  return test.organizationId;
+}
+
 export async function getTestsDashboard(): Promise<TestDashboardDto> {
   const service = await getMutableService();
   const tests = asRecords(service);
@@ -260,6 +265,7 @@ export async function createTestSuiteFromTemplate(templateId: string) {
 
 export async function requestAttestation(testId: string, reviewerId: string) {
   const service = await getMutableService();
+  const organizationId = getOrgIdForTest(service, testId);
   const reviewer = { id: reviewerId, name: reviewerId, email: `${reviewerId}@manzen.dev` };
   service.updateRecord(testId, (current: TestRecordDto) => ({
     ...current,
@@ -270,14 +276,15 @@ export async function requestAttestation(testId: string, reviewerId: string) {
   }));
   service.addHistory(testId, 'Attestation requested', null, reviewerId, 'workflow');
   await Promise.all([
-    sendSlackNotification({ testId, title: 'Test attestation requested', body: `Reviewer ${reviewerId} has been requested to attest evidence for test ${testId}.`, severity: 'info' }),
-    createJiraTicket({ testId, summary: `Attestation requested for ${testId}`, description: `Evidence review requested for test ${testId}. Reviewer: ${reviewerId}.`, labels: ['test-attestation'] }),
+    sendSlackNotification({ testId, title: 'Test attestation requested', body: `Reviewer ${reviewerId} has been requested to attest evidence for test ${testId}.`, severity: 'info', organizationId }),
+    createJiraTicket({ testId, summary: `Attestation requested for ${testId}`, description: `Evidence review requested for test ${testId}. Reviewer: ${reviewerId}.`, labels: ['test-attestation'], organizationId }),
   ]);
   return service.getTest(testId) as TestRecordDto;
 }
 
 export async function signAttestation(testId: string, reviewerId: string) {
   const service = await getMutableService();
+  const organizationId = getOrgIdForTest(service, testId);
   const now = new Date().toISOString();
   service.updateRecord(testId, (current: TestRecordDto) => ({
     ...current,
@@ -288,12 +295,13 @@ export async function signAttestation(testId: string, reviewerId: string) {
     updatedAt: now,
   }));
   service.addHistory(testId, 'Evidence attested', null, reviewerId, 'auditor');
-  await sendSlackNotification({ testId, title: 'Test evidence attested', body: `Reviewer ${reviewerId} approved evidence for test ${testId}.`, severity: 'info' });
+  await sendSlackNotification({ testId, title: 'Test evidence attested', body: `Reviewer ${reviewerId} approved evidence for test ${testId}.`, severity: 'info', organizationId });
   return service.getTest(testId) as TestRecordDto;
 }
 
 export async function runAutoRemediation(testId: string) {
   const service = await getMutableService();
+  const organizationId = getOrgIdForTest(service, testId);
   const current = service.getTest(testId) as TestRecordDto;
   const playbook = current.lastResult === 'Fail'
     ? `Auto-remediation playbook executed for ${current.name}`
@@ -313,6 +321,7 @@ export async function runAutoRemediation(testId: string) {
     triggerGithubActionsWorkflow({
       testId,
       eventType: 'test-auto-remediation',
+      organizationId,
       clientPayload: {
         testId,
         testName: current.name,
@@ -320,7 +329,7 @@ export async function runAutoRemediation(testId: string) {
         remediationPlaybook: playbook,
       },
     }),
-    sendSlackNotification({ testId, title: 'Auto-remediation executed', body: `${playbook}. Status has been updated to pass.`, severity: 'warning' }),
+    sendSlackNotification({ testId, title: 'Auto-remediation executed', body: `${playbook}. Status has been updated to pass.`, severity: 'warning', organizationId }),
   ]);
   return service.getTest(testId) as TestRecordDto;
 }
@@ -338,6 +347,7 @@ export async function ingestPipelineRun(input: { pipelineName: string; provider:
   });
 
   const now = new Date().toISOString();
+  const organizationId = (test as TestRecordDto).organizationId;
   const run: TestRunRecordDto = {
     id: `pipeline-${Date.now()}`,
     integrationId: input.provider,
@@ -364,10 +374,11 @@ export async function ingestPipelineRun(input: { pipelineName: string; provider:
   service.addHistory(test.id, 'Pipeline run ingested', null, run.status, 'ci');
   if (run.status === 'Fail') {
     await Promise.all([
-      sendSlackNotification({ testId: test.id, title: 'Pipeline compliance test failed', body: `${input.pipelineName} reported a failing pipeline run via ${input.provider}.`, severity: 'critical' }),
-      createJiraTicket({ testId: test.id, summary: `Pipeline failure: ${input.pipelineName}`, description: input.summary, labels: ['pipeline-test', 'failure'] }),
+      sendSlackNotification({ testId: test.id, title: 'Pipeline compliance test failed', body: `${input.pipelineName} reported a failing pipeline run via ${input.provider}.`, severity: 'critical', organizationId }),
+      createJiraTicket({ testId: test.id, summary: `Pipeline failure: ${input.pipelineName}`, description: input.summary, labels: ['pipeline-test', 'failure'], organizationId }),
       forwardSiemEvent({
         testId: test.id,
+        organizationId,
         summary: `Forwarded failing pipeline test ${input.pipelineName}`,
         event: {
           testId: test.id,
@@ -442,6 +453,7 @@ export async function listEscalations(): Promise<EscalationDto[]> {
     escalationKey: item.id,
     testId: item.testId,
     stage: item.stage,
+    organizationId: tests.find((test) => test.id === item.testId)?.organizationId,
     message: `Escalation stage ${item.stage} triggered for overdue test ${item.testId}. Owner: ${item.owner}.`,
   })));
   return escalations;

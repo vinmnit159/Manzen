@@ -233,6 +233,16 @@ export interface PipelineRunRequest {
   branch?: string;
 }
 
+export type WorkflowIntegrationProvider = 'slack' | 'jira' | 'github-actions' | 'siem';
+
+export interface WorkflowIntegrationConfigStatus {
+  provider: WorkflowIntegrationProvider;
+  organizationId: string;
+  configured: boolean;
+  updatedAt: string | null;
+  configuredKeys: string[];
+}
+
 // ─── Service ─────────────────────────────────────────────────────────────────
 export class TestsService {
   async listTests(params?: ListTestsParams): Promise<ApiResponse<TestRecord[]>> {
@@ -339,6 +349,14 @@ export class TestsService {
 
   async listEscalations(): Promise<ApiResponse<TestEscalation[]>> {
     return apiClient.get('/api/tests/escalations');
+  }
+
+  async listWorkflowIntegrationConfigStatus(): Promise<ApiResponse<WorkflowIntegrationConfigStatus[]>> {
+    return apiClient.get('/api/tests/workflow-integrations/config');
+  }
+
+  async upsertWorkflowIntegrationConfig(provider: WorkflowIntegrationProvider, values: Record<string, unknown>, organizationId?: string): Promise<ApiResponse<WorkflowIntegrationConfigStatus>> {
+    return apiClient.put(`/api/tests/workflow-integrations/${provider}/config`, { values, organizationId });
   }
 
   // Evidence

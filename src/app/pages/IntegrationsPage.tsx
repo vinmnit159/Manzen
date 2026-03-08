@@ -6,6 +6,7 @@ import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/app/components/ui/tabs';
 import { integrationsService, Integration, GitHubRepo } from '@/services/api/integrations';
+import { testsService, type WorkflowIntegrationConfigStatus, type WorkflowIntegrationProvider } from '@/services/api/tests';
 import { mdmService, EnrollmentToken, CreatedToken, MdmOverview } from '@/services/api/mdm';
 import { slackService, SlackIntegration, SlackChannel, SLACK_EVENT_TYPES } from '@/services/api/slack';
 import { newRelicService, NewRelicStatus, NewRelicSyncLog } from '@/services/api/newrelic';
@@ -872,6 +873,7 @@ function SlackAddChannelModal({ onClose, onAdded }: { onClose: () => void; onAdd
     setLoading(true); setError('');
     try {
       await slackService.addChannel({ channelId: channelId.trim(), channelName: channelName.trim(), eventType });
+      await testsService.upsertWorkflowIntegrationConfig('slack', { channel: channelName.trim() });
       onAdded(); onClose();
     } catch (err: any) {
       setError(err?.message ?? 'Failed to add channel mapping');
@@ -2748,6 +2750,70 @@ type EngineerACardConfig = {
     runScan: (integrationId: string) => Promise<{ success: boolean; jobId: string; status: string }>;
   };
 };
+
+function workflowRuntimeConfigForEngineerACard(input: {
+  key: string;
+  apiKey: string;
+  accountId: string;
+  tenant: string;
+  baseUrl: string;
+}) {
+  const apiKey = input.apiKey.trim();
+  const accountId = input.accountId.trim();
+  const tenant = input.tenant.trim();
+  const baseUrl = input.baseUrl.trim();
+
+  const trimEmpty = (value: string) => (value ? value : undefined);
+
+  if (input.key === 'jira') {
+    return {
+      provider: 'jira' as WorkflowIntegrationProvider,
+      values: {
+        apiToken: trimEmpty(apiKey),
+        projectKey: trimEmpty(accountId),
+        email: trimEmpty(tenant),
+        baseUrl: trimEmpty(baseUrl),
+      },
+    };
+  }
+
+  if (input.key === 'github-actions') {
+    return {
+      provider: 'github-actions' as WorkflowIntegrationProvider,
+      values: {
+        token: trimEmpty(apiKey),
+        repo: trimEmpty(accountId),
+        owner: trimEmpty(tenant),
+        apiUrl: trimEmpty(baseUrl),
+      },
+    };
+  }
+
+  if (input.key === 'splunk') {
+    return {
+      provider: 'siem' as WorkflowIntegrationProvider,
+      values: {
+        splunkHecToken: trimEmpty(apiKey),
+        splunkHecUrl: trimEmpty(baseUrl),
+      },
+    };
+  }
+
+  if (input.key === 'sumologic') {
+    return {
+      provider: 'siem' as WorkflowIntegrationProvider,
+      values: {
+        webhookUrl: trimEmpty(baseUrl),
+      },
+    };
+  }
+
+  return null;
+}
+
+function redactConfigKeyLabel(key: string) {
+  return /(token|secret|password|key|webhook)/i.test(key) ? `${key}: configured` : key;
+}
 
 // ─── Restored card components ────────────────────────────────────────────────
 
@@ -7126,12 +7192,14 @@ function EngineerAIntegrationCard({
   onToast,
   activeTab,
   onConnectionCountChange,
+  onWorkflowConfigUpdated,
 }: {
   config: EngineerACardConfig;
   loading: boolean;
   onToast: (type: 'success' | 'error', msg: string) => void;
   activeTab: 'connected' | 'available';
   onConnectionCountChange: (count: number) => void;
+  onWorkflowConfigUpdated?: () => Promise<void>;
 }) {
   const [accounts, setAccounts] = useState<EngineerAIntegrationRecord[]>([]);
   const [showConnect, setShowConnect] = useState(false);
@@ -7177,6 +7245,23 @@ function EngineerAIntegrationCard({
         baseUrl: baseUrl.trim() || undefined,
         label: label.trim() || undefined,
       });
+
+      const workflowConfig = workflowRuntimeConfigForEngineerACard({
+        key: config.key,
+        apiKey,
+        accountId,
+        tenant,
+        baseUrl,
+      });
+      if (workflowConfig) {
+        try {
+          await testsService.upsertWorkflowIntegrationConfig(workflowConfig.provider, workflowConfig.values);
+          await onWorkflowConfigUpdated?.();
+        } catch {
+          onToast('error', `${config.name} connected, but workflow endpoint config sync failed`);
+        }
+      }
+
       setShowConnect(false);
       setApiKey('');
       setAccountId('');
@@ -8060,6 +8145,8 @@ export function IntegrationsPage() {
   const [oktaAccounts, setOktaAccounts] = useState<OktaIntegrationRecord[]>([]);
   const [azureAdAccounts, setAzureAdAccounts] = useState<AzureAdIntegrationRecord[]>([]);
   const [jumpCloudAccounts, setJumpCloudAccounts] = useState<JumpCloudIntegrationRecord[]>([]);
+  const [workflowConfigStatus, setWorkflowConfigStatus] = useState<WorkflowIntegrationConfigStatus[]>([]);
+  const [workflowConfigLoading, setWorkflowConfigLoading] = useState(true);
   const [repos, setRepos] = useState<GitHubRepo[]>([]);
   const [mdmOverview, setMdmOverview] = useState<MdmOverview | null>(null);
   const [activeTab, setActiveTab] = useState<'connected' | 'available'>('connected');
@@ -8072,6 +8159,18 @@ export function IntegrationsPage() {
     setTimeout(() => setToast(null), 4500);
   };
 
+  const loadWorkflowConfigStatus = async () => {
+    setWorkflowConfigLoading(true);
+    try {
+      const response = await testsService.listWorkflowIntegrationConfigStatus();
+      setWorkflowConfigStatus(response.data ?? []);
+    } catch {
+      setWorkflowConfigStatus([]);
+    } finally {
+      setWorkflowConfigLoading(false);
+    }
+  };
+
   const loadStatus = async () => {
     // Fire requests in named batches of 5 (backend connection-pool limit).
     // Each batch's state is applied immediately after it resolves so the
@@ -8081,12 +8180,13 @@ export function IntegrationsPage() {
 
     try {
       // ── Batch 1: GitHub/Drive + Slack + MDM + NewRelic + Notion ──────────
-      const [intRes, slackRes, channelsRes, mdmRes, nrRes] = await Promise.all([
+      const [intRes, slackRes, channelsRes, mdmRes, nrRes, workflowRes] = await Promise.all([
         integrationsService.getStatus(),
         slackService.getStatus().catch(() => ({ success: false, data: null })),
         slackService.getChannels().catch(() => ({ data: [] as SlackChannel[] })),
         mdmService.getOverview().catch(() => ({ total: 0, compliant: 0, nonCompliant: 0, unknown: 0 } as MdmOverview)),
         newRelicService.getStatus().catch(() => ({ connected: false, data: null })),
+        testsService.listWorkflowIntegrationConfigStatus().catch(() => ({ success: true, data: [] as WorkflowIntegrationConfigStatus[] })),
       ]);
       const gh = intRes.integrations.find((i: any) => i.provider === 'GITHUB' && i.status === 'ACTIVE') ?? null;
       const drive = intRes.integrations.find((i: any) => i.provider === 'GOOGLE_DRIVE' && i.status === 'ACTIVE') ?? null;
@@ -8097,6 +8197,8 @@ export function IntegrationsPage() {
       setMdmOverview(mdmRes);
       setNrConnected(nrRes.connected);
       setNrStatus(nrRes.data);
+      setWorkflowConfigStatus(workflowRes.data ?? []);
+      setWorkflowConfigLoading(false);
       if (gh) setRepos(gh.repos);
 
       await delay(80);
@@ -8194,6 +8296,7 @@ export function IntegrationsPage() {
       /* unauthenticated or network — treat as disconnected */
     } finally {
       setLoading(false);
+      setWorkflowConfigLoading(false);
     }
   };
 
@@ -8313,6 +8416,46 @@ export function IntegrationsPage() {
               : `(${availableCount})`}
           </TabsTrigger>
         </TabsList>
+
+        <Card className="p-4 md:p-5">
+          <div className="flex items-start justify-between gap-3 mb-3">
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900">Workflow Endpoint Runtime Config</h3>
+              <p className="text-xs text-gray-500">Status-only view for test workflow dispatch (no secret values shown).</p>
+            </div>
+            <Button variant="outline" size="sm" onClick={loadWorkflowConfigStatus} disabled={workflowConfigLoading}>
+              {workflowConfigLoading ? 'Refreshing...' : 'Refresh'}
+            </Button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+            {(['slack', 'jira', 'github-actions', 'siem'] as WorkflowIntegrationProvider[]).map((provider) => {
+              const status = workflowConfigStatus.find((item) => item.provider === provider);
+              const label = provider === 'github-actions' ? 'GitHub Actions' : provider === 'siem' ? 'SIEM' : provider.toUpperCase();
+              const configured = Boolean(status?.configured);
+              return (
+                <div key={provider} className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-medium text-gray-900">{label}</p>
+                    <Badge variant={configured ? 'default' : 'outline'}>{configured ? 'Configured' : 'Unconfigured'}</Badge>
+                  </div>
+                  <p className="text-xs text-gray-500 min-h-5">
+                    {status?.updatedAt ? `Updated ${new Date(status.updatedAt).toLocaleString()}` : 'Not configured yet'}
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {(status?.configuredKeys ?? []).slice(0, 4).map((key) => (
+                      <span key={key} className="text-[11px] bg-white border border-gray-200 rounded px-2 py-0.5 text-gray-600">
+                        {redactConfigKeyLabel(key)}
+                      </span>
+                    ))}
+                    {(status?.configuredKeys?.length ?? 0) > 4 && (
+                      <span className="text-[11px] text-gray-500">+{(status?.configuredKeys?.length ?? 0) - 4} more</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
 
@@ -8609,6 +8752,7 @@ export function IntegrationsPage() {
             loading={loading}
             onToast={showToast}
             activeTab={activeTab}
+            onWorkflowConfigUpdated={loadWorkflowConfigStatus}
             onConnectionCountChange={(count) =>
               setEngineerAConnectionCounts((prev) => ({ ...prev, [card.key]: count }))
             }

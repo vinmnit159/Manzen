@@ -10,6 +10,8 @@ export const testsRoutes = [
   { method: 'GET', url: testsContracts.listSecurityEvents.path, handlerName: 'listSecurityEvents', schema: { response: testsContracts.listSecurityEvents.response } },
   { method: 'GET', url: testsContracts.listUnifiedEvidence.path, handlerName: 'listUnifiedEvidence', schema: { response: testsContracts.listUnifiedEvidence.response } },
   { method: 'GET', url: testsContracts.listEscalations.path, handlerName: 'listEscalations', schema: { response: testsContracts.listEscalations.response } },
+  { method: 'GET', url: testsContracts.listWorkflowIntegrationConfigStatus.path, handlerName: 'listWorkflowIntegrationConfigStatus', schema: { response: testsContracts.listWorkflowIntegrationConfigStatus.response } },
+  { method: 'PUT', url: testsContracts.upsertWorkflowIntegrationConfig.path, handlerName: 'upsertWorkflowIntegrationConfig', schema: { body: testsContracts.upsertWorkflowIntegrationConfig.body, response: testsContracts.upsertWorkflowIntegrationConfig.response } },
   { method: 'POST', url: testsContracts.ingestPipelineRun.path, handlerName: 'ingestPipelineRun', schema: { body: testsContracts.ingestPipelineRun.body, response: testsContracts.ingestPipelineRun.response } },
   { method: 'POST', url: testsContracts.createSuiteFromTemplate.path, handlerName: 'createSuiteFromTemplate', schema: { response: testsContracts.createSuiteFromTemplate.response } },
   { method: 'GET', url: testsContracts.getTest.path, handlerName: 'getTest', schema: { response: testsContracts.getTest.response } },

@@ -15,6 +15,10 @@ import {
   signAttestation,
 } from './enterprise';
 import { getTestsRuntimeService } from './runtime';
+import {
+  listWorkflowIntegrationConfigStatus,
+  upsertWorkflowIntegrationConfig as saveWorkflowIntegrationConfig,
+} from './workflowIntegrationConfig';
 
 function ok<T>(data: T) {
   return { success: true as const, data };
@@ -178,6 +182,28 @@ export function createTestsHandlers() {
 
     async listEscalations() {
       return testsContracts.listEscalations.response.parse(ok(await listEscalations()));
+    },
+
+    async listWorkflowIntegrationConfigStatus() {
+      return testsContracts.listWorkflowIntegrationConfigStatus.response.parse(ok(await listWorkflowIntegrationConfigStatus()));
+    },
+
+    async upsertWorkflowIntegrationConfig(request?: { body?: unknown; params?: Record<string, string> }) {
+      const body = testsContracts.upsertWorkflowIntegrationConfig.body.parse(request?.body ?? {});
+      const provider = request?.params?.provider as 'slack' | 'jira' | 'github-actions' | 'siem' | undefined;
+      if (!provider || !['slack', 'jira', 'github-actions', 'siem'].includes(provider)) {
+        throw new Error('Unsupported workflow integration provider');
+      }
+
+      await saveWorkflowIntegrationConfig({
+        provider,
+        organizationId: body.organizationId,
+        values: body.values,
+      });
+
+      const status = (await listWorkflowIntegrationConfigStatus(body.organizationId)).find((item) => item.provider === provider);
+      if (!status) throw new Error(`Failed to persist ${provider} workflow configuration`);
+      return testsContracts.upsertWorkflowIntegrationConfig.response.parse(ok(status));
     },
 
     async bulkComplete(request?: { body?: unknown }) {

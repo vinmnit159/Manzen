@@ -174,6 +174,21 @@ export const pipelineRunRequestSchema = z.object({
   branch: z.string().optional(),
 });
 
+const workflowIntegrationProviderSchema = z.enum(['slack', 'jira', 'github-actions', 'siem']);
+
+const workflowIntegrationConfigUpsertSchema = z.object({
+  organizationId: z.string().optional(),
+  values: z.record(z.string(), z.unknown()),
+});
+
+const workflowIntegrationConfigStatusSchema = z.object({
+  provider: workflowIntegrationProviderSchema,
+  organizationId: z.string(),
+  configured: z.boolean(),
+  updatedAt: z.string().nullable(),
+  configuredKeys: z.array(z.string()),
+});
+
 const dashboardSchema = z.object({
   controlCoverage: z.number().int().nonnegative(),
   frameworkCoverage: z.array(z.object({ framework: z.string(), count: z.number().int().nonnegative() })),
@@ -422,6 +437,17 @@ export const testsContracts = {
     method: 'GET',
     path: '/api/tests/escalations',
     response: okEnvelope(z.array(escalationSchema)),
+  },
+  listWorkflowIntegrationConfigStatus: {
+    method: 'GET',
+    path: '/api/tests/workflow-integrations/config',
+    response: okEnvelope(z.array(workflowIntegrationConfigStatusSchema)),
+  },
+  upsertWorkflowIntegrationConfig: {
+    method: 'PUT',
+    path: '/api/tests/workflow-integrations/:provider/config',
+    body: workflowIntegrationConfigUpsertSchema,
+    response: okEnvelope(workflowIntegrationConfigStatusSchema),
   },
   bulkComplete: {
     method: 'POST',
