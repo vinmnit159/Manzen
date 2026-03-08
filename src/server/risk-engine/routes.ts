@@ -1,7 +1,7 @@
 import { riskEngineContracts } from './contracts';
 
 export interface EndpointRouteDefinition {
-  method: 'GET' | 'POST';
+  method: 'GET' | 'POST' | 'PATCH';
   url: string;
   handlerName: keyof typeof riskEngineContractsToHandlers;
   schema: {
@@ -20,6 +20,7 @@ const riskEngineContractsToHandlers = {
   listScanRuns: 'listScanRuns',
   listEvents: 'listEvents',
   runEvaluation: 'runEvaluation',
+  updateStakeholders: 'updateStakeholders',
 } as const;
 
 export const riskEngineRoutes: EndpointRouteDefinition[] = [
@@ -78,6 +79,15 @@ export const riskEngineRoutes: EndpointRouteDefinition[] = [
     schema: {
       body: riskEngineContracts.runEvaluation.body,
       response: riskEngineContracts.runEvaluation.response,
+    },
+  },
+  {
+    method: 'PATCH',
+    url: riskEngineContracts.updateStakeholders.path,
+    handlerName: 'updateStakeholders',
+    schema: {
+      body: riskEngineContracts.updateStakeholders.body,
+      response: riskEngineContracts.updateStakeholders.response,
     },
   },
 ];

@@ -3,7 +3,7 @@ import { riskEngineRoutes } from './routes';
 
 export interface RouteRegistrar {
   route(definition: {
-    method: 'GET' | 'POST';
+    method: 'GET' | 'POST' | 'PATCH';
     url: string;
     schema: { body?: unknown; response: unknown };
     handler: (request?: { body?: unknown }) => Promise<unknown>;
@@ -20,7 +20,7 @@ export function registerRiskEngineModule(registrar: RouteRegistrar, deps: RiskEn
       schema: route.schema,
       handler: async (request) => {
         const handler = handlers[route.handlerName];
-        if (route.method === 'POST') {
+        if (route.method === 'POST' || route.method === 'PATCH') {
           return handler(request?.body);
         }
         return handler();

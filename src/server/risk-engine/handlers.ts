@@ -81,5 +81,23 @@ export function createRiskEngineHandlers(deps: RiskEngineHandlerDeps = {}) {
         dryRun: true,
       }));
     },
+
+    async updateStakeholders(rawBody?: unknown) {
+      const body = riskEngineContracts.updateStakeholders.body.parse(rawBody ?? {});
+      // In production: validate JWT, check admin role, persist to DB, write activity log.
+      // For now return the validated stakeholders so the client can confirm the round-trip.
+      const activityEntry = {
+        id: `stakeholder-update-${Date.now()}`,
+        type: 'STAKEHOLDER_CHANGED' as const,
+        title: `Stakeholders updated (${body.stakeholders.length} roles)`,
+        timestamp: new Date().toISOString(),
+        actor: 'API',
+      };
+      return riskEngineContracts.updateStakeholders.response.parse({
+        success: true,
+        stakeholders: body.stakeholders,
+        activityEntry,
+      });
+    },
   } satisfies Record<string, (...args: any[]) => MaybePromise<unknown>>;
 }

@@ -124,10 +124,60 @@ export interface RiskDetailEvidenceItem {
 
 export interface RiskDetailActivityItem {
   id: string;
-  type: 'DETECTED' | 'ASSIGNED' | 'EVIDENCE' | 'REMEDIATION' | 'ACCEPTED' | 'UPDATED';
+  type: 'DETECTED' | 'ASSIGNED' | 'EVIDENCE' | 'REMEDIATION' | 'ACCEPTED' | 'UPDATED' | 'STAKEHOLDER_CHANGED';
   title: string;
   timestamp: string;
   actor: string;
+  /** For STAKEHOLDER_CHANGED events, tracks old/new values for audit */
+  meta?: {
+    field?: string;
+    oldValue?: string;
+    newValue?: string;
+  };
+}
+
+export interface RiskStakeholder {
+  role: 'Technical owner' | 'Business owner' | 'Control owner' | 'Backup owner';
+  name: string;
+  team: string;
+  userId?: string;
+}
+
+export interface RiskSourceOrigin {
+  testId: string;
+  testName: string;
+  controlId: string;
+  controlName: string;
+  provider: string;
+  signalId: string;
+  lastFailedAt: string;
+  failureReason: string;
+}
+
+export interface RiskRemediationStep {
+  label: string;
+  linkedTestId?: string;
+  linkedControlName?: string;
+  failureReason?: string;
+  affectedResource?: string;
+  recommendedFix?: string;
+  evidenceSnapshotId?: string;
+  evidenceSummary?: string;
+}
+
+export interface UpdateStakeholdersRequest {
+  stakeholders: Array<{
+    role: RiskStakeholder['role'];
+    name: string;
+    team: string;
+    userId?: string;
+  }>;
+}
+
+export interface UpdateStakeholdersResponse {
+  success: boolean;
+  stakeholders: RiskStakeholder[];
+  activityEntry: RiskDetailActivityItem;
 }
 
 export interface RiskDetailModel {
@@ -141,7 +191,9 @@ export interface RiskDetailModel {
   evidence: RiskDetailEvidenceItem[];
   activities: RiskDetailActivityItem[];
   remediationSteps: string[];
-  stakeholders: Array<{ role: string; name: string; team: string }>;
+  enrichedRemediationSteps: RiskRemediationStep[];
+  stakeholders: RiskStakeholder[];
+  origin: RiskSourceOrigin;
 }
 
 interface RiskCenterContext {
@@ -378,6 +430,13 @@ function countBy<T extends string>(values: T[]) {
   return Array.from(counts.entries()).map(([label, count]) => ({ label, count }));
 }
 
+// ─── In-memory stakeholder override storage ─────────────────────────────────
+// In production these would be persisted to a database table. The maps survive
+// for the lifetime of the browser session so stakeholder edits are immediately
+// reflected in subsequent getRiskDetail() calls.
+const stakeholderOverrides = new Map<string, RiskStakeholder[]>();
+const stakeholderActivityLog = new Map<string, RiskDetailActivityItem[]>();
+
 export const riskCenterService = {
   async getOverview(): Promise<RiskOverviewModel> {
     const context = await loadRiskCenterContext();
@@ -438,6 +497,28 @@ export const riskCenterService = {
       hash: `sha256:${risk.id.slice(0, 8)}${index}evidence`,
     }));
 
+    // Persist stakeholder overrides in-memory (keyed by riskId)
+    const storedStakeholders = stakeholderOverrides.get(riskId);
+    const stakeholders: RiskStakeholder[] = storedStakeholders ?? [
+      { role: 'Technical owner', name: risk.owner.name, team: risk.owner.team, userId: `user-${risk.owner.name.toLowerCase().replace(/\s/g, '-')}` },
+      { role: 'Business owner', name: 'Jordan Lee', team: 'Business Operations', userId: 'user-jordan-lee' },
+      { role: 'Control owner', name: 'Priya Shah', team: 'Compliance', userId: 'user-priya-shah' },
+    ];
+
+    // Build source origin traceability — deterministic from risk data
+    const sourceTestId = `test-${risk.category.toLowerCase().replace(/\s/g, '-')}-${risk.id.slice(-6)}`;
+    const sourceControlId = `ctrl-${risk.category.toLowerCase().replace(/\s/g, '-')}-001`;
+    const origin: RiskSourceOrigin = {
+      testId: sourceTestId,
+      testName: `${risk.controls[0]} evaluation`,
+      controlId: sourceControlId,
+      controlName: risk.controls[0],
+      provider: risk.source.replace(' signal', ''),
+      signalId: `sig-${risk.id.slice(-8)}`,
+      lastFailedAt: risk.lastSeenAt,
+      failureReason: `${risk.category} control test failed: ${risk.description.split('.')[0]}.`,
+    };
+
     const activities: RiskDetailActivityItem[] = [
       { id: `${risk.id}-activity-1`, type: 'DETECTED', title: 'Risk created from failed control evaluation', timestamp: risk.createdAt, actor: 'Risk engine' },
       { id: `${risk.id}-activity-2`, type: 'ASSIGNED', title: `Assigned to ${risk.owner.name}`, timestamp: addDays(risk.createdAt, 1), actor: 'Automation policy' },
@@ -448,6 +529,40 @@ export const riskCenterService = {
     if (risk.status === 'ACCEPTED') {
       activities.push({ id: `${risk.id}-activity-5`, type: 'ACCEPTED', title: 'Temporary exception approved', timestamp: addDays(risk.createdAt, 4), actor: 'Compliance leadership' });
     }
+
+    // Append any persisted stakeholder-change activities
+    const stakeholderActivities = stakeholderActivityLog.get(riskId) ?? [];
+    activities.push(...stakeholderActivities);
+
+    // Build enriched remediation steps with full traceability
+    const enrichedRemediationSteps: RiskRemediationStep[] = [
+      {
+        label: `Validate the failing ${risk.category.toLowerCase()} signal for ${risk.assetName}.`,
+        linkedTestId: sourceTestId,
+        linkedControlName: risk.controls[0],
+        failureReason: origin.failureReason,
+        affectedResource: risk.assetName,
+        recommendedFix: `Review and remediate the ${risk.controls[0].toLowerCase()} control gap on ${risk.assetName}.`,
+        evidenceSnapshotId: evidence[0]?.id,
+        evidenceSummary: evidence[0]?.summary,
+      },
+      {
+        label: `Apply the mapped controls: ${risk.controls.join(', ')}.`,
+        linkedControlName: risk.controls.join(', '),
+        recommendedFix: `Implement or update the mapped controls to bring ${risk.assetName} into compliance.`,
+      },
+      {
+        label: `Collect fresh evidence and rerun the linked control tests.`,
+        linkedTestId: sourceTestId,
+        linkedControlName: risk.controls[0],
+        evidenceSnapshotId: evidence[1]?.id,
+        evidenceSummary: evidence[1]?.summary,
+      },
+      {
+        label: 'Complete verification before closing the risk record.',
+        recommendedFix: 'Verify all controls pass and attach final evidence before marking the risk as verified.',
+      },
+    ];
 
     return {
       risk,
@@ -465,11 +580,74 @@ export const riskCenterService = {
         `Collect fresh evidence and rerun the linked control tests.`,
         'Complete verification before closing the risk record.',
       ],
-      stakeholders: [
-        { role: 'Technical owner', name: risk.owner.name, team: risk.owner.team },
-        { role: 'Business owner', name: 'Jordan Lee', team: 'Business Operations' },
-        { role: 'Control owner', name: 'Priya Shah', team: 'Compliance' },
-      ],
+      enrichedRemediationSteps,
+      stakeholders,
+      origin,
+    };
+  },
+
+  /**
+   * Update stakeholders on a risk record.
+   * In production this would call PATCH /api/risks/:id/stakeholders.
+   * For now the update is persisted in-memory and also dispatched to the
+   * backend when available.
+   */
+  async updateStakeholders(riskId: string, request: UpdateStakeholdersRequest, actor: string): Promise<UpdateStakeholdersResponse> {
+    // Resolve current stakeholders so we can diff for the audit log
+    const currentDetail = await this.getRiskDetail(riskId);
+    const previousStakeholders = currentDetail?.stakeholders ?? [];
+
+    const updatedStakeholders: RiskStakeholder[] = request.stakeholders.map((s) => ({
+      role: s.role,
+      name: s.name,
+      team: s.team,
+      userId: s.userId,
+    }));
+
+    // Persist locally
+    stakeholderOverrides.set(riskId, updatedStakeholders);
+
+    // Build activity entries for each changed role
+    const newActivities: RiskDetailActivityItem[] = [];
+    for (const updated of updatedStakeholders) {
+      const prev = previousStakeholders.find((p) => p.role === updated.role);
+      if (prev && (prev.name !== updated.name || prev.team !== updated.team)) {
+        newActivities.push({
+          id: `${riskId}-stakeholder-${Date.now()}-${updated.role.replace(/\s/g, '')}`,
+          type: 'STAKEHOLDER_CHANGED',
+          title: `${updated.role} changed from ${prev.name} to ${updated.name}`,
+          timestamp: new Date().toISOString(),
+          actor,
+          meta: {
+            field: updated.role,
+            oldValue: `${prev.name} (${prev.team})`,
+            newValue: `${updated.name} (${updated.team})`,
+          },
+        });
+      }
+    }
+
+    // Persist activities
+    const existing = stakeholderActivityLog.get(riskId) ?? [];
+    stakeholderActivityLog.set(riskId, [...existing, ...newActivities]);
+
+    // Attempt server-side persist (best-effort)
+    try {
+      await apiClient.patch(`/api/risks/${riskId}/stakeholders`, request);
+    } catch {
+      // Server may not have endpoint yet — continue with local state
+    }
+
+    return {
+      success: true,
+      stakeholders: updatedStakeholders,
+      activityEntry: newActivities[0] ?? {
+        id: `${riskId}-stakeholder-noop-${Date.now()}`,
+        type: 'UPDATED',
+        title: 'Stakeholders reviewed (no changes)',
+        timestamp: new Date().toISOString(),
+        actor,
+      },
     };
   },
 

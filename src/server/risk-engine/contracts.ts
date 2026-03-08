@@ -129,6 +129,50 @@ export const runEvaluationResponseSchema = z.object({
   dryRun: z.boolean(),
 });
 
+// ─── Stakeholder update schemas ───────────────────────────────────────────────
+
+export const stakeholderRoleSchema = z.enum([
+  'Technical owner',
+  'Business owner',
+  'Control owner',
+  'Backup owner',
+]);
+
+export const updateStakeholdersRequestSchema = z.object({
+  stakeholders: z.array(z.object({
+    role: stakeholderRoleSchema,
+    name: z.string().min(1),
+    team: z.string().min(1),
+    userId: z.string().optional(),
+  })).min(1),
+});
+
+export const riskStakeholderResponseSchema = z.object({
+  role: stakeholderRoleSchema,
+  name: z.string(),
+  team: z.string(),
+  userId: z.string().optional(),
+});
+
+export const stakeholderActivityEntrySchema = z.object({
+  id: z.string(),
+  type: z.literal('STAKEHOLDER_CHANGED'),
+  title: z.string(),
+  timestamp: z.string(),
+  actor: z.string(),
+  meta: z.object({
+    field: z.string().optional(),
+    oldValue: z.string().optional(),
+    newValue: z.string().optional(),
+  }).optional(),
+});
+
+export const updateStakeholdersResponseSchema = z.object({
+  success: z.literal(true),
+  stakeholders: z.array(riskStakeholderResponseSchema),
+  activityEntry: stakeholderActivityEntrySchema,
+});
+
 export const okEnvelope = <T extends z.ZodTypeAny>(schema: T) => z.object({
   success: z.literal(true),
   data: schema,
@@ -181,6 +225,12 @@ export const riskEngineContracts = {
     body: runEvaluationRequestSchema,
     response: okEnvelope(runEvaluationResponseSchema),
   },
+  updateStakeholders: {
+    method: 'PATCH',
+    path: '/api/risks/:id/stakeholders',
+    body: updateStakeholdersRequestSchema,
+    response: updateStakeholdersResponseSchema,
+  },
 } as const;
 
 export type RiskEngineSnapshotDto = z.infer<typeof riskEngineSnapshotSchema>;
@@ -193,3 +243,5 @@ export type ScanRunDto = z.infer<typeof scanRunResponseSchema>;
 export type RiskEngineEventDto = z.infer<typeof riskEngineEventResponseSchema>;
 export type RunEvaluationRequestDto = z.infer<typeof runEvaluationRequestSchema>;
 export type RunEvaluationResponseDto = z.infer<typeof runEvaluationResponseSchema>;
+export type UpdateStakeholdersRequestDto = z.infer<typeof updateStakeholdersRequestSchema>;
+export type UpdateStakeholdersResponseDto = z.infer<typeof updateStakeholdersResponseSchema>;
