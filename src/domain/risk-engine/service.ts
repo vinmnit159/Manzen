@@ -1,4 +1,5 @@
 import { RiskLevel } from '@/services/api/types';
+import { notifyRiskEngineTestSync } from '@/domain/tests/bridge';
 import { seedEvidence, seedEvents, seedIntegrationExecutions, seedProviderStatuses, seedRules, seedScanRuns, seedSignalIngestions, seedSignals, seedTests } from './mockData';
 import { InMemoryRiskEngineRepository, type RiskEngineRepository } from './repository';
 import type {
@@ -127,13 +128,14 @@ export class RiskEngineFoundationService {
     });
 
     const deduped = Array.from(new Map(risks.map((risk) => [risk.dedupeKey, risk])).values());
+    const evaluatedAt = new Date().toISOString();
 
     const scanRun: ScanRunRecord = {
       id: `scan-${Date.now()}`,
       provider: 'risk-engine',
       integrationId: 'risk-engine-foundation',
-      startedAt: new Date().toISOString(),
-      completedAt: new Date().toISOString(),
+      startedAt: evaluatedAt,
+      completedAt: evaluatedAt,
       status: 'SUCCEEDED',
       signalsIngested: signals.length,
       testsExecuted: testResults.length,
@@ -228,6 +230,14 @@ export class RiskEngineFoundationService {
       this.repository.appendEvents(events),
     ]);
 
+    await notifyRiskEngineTestSync({
+      evaluatedAt,
+      tests,
+      testResults,
+      signals,
+      evidence,
+    });
+
     return { testResults, risks: deduped };
   }
 
@@ -250,6 +260,7 @@ export class RiskEngineFoundationService {
   }
 
   async listSignals() { return this.repository.listSignals(); }
+  async listTestDefinitions() { return this.repository.listTests(); }
   async listTestResults() { return this.repository.listTestResults(); }
   async listEvidence() { return this.repository.listEvidence(); }
   async listRisks() { return this.repository.listRisks(); }

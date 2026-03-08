@@ -266,6 +266,72 @@ function RunsSection({ testId }: { testId: string }) {
   );
 }
 
+function TrendSparkline({ testId }: { testId: string }) {
+  const { data } = useQuery({
+    queryKey: QK.testRuns(testId),
+    queryFn: async () => {
+      const res = await testsService.getTestRuns(testId);
+      return (res.data ?? []) as TestRunRecord[];
+    },
+    staleTime: STALE.TESTS,
+  });
+
+  const items = (data ?? []).slice(0, 10).reverse();
+  if (items.length === 0) return <p className="text-xs text-gray-400">No trend data yet.</p>;
+
+  const colorFor = (status: string) => status === 'Pass' ? 'bg-green-500' : status === 'Fail' ? 'bg-red-500' : status === 'Warning' ? 'bg-amber-500' : 'bg-gray-300';
+  const heightFor = (status: string) => status === 'Pass' ? 'h-6' : status === 'Fail' ? 'h-10' : status === 'Warning' ? 'h-8' : 'h-4';
+
+  return (
+    <div>
+      <div className="flex items-end gap-1.5 h-10">
+        {items.map((run) => (
+          <div key={run.id} title={`${run.status} - ${fmtDateTime(run.executedAt)}`} className={`w-3 rounded-sm ${colorFor(run.status)} ${heightFor(run.status)}`} />
+        ))}
+      </div>
+      <p className="mt-2 text-xs text-gray-500">Last {items.length} execution result{items.length === 1 ? '' : 's'}.</p>
+    </div>
+  );
+}
+
+function RiskContextSection({ testId }: { testId: string }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ['tests', 'risk-context', testId],
+    queryFn: async () => {
+      const res = await testsService.getRiskContext(testId);
+      return res.data ?? null;
+    },
+    staleTime: STALE.TESTS,
+  });
+
+  if (isLoading) return <p className="text-sm text-gray-400 animate-pulse">Loading linked risk context...</p>;
+  if (!data || (data.results.length === 0 && data.risks.length === 0)) return <p className="text-sm text-gray-400">No linked risk engine evaluation found.</p>;
+
+  return (
+    <div className="space-y-3">
+      <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
+        <p className="text-xs uppercase tracking-wide text-gray-500">Linked risk engine test</p>
+        <p className="mt-1 text-sm font-medium text-gray-900">{data.linkedTest.riskEngineTestId ?? 'Not linked'}</p>
+      </div>
+      {data.results.slice(0, 3).map((result) => (
+        <div key={result.id} className="rounded-lg border border-gray-100 p-3">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-medium text-gray-900">{result.resourceName}</p>
+            <span className="text-xs text-gray-500">{result.signalType}</span>
+          </div>
+          <p className="mt-1 text-sm text-gray-600">{result.reason}</p>
+        </div>
+      ))}
+      {data.risks.slice(0, 2).map((risk) => (
+        <div key={risk.id} className="rounded-lg bg-red-50 border border-red-100 p-3">
+          <p className="text-sm font-medium text-red-900">{risk.title}</p>
+          <p className="mt-1 text-xs text-red-700">{risk.severity} risk · Score {risk.score} · {risk.status}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ─── Notion icon (panel-local) ────────────────────────────────────────────────
 
 function NotionPanelIcon() {
@@ -676,7 +742,7 @@ function AddFrameworkSection({ testId }: { testId: string }) {
 // ─── How to Remediate Section ─────────────────────────────────────────────────
 
 function RemediationGuide({ test }: { test: TestRecord }) {
-  const isAutomated = test.type === 'Automated';
+  const isAutomated = test.type !== 'Document';
   const isFailing = test.lastResult === 'Fail' || test.status === 'Needs_remediation';
   const isOverdue = test.status === 'Overdue';
   const providerLabel = test.integration?.provider ? getProviderLabel(test.integration.provider) : null;
@@ -848,6 +914,7 @@ interface TestDetailPanelProps {
 }
 
 const ADMIN_ROLES = ['ORG_ADMIN', 'SUPER_ADMIN', 'SECURITY_OWNER'];
+const AUDIT_REVIEW_ROLES = ['AUDITOR', 'ORG_ADMIN', 'SUPER_ADMIN', 'SECURITY_OWNER'];
 
 export function TestDetailPanel({ testId, onClose, onMutated }: TestDetailPanelProps) {
   const qc = useQueryClient();
@@ -855,7 +922,9 @@ export function TestDetailPanel({ testId, onClose, onMutated }: TestDetailPanelP
   const [showNotionModal, setShowNotionModal] = useState(false);
   const [notionTaskUrl, setNotionTaskUrl] = useState<string | null>(null);
 
-  const isAdmin = ADMIN_ROLES.includes(authService.getCachedUser()?.role ?? '');
+  const currentUser = authService.getCachedUser();
+  const isAdmin = ADMIN_ROLES.includes(currentUser?.role ?? '');
+  const isReviewer = AUDIT_REVIEW_ROLES.includes(currentUser?.role ?? '');
 
   // Load org users for owner picker (only for admins)
   const { data: usersData } = useQuery({
@@ -874,6 +943,24 @@ export function TestDetailPanel({ testId, onClose, onMutated }: TestDetailPanelP
       const res = await testsService.getTest(testId);
       if (res.success && res.data) return res.data as TestRecord;
       throw new Error('Failed to load test');
+    },
+    staleTime: STALE.TESTS,
+  });
+
+  const { data: unifiedEvidence = [] } = useQuery({
+    queryKey: ['tests', 'unified-evidence', testId],
+    queryFn: async () => {
+      const res = await testsService.listUnifiedEvidence();
+      return (res.data ?? []).filter((item) => item.testId === testId);
+    },
+    staleTime: STALE.TESTS,
+  });
+
+  const { data: securityEvents = [] } = useQuery({
+    queryKey: ['tests', 'security-events', testId],
+    queryFn: async () => {
+      const res = await testsService.listSecurityEvents();
+      return (res.data ?? []).filter((item) => item.testId === testId);
     },
     staleTime: STALE.TESTS,
   });
@@ -930,8 +1017,31 @@ export function TestDetailPanel({ testId, onClose, onMutated }: TestDetailPanelP
     onSuccess: () => qc.invalidateQueries({ queryKey: QK.testDetail(testId) }),
   });
 
+  const requestAttestationMutation = useMutation({
+    mutationFn: (reviewerId: string) => testsService.requestAttestation(testId, reviewerId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: QK.testDetail(testId) }),
+  });
+
+  const signAttestationMutation = useMutation({
+    mutationFn: (reviewerId: string) => testsService.signAttestation(testId, reviewerId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: QK.testDetail(testId) }),
+  });
+
+  const autoRemediateMutation = useMutation({
+    mutationFn: () => testsService.autoRemediate(testId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: QK.testDetail(testId) });
+      qc.invalidateQueries({ queryKey: ['tests'] });
+      qc.invalidateQueries({ queryKey: QK.testRuns(testId) });
+    },
+  });
+
   const isAutomated = test?.type === 'Automated';
+  const isSystemDriven = test?.type === 'Automated' || test?.type === 'Pipeline';
   const providerLabel = test?.integration?.provider ? getProviderLabel(test.integration.provider) : null;
+  const isOwner = currentUser?.id != null && currentUser.id === test?.ownerId;
+  const canEditTest = isAdmin || isOwner;
+  const canAttest = Boolean(test && isReviewer && currentUser?.id && currentUser.id !== test.ownerId);
 
   return (
     // Overlay
@@ -951,7 +1061,7 @@ export function TestDetailPanel({ testId, onClose, onMutated }: TestDetailPanelP
               <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                 <StatusBadge status={test.status} />
                 <span className={`px-2 py-0.5 rounded text-xs font-medium ${CATEGORY_COLOR[test.category]}`}>{test.category}</span>
-                <span className={`px-2 py-0.5 rounded text-xs font-medium ${isAutomated ? 'bg-violet-100 text-violet-700' : 'bg-gray-100 text-gray-600'}`}>{test.type}</span>
+                <span className={`px-2 py-0.5 rounded text-xs font-medium ${isSystemDriven ? 'bg-violet-100 text-violet-700' : 'bg-gray-100 text-gray-600'}`}>{test.type}</span>
               </div>
             </div>
           ) : null}
@@ -979,10 +1089,13 @@ export function TestDetailPanel({ testId, onClose, onMutated }: TestDetailPanelP
                 <dl className="grid grid-cols-2 gap-3 text-sm">
                   {[
                     { label: 'Due Date', value: fmtDate(test.dueDate) },
+                    { label: 'Next Due', value: fmtDate(test.nextDueDate) },
+                    { label: 'Cadence', value: test.recurrenceRule ? test.recurrenceRule[0].toUpperCase() + test.recurrenceRule.slice(1) : 'One-time' },
                     { label: 'Completed', value: fmtDate(test.completedAt) },
                     { label: 'Type', value: test.type },
                     { label: 'Category', value: test.category },
                     { label: 'Created', value: fmtDate(test.createdAt) },
+                    { label: 'Risk Engine ID', value: test.riskEngineTestId ?? '—' },
                   ].map(({ label, value }) => (
                     <div key={label}>
                       <dt className="text-xs font-medium text-gray-400 uppercase tracking-wide">{label}</dt>
@@ -992,7 +1105,7 @@ export function TestDetailPanel({ testId, onClose, onMutated }: TestDetailPanelP
                   {/* Owner field -- editable for admins */}
                   <div className="col-span-2">
                     <dt className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Owner</dt>
-                    {isAdmin && usersData && usersData.length > 0 ? (
+                    {canEditTest && usersData && usersData.length > 0 ? (
                       <select
                         value={test.ownerId}
                         onChange={(e) => reassignOwner.mutate(e.target.value)}
@@ -1010,11 +1123,11 @@ export function TestDetailPanel({ testId, onClose, onMutated }: TestDetailPanelP
                 </dl>
 
                 {/* Automated-test metadata */}
-                {isAutomated && (
+                {isSystemDriven && (
                   <div className="mt-4 p-3 rounded-lg bg-violet-50 border border-violet-200 space-y-2">
                     <div className="flex items-center gap-2 text-xs font-semibold text-violet-700 uppercase tracking-wide">
                       <Zap className="w-3.5 h-3.5" />
-                      Automated via {providerLabel ?? 'Integration'}
+                        Automated via {providerLabel ?? test.pipelineProvider ?? 'Integration'}
                     </div>
                     <div className="grid grid-cols-2 gap-3 text-sm">
                       <div>
@@ -1033,24 +1146,55 @@ export function TestDetailPanel({ testId, onClose, onMutated }: TestDetailPanelP
                 )}
 
                 {/* Action buttons */}
-                {isAutomated ? (
+                {isSystemDriven ? (
                   <div className="mt-4 space-y-2">
-                    <button
-                      onClick={() => runMutation.mutate()}
-                      disabled={runMutation.isPending}
-                      className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium shadow-sm transition-colors disabled:opacity-50"
-                    >
-                      <RefreshCw className={`w-4 h-4 ${runMutation.isPending ? 'animate-spin' : ''}`} />
-                      {runMutation.isPending ? 'Running...' : 'Run Scan Now'}
-                    </button>
+                    {test.type === 'Pipeline' ? (
+                      <button
+                        onClick={async () => {
+                          await testsService.ingestPipelineRun({
+                            pipelineName: test.name,
+                            provider: test.pipelineProvider ?? 'GitHub Actions',
+                            status: 'success',
+                            summary: 'Pipeline execution imported from CI/CD webhook.',
+                            branch: 'main',
+                          });
+                          qc.invalidateQueries({ queryKey: QK.testDetail(testId) });
+                          qc.invalidateQueries({ queryKey: ['tests'] });
+                          qc.invalidateQueries({ queryKey: QK.testRuns(testId) });
+                        }}
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium shadow-sm transition-colors"
+                      >
+                        <RefreshCw className="w-4 h-4" />
+                        Ingest Pipeline Run
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => runMutation.mutate()}
+                        disabled={runMutation.isPending}
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium shadow-sm transition-colors disabled:opacity-50"
+                      >
+                        <RefreshCw className={`w-4 h-4 ${runMutation.isPending ? 'animate-spin' : ''}`} />
+                        {runMutation.isPending ? 'Running...' : 'Run Scan Now'}
+                      </button>
+                    )}
                     {runMsg && <p className="text-xs text-gray-500">{runMsg}</p>}
                     <p className="text-xs text-gray-400">
-                      This test is system-driven via {providerLabel ?? 'the integration'}. Results update automatically on every scan.
+                      This test is system-driven via {providerLabel ?? test.pipelineProvider ?? 'the integration'}. Results update automatically on every scan.
                     </p>
+                    {test.autoRemediationSupported && test.lastResult === 'Fail' && (
+                      <button
+                        onClick={() => autoRemediateMutation.mutate()}
+                        disabled={autoRemediateMutation.isPending}
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-sm font-medium disabled:opacity-50"
+                      >
+                        <Wrench className="w-4 h-4" />
+                        {autoRemediateMutation.isPending ? 'Executing remediation...' : 'Run Auto-remediation'}
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <>
-                    {test.status !== 'OK' && (
+                    {test.status !== 'OK' && canEditTest && (
                       <button
                         onClick={() => completeMutation.mutate()}
                         disabled={completeMutation.isPending}
@@ -1065,6 +1209,9 @@ export function TestDetailPanel({ testId, onClose, onMutated }: TestDetailPanelP
                         <CheckCircle className="w-4 h-4" />
                         Completed {fmtDate(test.completedAt)}
                       </div>
+                    )}
+                    {!canEditTest && (
+                      <p className="mt-4 text-xs text-gray-500">Only the assigned owner, team lead, or CISO override roles can change this test.</p>
                     )}
                   </>
                 )}
@@ -1094,8 +1241,58 @@ export function TestDetailPanel({ testId, onClose, onMutated }: TestDetailPanelP
                 <RemediationGuide test={test} />
               </Section>
 
+              <Section title="Result Trend" icon={<Activity className="w-4 h-4 text-gray-500" />}>
+                <TrendSparkline testId={testId} />
+              </Section>
+
+              <Section title="Risk Context" icon={<AlertTriangle className="w-4 h-4 text-gray-500" />}>
+                <RiskContextSection testId={testId} />
+              </Section>
+
+              <Section title="Governance" icon={<ClipboardCheck className="w-4 h-4 text-gray-500" />}>
+                <div className="space-y-3 text-sm">
+                  <div className="rounded-lg border border-gray-100 p-3">
+                    <p className="text-xs uppercase tracking-wide text-gray-500">Attestation Status</p>
+                    <p className="mt-1 font-medium text-gray-900">{(test.attestationStatus ?? 'Not_requested').replace(/_/g, ' ')}</p>
+                    <p className="mt-1 text-xs text-gray-500">Reviewer: {test.reviewer?.name ?? 'Unassigned'}</p>
+                    {test.attestedAt && <p className="mt-1 text-xs text-gray-500">Signed {fmtDateTime(test.attestedAt)}</p>}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {canEditTest && usersData?.[0] && test.attestationStatus !== 'Pending_review' && test.attestationStatus !== 'Attested' && (
+                      <button
+                        onClick={() => requestAttestationMutation.mutate(usersData[0].id)}
+                        disabled={requestAttestationMutation.isPending}
+                        className="px-3 py-2 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-sm font-medium disabled:opacity-50"
+                      >
+                        Request Attestation
+                      </button>
+                    )}
+                    {canAttest && currentUser?.id && test.attestationStatus === 'Pending_review' && (
+                      <button
+                        onClick={() => signAttestationMutation.mutate(currentUser.id)}
+                        disabled={signAttestationMutation.isPending}
+                        className="px-3 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium disabled:opacity-50"
+                      >
+                        {signAttestationMutation.isPending ? 'Signing...' : 'Attest Evidence'}
+                      </button>
+                    )}
+                  </div>
+                  {securityEvents.length > 0 && (
+                    <div className="rounded-lg border border-amber-100 bg-amber-50 p-3">
+                      <p className="text-xs uppercase tracking-wide text-amber-700">SIEM / SOAR</p>
+                      <div className="mt-2 space-y-1">
+                        {securityEvents.slice(0, 3).map((item) => (
+                          <p key={item.id} className="text-xs text-amber-900">{item.eventType} to {item.destination} ({item.status})</p>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <p className="text-xs text-gray-500">Owners can edit and complete, auditors can attest, and CISO/admin roles retain override authority.</p>
+                </div>
+              </Section>
+
               {/* ── Scan Run History (Automated only) ── */}
-              {isAutomated && (
+              {isSystemDriven && (
                 <Section title="Scan Run History" icon={<Zap className="w-4 h-4 text-gray-500" />}>
                   <RunsSection testId={testId} />
                 </Section>
@@ -1120,6 +1317,7 @@ export function TestDetailPanel({ testId, onClose, onMutated }: TestDetailPanelP
                         </div>
                         <button
                           onClick={() => detachEvidence.mutate(evidenceId)}
+                          disabled={!canEditTest}
                           className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
                           title="Detach evidence"
                         >
@@ -1129,10 +1327,30 @@ export function TestDetailPanel({ testId, onClose, onMutated }: TestDetailPanelP
                     ))}
                   </ul>
                 )}
-                <AttachEvidenceSection
-                  testId={testId}
-                  existingIds={new Set(test.evidences.map((e) => e.evidenceId))}
-                />
+                {canEditTest && (
+                  <AttachEvidenceSection
+                    testId={testId}
+                    existingIds={new Set(test.evidences.map((e) => e.evidenceId))}
+                  />
+                )}
+              </Section>
+
+              <Section title={`Unified Evidence (${unifiedEvidence.length})`} icon={<Shield className="w-4 h-4 text-gray-500" />}>
+                {unifiedEvidence.length === 0 ? (
+                  <p className="text-sm text-gray-400">No unified evidence records yet.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {unifiedEvidence.slice(0, 6).map((item) => (
+                      <div key={item.id} className="rounded-lg border border-gray-100 p-3 bg-gray-50">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-sm font-medium text-gray-900">{item.title}</p>
+                          <span className="text-xs text-gray-500">{item.sourceType}</span>
+                        </div>
+                        <p className="mt-1 text-xs text-gray-500">{item.provider} · {fmtDateTime(item.capturedAt)}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </Section>
 
               {/* ── Linked Controls ── */}
@@ -1154,6 +1372,7 @@ export function TestDetailPanel({ testId, onClose, onMutated }: TestDetailPanelP
                         </div>
                         <button
                           onClick={() => detachControl.mutate(controlId)}
+                          disabled={!canEditTest}
                           className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
                           title="Detach control"
                         >
@@ -1163,10 +1382,12 @@ export function TestDetailPanel({ testId, onClose, onMutated }: TestDetailPanelP
                     ))}
                   </ul>
                 )}
-                <AttachControlSection
-                  testId={testId}
-                  existingIds={new Set(test.controls.map((c) => c.controlId))}
-                />
+                {canEditTest && (
+                  <AttachControlSection
+                    testId={testId}
+                    existingIds={new Set(test.controls.map((c) => c.controlId))}
+                  />
+                )}
               </Section>
 
               {/* ── Linked Frameworks ── */}
@@ -1185,7 +1406,7 @@ export function TestDetailPanel({ testId, onClose, onMutated }: TestDetailPanelP
                     ))}
                   </div>
                 )}
-                <AddFrameworkSection testId={testId} />
+                {canEditTest && <AddFrameworkSection testId={testId} />}
               </Section>
 
               {/* ── Linked Audits ── */}
@@ -1203,10 +1424,12 @@ export function TestDetailPanel({ testId, onClose, onMutated }: TestDetailPanelP
                     ))}
                   </ul>
                 )}
-                <AttachAuditSection
-                  testId={testId}
-                  existingIds={new Set(test.audits.map((a) => a.auditId))}
-                />
+                {canEditTest && (
+                  <AttachAuditSection
+                    testId={testId}
+                    existingIds={new Set(test.audits.map((a) => a.auditId))}
+                  />
+                )}
               </Section>
 
               {/* ── History ── */}

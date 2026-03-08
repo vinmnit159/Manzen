@@ -2,8 +2,10 @@ import { apiClient, ApiResponse, PaginatedResponse } from './client';
 
 // ─── Enums ────────────────────────────────────────────────────────────────────
 export type TestCategory = 'Custom' | 'Engineering' | 'HR' | 'IT' | 'Policy' | 'Risks';
-export type TestType = 'Document' | 'Automated';
+export type TestType = 'Document' | 'Automated' | 'Pipeline';
 export type TestStatus = 'Due_soon' | 'Needs_remediation' | 'OK' | 'Overdue';
+export type TestRecurrenceRule = 'weekly' | 'monthly' | 'quarterly' | 'annual';
+export type TestAttestationStatus = 'Not_requested' | 'Pending_review' | 'Attested';
 
 // ─── Related record shapes ────────────────────────────────────────────────────
 export interface TestControlLink {
@@ -58,10 +60,21 @@ export interface TestRecord {
   ownerId: string;
   owner?: { id: string; name: string; email: string };
   dueDate: string;
+  nextDueDate: string | null;
+  recurrenceRule: TestRecurrenceRule | null;
   completedAt: string | null;
   organizationId: string;
   createdAt: string;
   updatedAt: string;
+  riskEngineTestId: string | null;
+  templateId?: string | null;
+  attestationStatus?: TestAttestationStatus;
+  reviewerId?: string | null;
+  reviewer?: { id: string; name: string; email: string } | null;
+  attestedAt?: string | null;
+  automationKind?: 'standard' | 'pipeline';
+  pipelineProvider?: string | null;
+  lastRemediationAt?: string | null;
   controls: TestControlLink[];
   frameworks: TestFrameworkLink[];
   audits: TestAuditLink[];
@@ -115,6 +128,8 @@ export interface CreateTestRequest {
   type: TestType;
   ownerId: string;
   dueDate: string;
+  recurrenceRule?: TestRecurrenceRule | null;
+  riskEngineTestId?: string | null;
 }
 
 export interface UpdateTestRequest {
@@ -123,7 +138,99 @@ export interface UpdateTestRequest {
   type?: TestType;
   ownerId?: string;
   dueDate?: string;
+  recurrenceRule?: TestRecurrenceRule | null;
   status?: TestStatus;
+  riskEngineTestId?: string | null;
+}
+
+export interface BulkCompleteRequest {
+  testIds: string[];
+}
+
+export interface BulkAssignRequest {
+  testIds: string[];
+  ownerId: string;
+}
+
+export interface BulkLinkControlRequest {
+  testIds: string[];
+  controlId: string;
+}
+
+export interface TestDashboard {
+  controlCoverage: number;
+  frameworkCoverage: Array<{ framework: string; count: number }>;
+  automationCoverage: number;
+  evidenceFreshness: number;
+  slaCompliance: number;
+  statusBreakdown: Array<{ label: string; count: number }>;
+}
+
+export interface TestGapAnalysis {
+  controlsWithoutTests: string[];
+  frameworksWithoutCoverage: string[];
+  testsWithoutEvidence: Array<{ id: string; name: string }>;
+}
+
+export interface TestTemplate {
+  id: string;
+  framework: string;
+  name: string;
+  description: string;
+  category: TestCategory;
+  type: TestType;
+  recurrenceRule: TestRecurrenceRule;
+  controls: string[];
+}
+
+export interface TestRiskContext {
+  linkedTest: { id: string; riskEngineTestId: string | null };
+  results: Array<{ id: string; status: string; severity: string; reason: string; executedAt: string; resourceName: string; resourceId: string; signalType: string }>;
+  risks: Array<{ id: string; title: string; severity: string; score: number; status: string; resourceName: string }>;
+}
+
+export interface TestSecurityEvent {
+  id: string;
+  testId: string;
+  eventType: 'SIEM_FORWARD' | 'SOAR_TRIGGER';
+  destination: string;
+  status: 'QUEUED' | 'SENT';
+  createdAt: string;
+  summary: string;
+}
+
+export interface UnifiedTestEvidence {
+  id: string;
+  sourceType: 'compliance-evidence' | 'risk-snapshot';
+  sourceId: string;
+  testId: string;
+  title: string;
+  capturedAt: string;
+  provider: string;
+}
+
+export interface TestEscalation {
+  id: string;
+  testId: string;
+  owner: string;
+  stage: 'OWNER' | 'MANAGER' | 'CISO';
+  dueAt: string;
+  integration: string;
+  status: 'PENDING' | 'TRIGGERED';
+}
+
+export interface TestExportBundle {
+  format: 'csv' | 'pdf';
+  fileName: string;
+  content: string;
+}
+
+export interface PipelineRunRequest {
+  pipelineName: string;
+  provider: string;
+  status: 'success' | 'failure';
+  summary: string;
+  branch?: string;
 }
 
 // ─── Service ─────────────────────────────────────────────────────────────────
@@ -148,6 +255,22 @@ export class TestsService {
     return apiClient.get('/api/tests/summary');
   }
 
+  async getDashboard(): Promise<ApiResponse<TestDashboard>> {
+    return apiClient.get('/api/tests/dashboard');
+  }
+
+  async getGapAnalysis(): Promise<ApiResponse<TestGapAnalysis>> {
+    return apiClient.get('/api/tests/gaps');
+  }
+
+  async getLibrary(): Promise<ApiResponse<TestTemplate[]>> {
+    return apiClient.get('/api/tests/library');
+  }
+
+  async createSuiteFromTemplate(templateId: string): Promise<ApiResponse<TestRecord[]>> {
+    return apiClient.post(`/api/tests/library/${templateId}/create-suite`, {});
+  }
+
   async getTest(id: string): Promise<ApiResponse<TestRecord>> {
     return apiClient.get(`/api/tests/${id}`);
   }
@@ -166,6 +289,56 @@ export class TestsService {
 
   async completeTest(id: string): Promise<ApiResponse<TestRecord>> {
     return apiClient.post(`/api/tests/${id}/complete`, {});
+  }
+
+  async bulkComplete(data: BulkCompleteRequest): Promise<ApiResponse<TestRecord[]>> {
+    return apiClient.post('/api/tests/bulk/complete', data);
+  }
+
+  async bulkAssign(data: BulkAssignRequest): Promise<ApiResponse<TestRecord[]>> {
+    return apiClient.post('/api/tests/bulk/assign', data);
+  }
+
+  async bulkLinkControl(data: BulkLinkControlRequest): Promise<ApiResponse<TestControlLink[]>> {
+    return apiClient.post('/api/tests/bulk/link-control', data);
+  }
+
+  async getRiskContext(testId: string): Promise<ApiResponse<TestRiskContext>> {
+    return apiClient.get(`/api/tests/${testId}/risk-context`);
+  }
+
+  async requestAttestation(testId: string, reviewerId: string): Promise<ApiResponse<TestRecord>> {
+    return apiClient.post(`/api/tests/${testId}/attest/request`, { reviewerId });
+  }
+
+  async signAttestation(testId: string, reviewerId: string): Promise<ApiResponse<TestRecord>> {
+    return apiClient.post(`/api/tests/${testId}/attest/sign`, { reviewerId });
+  }
+
+  async autoRemediate(testId: string): Promise<ApiResponse<TestRecord>> {
+    return apiClient.post(`/api/tests/${testId}/auto-remediate`, {});
+  }
+
+  async exportTests(format: 'csv' | 'pdf' = 'csv', framework?: string): Promise<ApiResponse<TestExportBundle>> {
+    const params: Record<string, string> = { format };
+    if (framework) params.framework = framework;
+    return apiClient.get('/api/tests/export', params);
+  }
+
+  async ingestPipelineRun(data: PipelineRunRequest): Promise<ApiResponse<TestRecord>> {
+    return apiClient.post('/api/tests/pipeline/runs', data);
+  }
+
+  async listSecurityEvents(): Promise<ApiResponse<TestSecurityEvent[]>> {
+    return apiClient.get('/api/tests/security-events');
+  }
+
+  async listUnifiedEvidence(): Promise<ApiResponse<UnifiedTestEvidence[]>> {
+    return apiClient.get('/api/tests/unified-evidence');
+  }
+
+  async listEscalations(): Promise<ApiResponse<TestEscalation[]>> {
+    return apiClient.get('/api/tests/escalations');
   }
 
   // Evidence

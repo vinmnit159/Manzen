@@ -47,7 +47,14 @@ const ADMIN_ROLES: AppRole[] = ['SUPER_ADMIN', 'ORG_ADMIN', 'SECURITY_OWNER'];
 const navigation: NavItem[] = [
   { title: "Home",    href: "/",        icon: Home },
   { title: "My Work", href: "/my-work", icon: Briefcase },
-  { title: "Tests",   href: "/tests",   icon: FileCheck },
+  {
+    title: "Tests",
+    icon: FileCheck,
+    children: [
+      { title: "Tests", href: "/tests" },
+      { title: "Test Library", href: "/tests/library" },
+    ],
+  },
   { title: "Reports", href: "/reports", icon: BarChart3 },
 
   // Auditor-only shortcut

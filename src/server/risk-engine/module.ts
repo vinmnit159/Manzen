@@ -6,7 +6,7 @@ export interface RouteRegistrar {
     method: 'GET' | 'POST' | 'PATCH';
     url: string;
     schema: { body?: unknown; response: unknown };
-    handler: (request?: { body?: unknown }) => Promise<unknown>;
+    handler: (request?: { body?: unknown; params?: Record<string, string>; query?: unknown }) => Promise<unknown>;
   }): void;
 }
 

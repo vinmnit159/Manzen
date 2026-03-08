@@ -236,6 +236,44 @@ const OWNERS_BY_CATEGORY: Record<RiskCategory, RiskOwnerSummary> = {
   'Data Protection': { name: 'Liam Foster', team: 'Data Governance' },
 };
 
+const RISK_TO_TEST_ORIGIN: Record<string, { complianceTestId: string; riskEngineTestId: string; controlId: string; controlName: string; provider: string }> = {
+  'risk-public-bucket': {
+    complianceTestId: 'compliance-test-public-storage',
+    riskEngineTestId: 'test-public-storage',
+    controlId: 'control-cloud-storage-private',
+    controlName: 'Production storage must not be public',
+    provider: 'aws',
+  },
+  'risk-mfa-gap': {
+    complianceTestId: 'compliance-test-admin-mfa',
+    riskEngineTestId: 'test-admin-mfa',
+    controlId: 'control-admin-mfa',
+    controlName: 'MFA enforced for privileged identities',
+    provider: 'okta',
+  },
+  'risk-vuln-sla': {
+    complianceTestId: 'compliance-test-critical-vuln-age',
+    riskEngineTestId: 'test-critical-vuln-age',
+    controlId: 'control-vulnerability-sla',
+    controlName: 'Critical vulnerabilities remediated in SLA',
+    provider: 'snyk',
+  },
+  'risk-encryption-gap': {
+    complianceTestId: 'compliance-test-disk-encryption',
+    riskEngineTestId: 'test-disk-encryption',
+    controlId: 'control-disk-encryption',
+    controlName: 'Managed endpoints require disk encryption',
+    provider: 'fleet',
+  },
+  'risk-waf-accepted': {
+    complianceTestId: 'compliance-test-cloudflare-waf-enabled',
+    riskEngineTestId: 'test-cloudflare-waf-enabled',
+    controlId: 'control-network-waf',
+    controlName: 'External applications require WAF',
+    provider: 'cloudflare',
+  },
+};
+
 function classifyCategory(text: string): RiskCategory {
   const value = text.toLowerCase();
   if (value.includes('mfa') || value.includes('sso') || value.includes('identity') || value.includes('access')) return 'Identity';
@@ -506,15 +544,16 @@ export const riskCenterService = {
     ];
 
     // Build source origin traceability — deterministic from risk data
-    const sourceTestId = `test-${risk.category.toLowerCase().replace(/\s/g, '-')}-${risk.id.slice(-6)}`;
-    const sourceControlId = `ctrl-${risk.category.toLowerCase().replace(/\s/g, '-')}-001`;
+    const linkedOrigin = RISK_TO_TEST_ORIGIN[risk.id];
+    const sourceTestId = linkedOrigin?.complianceTestId ?? `test-${risk.category.toLowerCase().replace(/\s/g, '-')}-${risk.id.slice(-6)}`;
+    const sourceControlId = linkedOrigin?.controlId ?? `ctrl-${risk.category.toLowerCase().replace(/\s/g, '-')}-001`;
     const origin: RiskSourceOrigin = {
       testId: sourceTestId,
-      testName: `${risk.controls[0]} evaluation`,
+      testName: linkedOrigin?.controlName ?? `${risk.controls[0]} evaluation`,
       controlId: sourceControlId,
-      controlName: risk.controls[0],
-      provider: risk.source.replace(' signal', ''),
-      signalId: `sig-${risk.id.slice(-8)}`,
+      controlName: linkedOrigin?.controlName ?? risk.controls[0],
+      provider: linkedOrigin?.provider ?? risk.source.replace(' signal', ''),
+      signalId: linkedOrigin?.riskEngineTestId ?? `sig-${risk.id.slice(-8)}`,
       lastFailedAt: risk.lastSeenAt,
       failureReason: `${risk.category} control test failed: ${risk.description.split('.')[0]}.`,
     };

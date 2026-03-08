@@ -5,7 +5,10 @@ import { RefreshCw, SlidersHorizontal, X, CheckCircle, AlertTriangle, Clock, Col
 import { QK } from '@/lib/queryKeys';
 import { STALE } from '@/lib/queryClient';
 import { testsService } from '@/services/api/tests';
+import { controlsService } from '@/services/api/controls';
+import { usersService } from '@/services/api/users';
 import type { TestRecord, TestStatus, TestCategory, TestType, ListTestsParams } from '@/services/api/tests';
+import type { Control } from '@/services/api/types';
 import { authService } from '@/services/api/auth';
 import { TestDetailPanel } from './tests/TestDetailPanel';
 
@@ -20,7 +23,7 @@ const STATUS_CONFIG: Record<TestStatus, { label: string; bg: string; text: strin
 
 const CATEGORY_OPTIONS: TestCategory[] = ['Custom', 'Engineering', 'HR', 'IT', 'Policy', 'Risks'];
 const STATUS_OPTIONS: TestStatus[] = ['OK', 'Due_soon', 'Overdue', 'Needs_remediation'];
-const TYPE_OPTIONS: TestType[] = ['Document', 'Automated'];
+const TYPE_OPTIONS: TestType[] = ['Document', 'Automated', 'Pipeline'];
 
 const CATEGORY_COLOR: Record<TestCategory, string> = {
   Custom:      'bg-gray-100 text-gray-700',
@@ -225,6 +228,9 @@ export function TestsPage() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedTestId, setSelectedTestId] = useState<string | null>(null);
   const [statusFilterOverride, setStatusFilterOverride] = useState<string>('');
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkOwnerId, setBulkOwnerId] = useState('');
+  const [bulkControlId, setBulkControlId] = useState('');
 
   // Persist column preferences
   useEffect(() => {
@@ -279,10 +285,81 @@ export function TestsPage() {
     staleTime: STALE.TESTS,
   });
 
+  const { data: dashboard } = useQuery({
+    queryKey: ['tests', 'dashboard'],
+    queryFn: async () => {
+      const res = await testsService.getDashboard();
+      return res.data ?? null;
+    },
+    staleTime: STALE.TESTS,
+  });
+
+  const { data: gaps } = useQuery({
+    queryKey: ['tests', 'gaps'],
+    queryFn: async () => {
+      const res = await testsService.getGapAnalysis();
+      return res.data ?? null;
+    },
+    staleTime: STALE.TESTS,
+  });
+
+  const { data: escalations = [] } = useQuery({
+    queryKey: ['tests', 'escalations'],
+    queryFn: async () => {
+      const res = await testsService.listEscalations();
+      return res.data ?? [];
+    },
+    staleTime: STALE.TESTS,
+  });
+
+  const { data: usersData = [] } = useQuery({
+    queryKey: QK.users(),
+    queryFn: async () => {
+      const res = await usersService.listUsers();
+      return res.users ?? [];
+    },
+    staleTime: STALE.USERS,
+  });
+
+  const { data: controlsData = [] } = useQuery({
+    queryKey: ['controls', 'bulk-picker'],
+    queryFn: async () => {
+      const res = await controlsService.getControls({ limit: 200 });
+      return (res.data ?? []) as Control[];
+    },
+    staleTime: STALE.CONTROLS,
+  });
+
   // ── Seed mutation (admin only) ──
   const seedMutation = useMutation({
     mutationFn: () => testsService.seedTests(),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['tests'] }),
+  });
+
+  const bulkCompleteMutation = useMutation({
+    mutationFn: (testIds: string[]) => testsService.bulkComplete({ testIds }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['tests'] });
+      setSelectedIds([]);
+    },
+  });
+
+  const bulkAssignMutation = useMutation({
+    mutationFn: (payload: { testIds: string[]; ownerId: string }) => testsService.bulkAssign(payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['tests'] });
+      setSelectedIds([]);
+      setBulkOwnerId('');
+    },
+  });
+
+  const bulkLinkControlMutation = useMutation({
+    mutationFn: (payload: { testIds: string[]; controlId: string }) => testsService.bulkLinkControl(payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['tests'] });
+      setSelectedIds([]);
+      setBulkControlId('');
+    },
   });
 
   const tests: TestRecord[] = (testsData ?? []) as TestRecord[];
@@ -307,6 +384,21 @@ export function TestsPage() {
     setFilter({ search: '', category: '', status: '', type: '', dueFrom: '', dueTo: '' });
     setStatusFilterOverride('');
     setPage(1);
+  };
+
+  const visibleIds = sorted.map((test) => test.id);
+  const selectedCount = selectedIds.length;
+  const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.includes(id));
+
+  const toggleSelection = (testId: string) => {
+    setSelectedIds((current) => current.includes(testId) ? current.filter((id) => id !== testId) : [...current, testId]);
+  };
+
+  const toggleSelectAllVisible = () => {
+    setSelectedIds((current) => {
+      if (allVisibleSelected) return current.filter((id) => !visibleIds.includes(id));
+      return Array.from(new Set([...current, ...visibleIds]));
+    });
   };
 
   const renderCell = (test: TestRecord, col: ColumnConfig) => {
@@ -365,6 +457,18 @@ export function TestsPage() {
 
   const visibleColumns = columns.filter(c => c.visible);
 
+  const downloadExport = async (format: 'csv' | 'pdf') => {
+    const res = await testsService.exportTests(format);
+    if (!res.success || !res.data) return;
+    const blob = new Blob([res.data.content], { type: format === 'csv' ? 'text/csv;charset=utf-8' : 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = res.data.fileName;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="flex flex-col bg-gray-50">
       {/* ── App Bar ── */}
@@ -380,6 +484,27 @@ export function TestsPage() {
               Filters active
             </span>
           )}
+          <button
+            onClick={() => navigate('/tests/library')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 transition-colors shadow-sm"
+          >
+            <Database className="w-4 h-4" />
+            <span className="hidden sm:inline">Test Library</span>
+          </button>
+          <button
+            onClick={() => downloadExport('csv')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 transition-colors shadow-sm"
+          >
+            <span className="hidden sm:inline">Export CSV</span>
+            <span className="sm:hidden">CSV</span>
+          </button>
+          <button
+            onClick={() => downloadExport('pdf')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 transition-colors shadow-sm"
+          >
+            <span className="hidden sm:inline">Export PDF</span>
+            <span className="sm:hidden">PDF</span>
+          </button>
           <button
             onClick={() => setFilterOpen(v => !v)}
             className={[
@@ -416,7 +541,7 @@ export function TestsPage() {
       {/* ── Summary panels ── */}
       {summary && !isLoading && (
         <div className="px-6 pt-4 pb-2">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
 
             {/* Pass % */}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-4">
@@ -482,7 +607,57 @@ export function TestsPage() {
                 </button>
               )}
             </div>
+
+            {dashboard && (
+              <>
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-4">
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Control Coverage</p>
+                  <p className="text-4xl font-bold text-gray-900">{dashboard.controlCoverage}%</p>
+                  <p className="text-sm text-gray-500 mt-1">Controls with linked tests</p>
+                </div>
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-4">
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Automation Coverage</p>
+                  <p className="text-4xl font-bold text-gray-900">{dashboard.automationCoverage}%</p>
+                  <p className="text-sm text-gray-500 mt-1">Automated and pipeline tests</p>
+                </div>
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-4">
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Evidence Freshness</p>
+                  <p className="text-4xl font-bold text-gray-900">{dashboard.evidenceFreshness}%</p>
+                  <p className="text-sm text-gray-500 mt-1">Current evidence quality signal</p>
+                </div>
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-4">
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">SLA Compliance</p>
+                  <p className="text-4xl font-bold text-gray-900">{dashboard.slaCompliance}%</p>
+                  <p className="text-sm text-gray-500 mt-1">Completed before due date</p>
+                </div>
+              </>
+            )}
           </div>
+          {(gaps || escalations.length > 0) && (
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-3 mt-3">
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Controls Without Tests</p>
+                <div className="space-y-1 text-sm text-gray-700">
+                  {(gaps?.controlsWithoutTests ?? []).slice(0, 4).map((item) => <p key={item}>{item}</p>)}
+                  {!(gaps?.controlsWithoutTests?.length) && <p className="text-gray-400">No control gaps detected.</p>}
+                </div>
+              </div>
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Framework Gaps</p>
+                <div className="space-y-1 text-sm text-gray-700">
+                  {(gaps?.frameworksWithoutCoverage ?? []).slice(0, 4).map((item) => <p key={item}>{item}</p>)}
+                  {!(gaps?.frameworksWithoutCoverage?.length) && <p className="text-gray-400">All core frameworks have coverage.</p>}
+                </div>
+              </div>
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Escalations</p>
+                <div className="space-y-1 text-sm text-gray-700">
+                  {escalations.slice(0, 4).map((item) => <p key={item.id}>{item.stage} - {item.owner}</p>)}
+                  {!escalations.length && <p className="text-gray-400">No overdue escalation chains active.</p>}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -515,6 +690,66 @@ export function TestsPage() {
 
         {/* Table */}
         <div className="flex-1 min-w-0 flex flex-col gap-3">
+          {selectedCount > 0 && (
+            <div className="bg-slate-900 text-white rounded-xl shadow-sm px-4 py-3 flex flex-col lg:flex-row lg:items-center gap-3">
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-semibold">{selectedCount} test{selectedCount === 1 ? '' : 's'} selected</span>
+                <button
+                  onClick={() => setSelectedIds([])}
+                  className="text-xs text-slate-300 hover:text-white transition-colors"
+                >
+                  Clear
+                </button>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2 lg:ml-auto">
+                <button
+                  onClick={() => bulkCompleteMutation.mutate(selectedIds)}
+                  disabled={bulkCompleteMutation.isPending}
+                  className="px-3 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-sm font-medium disabled:opacity-50"
+                >
+                  {bulkCompleteMutation.isPending ? 'Completing...' : 'Batch complete'}
+                </button>
+                <div className="flex gap-2">
+                  <select
+                    value={bulkOwnerId}
+                    onChange={(e) => setBulkOwnerId(e.target.value)}
+                    className="px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-sm min-w-44"
+                  >
+                    <option value="">Assign owner...</option>
+                    {usersData.map((user) => (
+                      <option key={user.id} value={user.id}>{user.name ?? user.email}</option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={() => bulkOwnerId && bulkAssignMutation.mutate({ testIds: selectedIds, ownerId: bulkOwnerId })}
+                    disabled={!bulkOwnerId || bulkAssignMutation.isPending}
+                    className="px-3 py-2 rounded-lg bg-sky-500 hover:bg-sky-400 text-sm font-medium disabled:opacity-50"
+                  >
+                    Assign
+                  </button>
+                </div>
+                <div className="flex gap-2">
+                  <select
+                    value={bulkControlId}
+                    onChange={(e) => setBulkControlId(e.target.value)}
+                    className="px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-sm min-w-52"
+                  >
+                    <option value="">Link control...</option>
+                    {controlsData.map((control) => (
+                      <option key={control.id} value={control.id}>{control.isoReference} - {control.title}</option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={() => bulkControlId && bulkLinkControlMutation.mutate({ testIds: selectedIds, controlId: bulkControlId })}
+                    disabled={!bulkControlId || bulkLinkControlMutation.isPending}
+                    className="px-3 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-sm font-medium text-slate-950 disabled:opacity-50"
+                  >
+                    Link control
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
           {isLoading ? (
             <LoadingState />
           ) : isError ? (
@@ -528,6 +763,15 @@ export function TestsPage() {
                   <table className="min-w-full text-sm">
                     <thead>
                       <tr className="border-b border-gray-200 bg-gray-50">
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-12">
+                          <input
+                            type="checkbox"
+                            checked={allVisibleSelected}
+                            onChange={toggleSelectAllVisible}
+                            className="w-4 h-4 rounded border-gray-300 text-blue-600"
+                            aria-label="Select all visible tests"
+                          />
+                        </th>
                         {visibleColumns.map(col => (
                           <th
                             key={col.id}
@@ -553,6 +797,15 @@ export function TestsPage() {
                           className="hover:bg-blue-50/40 transition-colors cursor-pointer"
                           onClick={() => setSelectedTestId(test.id)}
                         >
+                          <td className="px-4 py-3 align-middle" onClick={(e) => e.stopPropagation()}>
+                            <input
+                              type="checkbox"
+                              checked={selectedIds.includes(test.id)}
+                              onChange={() => toggleSelection(test.id)}
+                              className="w-4 h-4 rounded border-gray-300 text-blue-600"
+                              aria-label={`Select ${test.name}`}
+                            />
+                          </td>
                           {visibleColumns.map(col => (
                             <td
                               key={col.id}

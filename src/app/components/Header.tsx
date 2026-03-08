@@ -17,6 +17,7 @@ const searchablePages: SearchResult[] = [
   { title: "Dashboard", path: "/", category: "Main" },
   { title: "My Work", path: "/my-work", category: "Main" },
   { title: "Tests", path: "/tests", category: "Main" },
+  { title: "Test Library", path: "/tests/library", category: "Main" },
   { title: "Reports", path: "/reports", category: "Main" },
   
   // Compliance

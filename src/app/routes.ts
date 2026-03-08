@@ -3,6 +3,7 @@ import { Layout } from "@/app/components/Layout";
 import { HomePage } from "@/app/pages/HomePage";
 import { MyWorkPage } from "@/app/pages/MyWorkPage";
 import { TestsPage } from "@/app/pages/TestsPage";
+import { TestLibraryPage } from "@/app/pages/tests/TestLibraryPage";
 import { ReportsPage } from "@/app/pages/ReportsPage";
 import { ReportViewerPage } from "@/app/pages/reports/ReportViewerPage";
 import { AuditorDashboardPage } from "@/app/pages/auditor/AuditorDashboardPage";
@@ -106,6 +107,7 @@ export const router = createBrowserRouter([
       { index: true, Component: HomePage },
       { path: "my-work", Component: MyWorkPage },
       { path: "tests", Component: TestsPage },
+      { path: "tests/library", Component: TestLibraryPage },
       { path: "reports", Component: ReportsPage },
       { path: "reports/viewer/:reportId", Component: ReportViewerPage },
 

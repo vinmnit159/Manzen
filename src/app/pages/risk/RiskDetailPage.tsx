@@ -36,6 +36,7 @@ import { riskLevelVariant, riskStatusVariant, trendLabel } from '@/services/api/
 import { useIsAdmin, useCurrentUser } from '@/hooks/useCurrentUser';
 import { QK } from '@/lib/queryKeys';
 import { STALE } from '@/lib/queryClient';
+import { TestDetailPanel } from '@/app/pages/tests/TestDetailPanel';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -220,6 +221,7 @@ export function RiskDetailPage() {
   const { riskId = '' } = useParams();
   const isAdmin = useIsAdmin();
   const [stakeholderDialogOpen, setStakeholderDialogOpen] = useState(false);
+  const [selectedTestId, setSelectedTestId] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: QK.riskDetail(riskId),
@@ -448,7 +450,7 @@ export function RiskDetailPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => navigate(`/tests?testId=${data.origin.testId}`)}
+                      onClick={() => setSelectedTestId(data.origin.testId)}
                     >
                       <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
                       View test detail
@@ -534,7 +536,7 @@ export function RiskDetailPage() {
                                   variant="outline"
                                   size="sm"
                                   className="h-7 text-xs"
-                                  onClick={() => navigate(`/tests?testId=${step.linkedTestId}`)}
+                                  onClick={() => setSelectedTestId(step.linkedTestId)}
                                 >
                                   <Eye className="mr-1 h-3 w-3" />
                                   View test result
@@ -569,6 +571,12 @@ export function RiskDetailPage() {
               onClose={() => setStakeholderDialogOpen(false)}
               stakeholders={data.stakeholders}
               riskId={riskId}
+            />
+          )}
+          {selectedTestId && (
+            <TestDetailPanel
+              testId={selectedTestId}
+              onClose={() => setSelectedTestId(null)}
             />
           )}
         </div>
