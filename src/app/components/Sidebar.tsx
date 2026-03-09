@@ -13,7 +13,6 @@ import {
   UserCheck,
   Settings,
   CheckSquare,
-  FileWarning,
   ChevronDown,
   ChevronRight,
   UserCog,
@@ -123,10 +122,10 @@ const navigation: NavItem[] = [
     title: "Personnel",
     icon: UserCheck,
     children: [
-      { title: "People",    href: "/personnel/people" },
-      { title: "Computers", href: "/personnel/computers" },
-      { title: "Access",    href: "/personnel/access" },
-      { title: "Settings",  href: "/personnel/settings", roles: [...ADMIN_ROLES] },
+      { title: "People",          href: "/personnel/people" },
+      { title: "Computers",       href: "/personnel/computers" },
+      { title: "Account Mapping", href: "/personnel/access" },
+      { title: "Settings",        href: "/personnel/settings", roles: [...ADMIN_ROLES] },
     ],
   },
   {
@@ -146,8 +145,7 @@ const navigation: NavItem[] = [
       { title: "Partner API",    href: "/integrations/partner-api", roles: [...ADMIN_ROLES] },
     ],
   },
-  { title: "My Security Tasks",  href: "/my-security-tasks",  icon: CheckSquare },
-  { title: "My Access Requests", href: "/my-access-requests", icon: FileWarning },
+  { title: "My Security Tasks", href: "/my-security-tasks", icon: CheckSquare },
 ];
 
 function getInitials(name?: string | null, email?: string): string {

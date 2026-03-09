@@ -62,7 +62,6 @@ import { PersonnelSettingsPage } from "@/app/pages/personnel/SettingsPage";
 import { IntegrationsPage } from "@/app/pages/IntegrationsPage";
 import { PartnerApiPage } from "@/app/pages/integrations/PartnerApiPage";
 import { MySecurityTasksPage } from "@/app/pages/MySecurityTasksPage";
-import { MyAccessRequestsPage } from "@/app/pages/MyAccessRequestsPage";
 
 // Account
 import { AccountSettingsPage } from "@/app/pages/account/AccountSettingsPage";
@@ -182,7 +181,8 @@ export const router = createBrowserRouter([
       { path: "integrations", Component: IntegrationsPage },
       { path: "integrations/partner-api", Component: PartnerApiPage },
       { path: "my-security-tasks", Component: MySecurityTasksPage },
-      { path: "my-access-requests", Component: MyAccessRequestsPage },
+      // Redirect old placeholder route to the real Access Requests page
+      { path: "my-access-requests", loader: async () => redirect('/access/requests') },
 
       // Access Management (RBAC)
       { path: "access/users",    Component: AccessUsersPage },
