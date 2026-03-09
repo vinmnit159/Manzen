@@ -49,6 +49,21 @@ export interface PartnerScanResultDetail extends PartnerScanResult {
   metadata?: Record<string, any>;
 }
 
+export type ToolRequestStatus = 'pending' | 'approved' | 'dismissed';
+
+export interface ToolRequest {
+  id: string;
+  toolName: string;
+  category: string;
+  useCase: string;
+  submittedBy: string;
+  submittedAt: string;
+  status: ToolRequestStatus;
+  reviewedBy?: string;
+  reviewedAt?: string;
+  reviewNote?: string;
+}
+
 export interface CatalogueTool {
   provider: string;
   category: string;
@@ -93,5 +108,25 @@ export const partnerService = {
   getCatalogue: () =>
     apiClient.get<{ success: boolean; count: number; data: CatalogueTool[] }>(
       '/api/partner/integrations',
+    ),
+
+  // ─── Tool Requests ──────────────────────────────────────────────────────────
+
+  /** Submit a request for a new tool integration (any authenticated user) */
+  submitToolRequest: (payload: { toolName: string; category: string; useCase: string }) =>
+    apiClient.post<{ success: boolean; data: ToolRequest }>('/api/partner/tool-requests', payload),
+
+  /** List all submitted tool requests (Super Admin only) */
+  listToolRequests: (params?: { status?: ToolRequestStatus }) =>
+    apiClient.get<{ success: boolean; data: ToolRequest[]; total: number }>(
+      '/api/partner/tool-requests',
+      params as Record<string, string> | undefined,
+    ),
+
+  /** Approve or dismiss a tool request (Super Admin only) */
+  reviewToolRequest: (id: string, payload: { status: 'approved' | 'dismissed'; reviewNote?: string }) =>
+    apiClient.post<{ success: boolean; data: ToolRequest }>(
+      `/api/partner/tool-requests/${id}/review`,
+      payload,
     ),
 };

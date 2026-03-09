@@ -47,4 +47,10 @@ export const QK = {
   testDetail:  (id: string)      => ['tests', 'detail', id]      as const,
   testHistory: (id: string)      => ['tests', 'history', id]     as const,
   testRuns:    (id: string)      => ['tests', 'runs', id]         as const,
+
+  // Partner API
+  partnerKeys:     ()             => ['partner', 'keys']           as const,
+  partnerResults:  (filter?: object) => ['partner', 'results', filter] as const,
+  partnerCatalogue: ()            => ['partner', 'catalogue']      as const,
+  toolRequests:    (filter?: object) => ['partner', 'tool-requests', filter] as const,
 } as const;

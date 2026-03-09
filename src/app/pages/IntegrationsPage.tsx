@@ -135,6 +135,7 @@ import { rampService } from '@/services/api/ramp';
 import { brexService } from '@/services/api/brex';
 import { netsuiteService } from '@/services/api/netsuite';
 import { xeroService } from '@/services/api/xero';
+import { partnerService } from '@/services/api/partner';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -8107,6 +8108,115 @@ function JumpCloudCard({
   );
 }
 
+// ─── Request Tool Modal ───────────────────────────────────────────────────────
+
+const TOOL_CATEGORIES = [
+  'Cloud Provider', 'Version Control', 'Identity Provider', 'Communication',
+  'CRM', 'HRIS', 'MDM', 'Observability', 'Endpoint Security',
+  'Vulnerability Scanner', 'Security Training', 'Password Manager',
+  'Finance', 'CI/CD', 'Document Management', 'Data Warehouse',
+  'Datastore', 'Task Management', 'Other',
+];
+
+function RequestToolModal({ onClose, onSubmitted }: { onClose: () => void; onSubmitted: () => void }) {
+  const [toolName, setToolName] = useState('');
+  const [category, setCategory] = useState('');
+  const [useCase, setUseCase] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!toolName.trim()) { setError('Tool name is required.'); return; }
+    if (!useCase.trim()) { setError('Please describe your use case.'); return; }
+    setError(null);
+    setSubmitting(true);
+    try {
+      await partnerService.submitToolRequest({ toolName: toolName.trim(), category, useCase: useCase.trim() });
+      onSubmitted();
+    } catch {
+      setError('Failed to submit request. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div
+        className="w-full max-w-md rounded-xl bg-white shadow-2xl"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+          <div>
+            <h2 className="text-base font-semibold text-gray-900">Request a New Tool</h2>
+            <p className="text-xs text-gray-500 mt-0.5">Let the team know which integration you need.</p>
+          </div>
+          <button onClick={onClose} className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
+          <div>
+            <label className="text-xs font-medium text-gray-700 mb-1 block">
+              Tool / Integration Name <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={toolName}
+              onChange={e => setToolName(e.target.value)}
+              placeholder="e.g. Datadog, 1Password, Figma"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-700 mb-1 block">Category</label>
+            <select
+              value={category}
+              onChange={e => setCategory(e.target.value)}
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 bg-white"
+            >
+              <option value="">Select a category…</option>
+              {TOOL_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-700 mb-1 block">
+              Use Case / Justification <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              value={useCase}
+              onChange={e => setUseCase(e.target.value)}
+              placeholder="Describe how this tool would help your security programme…"
+              rows={3}
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 resize-none"
+            />
+          </div>
+          {error && <p className="text-xs text-red-600">{error}</p>}
+          <div className="flex items-center justify-end gap-2 pt-1">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-md px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:opacity-50"
+            >
+              {submitting ? 'Submitting…' : 'Submit Request'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export function IntegrationsPage() {
@@ -8150,6 +8260,7 @@ export function IntegrationsPage() {
   const [repos, setRepos] = useState<GitHubRepo[]>([]);
   const [mdmOverview, setMdmOverview] = useState<MdmOverview | null>(null);
   const [activeTab, setActiveTab] = useState<'connected' | 'available'>('connected');
+  const [showRequestToolModal, setShowRequestToolModal] = useState(false);
   const [engineerAConnectionCounts, setEngineerAConnectionCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
    const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -8402,20 +8513,33 @@ export function IntegrationsPage() {
       )}
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'connected' | 'available')} className="gap-4">
-        <TabsList className="w-full sm:w-auto">
-          <TabsTrigger value="connected">
-            Connected Tools&nbsp;
-            {loading
-              ? <span className="inline-block w-5 h-3.5 rounded bg-current opacity-20 animate-pulse align-middle" />
-              : `(${connectedCount})`}
-          </TabsTrigger>
-          <TabsTrigger value="available">
-            Available Tools&nbsp;
-            {loading
-              ? <span className="inline-block w-5 h-3.5 rounded bg-current opacity-20 animate-pulse align-middle" />
-              : `(${availableCount})`}
-          </TabsTrigger>
-        </TabsList>
+        <div className="flex items-center justify-between gap-3">
+          <TabsList className="w-full sm:w-auto">
+            <TabsTrigger value="connected">
+              Connected Tools&nbsp;
+              {loading
+                ? <span className="inline-block w-5 h-3.5 rounded bg-current opacity-20 animate-pulse align-middle" />
+                : `(${connectedCount})`}
+            </TabsTrigger>
+            <TabsTrigger value="available">
+              Available Tools&nbsp;
+              {loading
+                ? <span className="inline-block w-5 h-3.5 rounded bg-current opacity-20 animate-pulse align-middle" />
+                : `(${availableCount})`}
+            </TabsTrigger>
+          </TabsList>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowRequestToolModal(true)}
+            className="shrink-0 gap-1.5 text-xs"
+          >
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <path d="M12 5v14M5 12h14" strokeLinecap="round" />
+            </svg>
+            Request a Tool
+          </Button>
+        </div>
 
         <Card className="p-4 md:p-5">
           <div className="flex items-start justify-between gap-3 mb-3">
@@ -8782,6 +8906,16 @@ export function IntegrationsPage() {
         ))}
       </div>
       </Tabs>
+
+      {showRequestToolModal && (
+        <RequestToolModal
+          onClose={() => setShowRequestToolModal(false)}
+          onSubmitted={() => {
+            setShowRequestToolModal(false);
+            showToast('success', 'Tool request submitted! The team will review it shortly.');
+          }}
+        />
+      )}
     </PageTemplate>
   );
 }

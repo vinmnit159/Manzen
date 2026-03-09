@@ -23,9 +23,10 @@ import {
   PartnerApiKey,
   PartnerScanResult,
   PartnerScanResultDetail,
+  ToolRequest,
   CatalogueTool,
 } from '@/services/api/partner';
-import { useIsAdmin } from '@/hooks/useCurrentUser';
+import { useHasRole } from '@/hooks/useCurrentUser';
 
 // ─── Icons (inline SVG to avoid extra deps) ───────────────────────────────────
 
@@ -523,17 +524,19 @@ function CatalogueCard({ tool }: { tool: CatalogueTool }) {
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export function PartnerApiPage() {
-  const isAdmin = useIsAdmin();
+  const isSuperAdmin = useHasRole('SUPER_ADMIN');
 
   // State
-  const [tab, setTab] = useState<'keys' | 'results' | 'catalogue'>('keys');
+  const [tab, setTab] = useState<'keys' | 'results' | 'catalogue' | 'requests'>('keys');
   const [keys, setKeys] = useState<PartnerApiKey[]>([]);
   const [results, setResults] = useState<PartnerScanResult[]>([]);
   const [catalogue, setCatalogue] = useState<CatalogueTool[]>([]);
+  const [toolRequests, setToolRequests] = useState<ToolRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [catalogueSearch, setCatalogueSearch] = useState('');
   const [resultDetail, setResultDetail] = useState<PartnerScanResultDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState<string | null>(null);
+  const [reviewingId, setReviewingId] = useState<string | null>(null);
 
   // Dialog state
   const [showIssue, setShowIssue] = useState(false);
@@ -544,16 +547,30 @@ export function PartnerApiPage() {
   async function refresh() {
     setLoading(true);
     try {
-      const [keysRes, resultsRes, catalogueRes] = await Promise.all([
+      const [keysRes, resultsRes, catalogueRes, requestsRes] = await Promise.all([
         partnerService.listKeys().catch(() => ({ data: [] as PartnerApiKey[] })),
         partnerService.listResults().catch(() => ({ data: [] as PartnerScanResult[], total: 0 })),
         partnerService.getCatalogue().catch(() => ({ data: [] as CatalogueTool[], count: 0 })),
+        partnerService.listToolRequests().catch(() => ({ data: [] as ToolRequest[], total: 0 })),
       ]);
       setKeys(keysRes.data ?? []);
       setResults(resultsRes.data ?? []);
       setCatalogue(catalogueRes.data ?? []);
+      setToolRequests(requestsRes.data ?? []);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function reviewRequest(id: string, status: 'approved' | 'dismissed') {
+    setReviewingId(id);
+    try {
+      await partnerService.reviewToolRequest(id, { status });
+      setToolRequests(prev =>
+        prev.map(r => r.id === id ? { ...r, status } : r),
+      );
+    } finally {
+      setReviewingId(null);
     }
   }
 
@@ -592,15 +609,15 @@ export function PartnerApiPage() {
     }
   }
 
-  // Access guard
-  if (!isAdmin) {
+  // Access guard — Super Admin only
+  if (!isSuperAdmin) {
     return (
       <PageTemplate title="Partner API" subtitle="Manage external tool integrations">
         <div className="flex flex-col items-center justify-center py-24 text-center">
           <ShieldIcon className="mb-4 w-10 h-10 text-slate-300" />
-          <p className="text-lg font-semibold text-slate-700">Admin access required</p>
+          <p className="text-lg font-semibold text-slate-700">Super Admin access required</p>
           <p className="mt-1 text-sm text-slate-400">
-            Only Org Admins, Super Admins, and Security Owners can manage Partner API keys.
+            Only Super Admins can manage Partner API keys and tool requests.
           </p>
         </div>
       </PageTemplate>
@@ -631,6 +648,14 @@ export function PartnerApiPage() {
             <TabsTrigger value="keys">API Keys</TabsTrigger>
             <TabsTrigger value="results">Inbound Results</TabsTrigger>
             <TabsTrigger value="catalogue">Tool Catalogue</TabsTrigger>
+            <TabsTrigger value="requests" className="relative">
+              Tool Requests
+              {toolRequests.filter(r => r.status === 'pending').length > 0 && (
+                <span className="ml-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-semibold text-white">
+                  {toolRequests.filter(r => r.status === 'pending').length}
+                </span>
+              )}
+            </TabsTrigger>
           </TabsList>
         </Tabs>
         {tab === 'keys' && (
@@ -852,6 +877,97 @@ export function PartnerApiPage() {
                 </div>
               )}
             </div>
+          )}
+
+          {/* ── Tool Requests tab ─────────────────────────────────────────── */}
+          {tab === 'requests' && (
+            <Card className="border-slate-200">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Tool Integration Requests</CardTitle>
+                <CardDescription>
+                  Requests submitted by users for new tool integrations. Approve to prioritise or dismiss to decline.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                {toolRequests.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-center px-6">
+                    <ShieldIcon className="mb-3 w-8 h-8 text-slate-300" />
+                    <p className="text-sm font-medium text-slate-600">No tool requests yet</p>
+                    <p className="mt-1 text-xs text-slate-400">
+                      Users can request new integrations from the Integrations page.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-slate-100 text-left">
+                          <th className="px-6 py-3 text-xs font-medium uppercase tracking-wide text-slate-500">Tool</th>
+                          <th className="px-4 py-3 text-xs font-medium uppercase tracking-wide text-slate-500">Category</th>
+                          <th className="px-4 py-3 text-xs font-medium uppercase tracking-wide text-slate-500">Use Case</th>
+                          <th className="px-4 py-3 text-xs font-medium uppercase tracking-wide text-slate-500">Submitted By</th>
+                          <th className="px-4 py-3 text-xs font-medium uppercase tracking-wide text-slate-500">Date</th>
+                          <th className="px-4 py-3 text-xs font-medium uppercase tracking-wide text-slate-500">Status</th>
+                          <th className="px-4 py-3" />
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {toolRequests.map(req => (
+                          <tr key={req.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/60 transition-colors">
+                            <td className="px-6 py-3 font-medium text-slate-800">{req.toolName}</td>
+                            <td className="px-4 py-3">
+                              <Badge variant="outline" className={`text-xs ${categoryBadge(req.category)}`}>
+                                {req.category || '—'}
+                              </Badge>
+                            </td>
+                            <td className="px-4 py-3 text-xs text-slate-600 max-w-xs truncate" title={req.useCase}>
+                              {req.useCase}
+                            </td>
+                            <td className="px-4 py-3 text-xs text-slate-500">{req.submittedBy}</td>
+                            <td className="px-4 py-3 text-xs text-slate-400">{fmtDate(req.submittedAt)}</td>
+                            <td className="px-4 py-3">
+                              {req.status === 'pending' && (
+                                <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">Pending</Badge>
+                              )}
+                              {req.status === 'approved' && (
+                                <Badge variant="outline" className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200">Approved</Badge>
+                              )}
+                              {req.status === 'dismissed' && (
+                                <Badge variant="outline" className="text-xs bg-slate-50 text-slate-500 border-slate-200">Dismissed</Badge>
+                              )}
+                            </td>
+                            <td className="px-4 py-3">
+                              {req.status === 'pending' && (
+                                <div className="flex items-center gap-1.5">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="text-emerald-700 border-emerald-200 hover:bg-emerald-50 gap-1 text-xs h-7 px-2"
+                                    disabled={reviewingId === req.id}
+                                    onClick={() => reviewRequest(req.id, 'approved')}
+                                  >
+                                    Approve
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-slate-500 hover:text-slate-700 text-xs h-7 px-2"
+                                    disabled={reviewingId === req.id}
+                                    onClick={() => reviewRequest(req.id, 'dismissed')}
+                                  >
+                                    Dismiss
+                                  </Button>
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           )}
         </>
       )}

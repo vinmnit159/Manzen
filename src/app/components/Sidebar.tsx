@@ -142,7 +142,7 @@ const navigation: NavItem[] = [
     icon: Settings,
     children: [
       { title: "Connected Apps", href: "/integrations" },
-      { title: "Partner API",    href: "/integrations/partner-api", roles: [...ADMIN_ROLES] },
+      { title: "Partner API",    href: "/integrations/partner-api", roles: ['SUPER_ADMIN'] },
     ],
   },
   { title: "My Security Tasks", href: "/my-security-tasks", icon: CheckSquare },
