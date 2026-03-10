@@ -35,6 +35,14 @@ export interface OrgFrameworkDto {
   scopeNote: string | null;
   createdAt: string;
   updatedAt: string;
+  // Latest coverage snapshot fields (null if no snapshot yet)
+  controlCoveragePct: number | null;
+  testPassRatePct: number | null;
+  openGaps: number | null;
+  covered: number | null;
+  applicable: number | null;
+  totalRequirements: number | null;
+  snapshotCalculatedAt: string | null;
 }
 
 export interface RequirementStatusDto {

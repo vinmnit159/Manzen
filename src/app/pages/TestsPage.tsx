@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { RefreshCw, SlidersHorizontal, X, CheckCircle, AlertTriangle, Clock, Columns, Database, ChevronLeft, ChevronRight } from 'lucide-react';
+import { FrameworkFilter } from '@/app/components/compliance/FrameworkFilter';
 import { QK } from '@/lib/queryKeys';
 import { STALE } from '@/lib/queryClient';
 import { testsService } from '@/services/api/tests';
@@ -220,6 +221,7 @@ export function TestsPage() {
   const [filter, setFilter] = useState<TestFilter>({
     search: '', category: '', status: '', type: '', dueFrom: '', dueTo: '',
   });
+  const [frameworkFilter, setFrameworkFilter] = useState<string[]>([]);
   const [page, setPage] = useState(1);
   const [sortColumn, setSortColumn] = useState('dueDate');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
@@ -534,6 +536,11 @@ export function TestsPage() {
           </button>
           <ColumnPicker columns={columns} onToggle={(id) => setColumns(prev => prev.map(c => c.id === id ? { ...c, visible: !c.visible } : c))} />
         </div>
+      </div>
+
+      {/* ── Framework filter bar ── */}
+      <div className="px-6 pt-3 pb-1">
+        <FrameworkFilter selected={frameworkFilter} onChange={setFrameworkFilter} />
       </div>
 
       {/* ── Summary panels ── */}

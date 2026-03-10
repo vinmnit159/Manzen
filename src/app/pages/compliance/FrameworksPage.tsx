@@ -92,10 +92,17 @@ function ActiveFrameworkCard({ orgFw, onRemove }: {
         <div>
           <div className="flex justify-between text-xs text-gray-500 mb-1.5">
             <span>Coverage</span>
-            <span className="font-semibold text-gray-900">—%</span>
+            <span className="font-semibold text-gray-900">
+              {orgFw.controlCoveragePct != null ? `${orgFw.controlCoveragePct}%` : '—%'}
+            </span>
           </div>
-          <Progress value={0} className="h-2" />
-          <p className="text-[11px] text-gray-400 mt-1">Coverage data populates after Phase 4</p>
+          <Progress value={orgFw.controlCoveragePct ?? 0} className="h-2" />
+          {orgFw.openGaps != null && orgFw.openGaps > 0 && (
+            <p className="text-[11px] text-amber-600 mt-1">{orgFw.openGaps} open gaps</p>
+          )}
+          {orgFw.controlCoveragePct == null && (
+            <p className="text-[11px] text-gray-400 mt-1">No coverage snapshot yet</p>
+          )}
         </div>
         {orgFw.activatedAt && (
           <p className="text-xs text-gray-400">
@@ -224,6 +231,7 @@ function RemoveDialog({ orgFw, onClose, onConfirm, loading }: {
 // ── Main page ─────────────────────────────────────────────────────────────────
 export function FrameworksPage() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const [removingFw, setRemovingFw] = useState<OrgFrameworkDto | null>(null);
   const [activatingSlug, setActivatingSlug] = useState<string | null>(null);
 

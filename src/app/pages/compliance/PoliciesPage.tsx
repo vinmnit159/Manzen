@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { FrameworkFilter } from '@/app/components/compliance/FrameworkFilter';
 import { useNavigate } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { policiesService, PolicyTemplate } from '@/services/api/policies';
@@ -560,6 +561,7 @@ export function PoliciesPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [filter, setFilter] = useState<PolicyFilter>({ search: '', status: '' });
+  const [frameworkFilter, setFrameworkFilter] = useState<string[]>([]);
   const [sortKey, setSortKey] = useState<SortKey>('name');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [filterOpen, setFilterOpen] = useState(false);
@@ -715,6 +717,11 @@ export function PoliciesPage() {
             Filters{hasActiveFilters ? ' •' : ''}
           </button>
         </div>
+      </div>
+
+      {/* ── Framework filter bar ── */}
+      <div className="px-6 pt-3 pb-1">
+        <FrameworkFilter selected={frameworkFilter} onChange={setFrameworkFilter} />
       </div>
 
       {/* ── Summary Cards ── */}
