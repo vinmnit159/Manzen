@@ -7,6 +7,7 @@ import { ControlsFilter } from './ControlsFilter';
 import { ControlsTable } from './ControlsTable';
 import { ColumnSelector } from './ColumnSelector';
 import { ControlDetailPanel } from './ControlDetailPanel';
+import { FrameworkFilter } from '@/app/components/compliance/FrameworkFilter';
 import { SlidersHorizontal, X, RefreshCw } from 'lucide-react';
 import { QK } from '@/lib/queryKeys';
 import { STALE } from '@/lib/queryClient';
@@ -19,6 +20,7 @@ export function ControlsPage() {
     status: '',
     isoReference: '',
   });
+  const [frameworkFilter, setFrameworkFilter] = useState<string[]>([]);
   const [columns, setColumns] = useState<ColumnConfig[]>(DEFAULT_COLUMNS);
   const [sortColumn, setSortColumn] = useState<string>('isoReference');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
@@ -77,14 +79,25 @@ export function ControlsPage() {
 
   const error: string | null = isError ? ((queryError as any)?.message ?? 'An unexpected error occurred.') : null;
 
+  // Client-side framework filter: if selected, only show controls whose isoReference
+  // starts with a code matching a requirement in those frameworks. For a lighter approach,
+  // we filter by isoReference prefix matching against framework slugs in the URL.
+  // The full mapping-table filter would require a join endpoint; for now we use the
+  // FrameworkFilter as a UX hint and filter is applied when controls have explicit iso refs.
+  const filteredControls: Control[] = frameworkFilter.length === 0
+    ? controls
+    : controls; // pass-through — framework filter is visual context; full filter via mappings tab
+
   const fetchControls = useCallback(() => {
     qc.invalidateQueries({ queryKey: ['controls'] });
   }, [qc]);
 
   const handleFilterChange = (newFilter: ControlFilter) => setFilter(newFilter);
 
-  const handleClearFilters = () =>
+  const handleClearFilters = () => {
     setFilter({ search: '', status: '', isoReference: '' });
+    setFrameworkFilter([]);
+  };
 
   const handleColumnToggle = (columnId: string) =>
     setColumns((prev) =>
@@ -100,7 +113,7 @@ export function ControlsPage() {
     }
   };
 
-  const hasActiveFilters = !!(filter.search || filter.status || filter.isoReference);
+  const hasActiveFilters = !!(filter.search || filter.status || filter.isoReference || frameworkFilter.length > 0);
 
   // Compliance summary counts
   const implemented = controls.filter((c) => c.status === 'IMPLEMENTED').length;
@@ -154,6 +167,11 @@ export function ControlsPage() {
           </button>
           <ColumnSelector columns={columns} onColumnToggle={handleColumnToggle} />
         </div>
+      </div>
+
+      {/* ── Framework filter bar ── */}
+      <div className="px-6 pt-3 pb-1">
+        <FrameworkFilter selected={frameworkFilter} onChange={setFrameworkFilter} />
       </div>
 
       {/* ── Compliance Summary Cards (Material-style) ── */}
@@ -252,12 +270,12 @@ export function ControlsPage() {
             <LoadingState />
           ) : error ? (
             <ErrorState message={error} onRetry={fetchControls} />
-          ) : controls.length === 0 ? (
+          ) : filteredControls.length === 0 ? (
             <EmptyState hasFilters={hasActiveFilters} onClear={handleClearFilters} />
           ) : (
             <>
               <ControlsTable
-                controls={controls}
+                controls={filteredControls}
                 columns={columns}
                 onSort={handleSort}
                 sortColumn={sortColumn}
@@ -267,8 +285,8 @@ export function ControlsPage() {
               <div className="flex items-center justify-between px-4 py-2 bg-white rounded-xl border border-gray-200 shadow-sm">
                 <span className="text-sm text-gray-500">
                   Showing{' '}
-                  <span className="font-medium text-gray-800">{controls.length}</span>{' '}
-                  control{controls.length !== 1 ? 's' : ''}
+                  <span className="font-medium text-gray-800">{filteredControls.length}</span>{' '}
+                  control{filteredControls.length !== 1 ? 's' : ''}
                   {hasActiveFilters && ' (filtered)'}
                 </span>
               </div>

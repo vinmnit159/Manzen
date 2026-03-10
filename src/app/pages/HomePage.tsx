@@ -14,10 +14,13 @@ import {
   Activity,
   Loader2,
   RefreshCw,
+  ShieldCheck,
+  ArrowRight,
 } from "lucide-react";
 import { controlsService } from "@/services/api/controls";
 import { risksService } from "@/services/api/risks";
 import { activityLogsService, ActivityLogEntry } from "@/services/api/activityLogs";
+import { frameworksService, type FrameworkReadinessDto } from "@/services/api/frameworks";
 import { QK } from "@/lib/queryKeys";
 import { STALE } from "@/lib/queryClient";
 
@@ -77,14 +80,30 @@ export function HomePage() {
       staleTime: STALE.ACTIVITY,
     });
 
-  const compliance    = complianceRaw ?? null;
-  const riskOverview  = riskRaw ?? null;
+  const { data: readinessRaw, isLoading: loadingReadiness } =
+    useQuery({
+      queryKey: ['frameworks', 'readiness-summary'],
+      queryFn: async () => {
+        try {
+          const res = await frameworksService.getReadinessSummary();
+          return (res?.data ?? []) as FrameworkReadinessDto[];
+        } catch {
+          return [] as FrameworkReadinessDto[];
+        }
+      },
+      staleTime: STALE.DASHBOARD,
+    });
+
+  const compliance     = complianceRaw ?? null;
+  const riskOverview   = riskRaw ?? null;
   const recentActivity = activityRaw ?? [];
+  const readiness      = readinessRaw ?? [];
 
   const handleRefresh = () => {
     qc.invalidateQueries({ queryKey: QK.complianceStats() });
     qc.invalidateQueries({ queryKey: QK.riskOverview() });
     qc.invalidateQueries({ queryKey: QK.activityLog(8) });
+    qc.invalidateQueries({ queryKey: ['frameworks', 'readiness-summary'] });
   };
 
   // Derived display values — fall back to skeleton dashes while loading
@@ -191,9 +210,8 @@ export function HomePage() {
           })}
         </div>
 
-        {/* Main Content Grid — all four panels share equal height via `items-start` removed;
-            each card is flex-col so headers stay fixed and bodies fill remaining space */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:grid-rows-2">
+        {/* Main Content Grid — cards are flex-col so headers stay fixed and bodies fill remaining space */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
 
           {/* ── Compliance Overview ── */}
           <Card className="p-6 flex flex-col h-72">
@@ -335,6 +353,54 @@ export function HomePage() {
                     <span>{riskOverview.mitigated} mitigated</span>
                     <span>{riskOverview.total} total</span>
                   </div>
+                </div>
+              )}
+            </div>
+          </Card>
+
+          {/* ── Framework Readiness ── */}
+          <Card className="p-6 flex flex-col h-72 cursor-pointer hover:shadow-md transition-shadow duration-200" onClick={() => navigate("/compliance/frameworks")}>
+            {/* fixed header */}
+            <div className="flex items-center justify-between mb-4 shrink-0">
+              <h2 className="text-lg font-semibold text-gray-900">Framework Readiness</h2>
+              <ShieldCheck className="w-5 h-5 text-gray-400" />
+            </div>
+
+            {/* body */}
+            <div className="flex-1 overflow-y-auto min-h-0">
+              {loadingReadiness ? (
+                <div className="flex items-center gap-3 py-6 text-sm text-gray-400">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Loading framework data…
+                </div>
+              ) : readiness.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-6 text-center">
+                  <ShieldCheck className="w-8 h-8 text-gray-200 mb-2" />
+                  <p className="text-sm text-gray-400">No active frameworks</p>
+                  <p className="text-xs text-gray-300 mt-1">Add a framework to track readiness</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {readiness.map((fw) => (
+                    <div key={fw.slug} className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-gray-700 truncate">{fw.name}</span>
+                        <span className="text-xs font-semibold text-blue-700 ml-2 shrink-0">
+                          {fw.controlCoveragePct != null ? `${fw.controlCoveragePct}%` : '—'}
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-100 rounded-full h-1.5">
+                        <div
+                          className="bg-blue-500 h-1.5 rounded-full transition-all"
+                          style={{ width: `${fw.controlCoveragePct ?? 0}%` }}
+                        />
+                      </div>
+                      <div className="flex justify-between text-[11px] text-gray-400">
+                        <span>{fw.openGaps ?? 0} open gaps</span>
+                        <span>{fw.covered ?? 0}/{fw.applicable ?? 0} covered</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

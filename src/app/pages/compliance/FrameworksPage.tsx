@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router";
+import type { ActivationSummaryDto } from "@/services/api/frameworks";
 import { PageTemplate } from "@/app/components/PageTemplate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
@@ -248,9 +249,21 @@ export function FrameworksPage() {
   const activateMutation = useMutation({
     mutationFn: (fw: FrameworkDto) => frameworksService.activateFramework({ frameworkSlug: fw.slug }),
     onMutate: (fw) => setActivatingSlug(fw.slug),
+    onSuccess: (res, fw) => {
+      qc.invalidateQueries({ queryKey: ['frameworks', 'org'] });
+      // Redirect to activation summary screen
+      navigate(`/compliance/frameworks/${fw.slug}/activated`, {
+        state: {
+          summary: (res as any).summary as ActivationSummaryDto,
+          orgFramework: res.data,
+        },
+      });
+    },
+    onError: () => {
+      setActivatingSlug(null);
+    },
     onSettled: () => {
       setActivatingSlug(null);
-      qc.invalidateQueries({ queryKey: ['frameworks', 'org'] });
     },
   });
 

@@ -83,6 +83,16 @@ export interface ActivateFrameworkRequest {
   scopeNote?: string;
 }
 
+export interface ActivationSummaryDto {
+  requirementsLoaded: number;
+  mappingsSuggested: number;
+  mappingsSkipped: number;
+  requirementsNeedingReview: number;
+  initialCoverageScore: number;
+  isReactivation: boolean;
+  warnings: string[];
+}
+
 export interface RemoveFrameworkRequest {
   reason?: string;
 }
@@ -104,6 +114,59 @@ export interface SyncEntitlementRequest {
   isActive: boolean;
   validFrom: string;
   validUntil?: string | null;
+}
+
+export interface ControlMappingDto {
+  id: string;
+  controlId: string;
+  frameworkRequirementId: string;
+  frameworkId: string;
+  mappingType: 'direct' | 'inherited' | 'suggested';
+  createdAt: string;
+  requirementCode: string;
+  requirementTitle: string;
+  requirementDomain: string | null;
+}
+
+export interface TestMappingDto {
+  id: string;
+  testId: string;
+  frameworkRequirementId: string;
+  frameworkId: string;
+  createdAt: string;
+  requirementCode: string;
+  requirementTitle: string;
+  requirementDomain: string | null;
+}
+
+export interface PolicyMappingDto {
+  id: string;
+  policyId: string;
+  frameworkRequirementId: string;
+  frameworkId: string;
+  createdAt: string;
+  requirementCode: string;
+  requirementTitle: string;
+  requirementDomain: string | null;
+}
+
+export interface FrameworkMappingsDto {
+  controls: ControlMappingDto[];
+  tests: TestMappingDto[];
+  policies: PolicyMappingDto[];
+}
+
+export interface FrameworkReadinessDto {
+  slug: string;
+  name: string;
+  version: string;
+  controlCoveragePct: number | null;
+  testPassRatePct: number | null;
+  openGaps: number | null;
+  covered: number | null;
+  applicable: number | null;
+  totalRequirements: number | null;
+  calculatedAt: string | null;
 }
 
 class FrameworksService {
@@ -128,7 +191,11 @@ class FrameworksService {
   }
 
   /** POST /api/org/frameworks — activate a framework */
-  async activateFramework(body: ActivateFrameworkRequest): Promise<{ success: boolean; data: OrgFrameworkDto }> {
+  async activateFramework(body: ActivateFrameworkRequest): Promise<{
+    success: boolean;
+    data: OrgFrameworkDto;
+    summary: ActivationSummaryDto;
+  }> {
     return apiClient.post('/api/org/frameworks', body);
   }
 
@@ -152,6 +219,16 @@ class FrameworksService {
     return apiClient.get(`/api/org/frameworks/${frameworkSlug}/coverage`);
   }
 
+  /** GET /api/org/frameworks/:slug/mappings — all control/test/policy mappings */
+  async getFrameworkMappings(frameworkSlug: string): Promise<{ success: boolean; data: FrameworkMappingsDto }> {
+    return apiClient.get(`/api/org/frameworks/${frameworkSlug}/mappings`);
+  }
+
+  /** POST /api/org/frameworks/:slug/mappings/confirm — confirm a suggested mapping */
+  async confirmMapping(frameworkSlug: string, body: { mappingType: 'control' | 'test' | 'policy'; mappingId: string }): Promise<{ success: boolean; data: any }> {
+    return apiClient.post(`/api/org/frameworks/${frameworkSlug}/mappings/confirm`, body);
+  }
+
   /** PATCH /api/org/requirements/:requirementId/owner */
   async updateRequirementOwner(requirementId: string, body: UpdateRequirementOwnerRequest): Promise<{ success: boolean; data: RequirementStatusDto }> {
     return apiClient.patch(`/api/org/requirements/${requirementId}/owner`, body);
@@ -160,6 +237,11 @@ class FrameworksService {
   /** PATCH /api/org/requirements/:requirementId/applicability */
   async updateApplicability(requirementId: string, body: UpdateApplicabilityRequest): Promise<{ success: boolean; data: RequirementStatusDto }> {
     return apiClient.patch(`/api/org/requirements/${requirementId}/applicability`, body);
+  }
+
+  /** GET /api/org/frameworks/readiness — readiness summary for all active frameworks */
+  async getReadinessSummary(): Promise<{ success: boolean; data: FrameworkReadinessDto[] }> {
+    return apiClient.get('/api/org/frameworks/readiness');
   }
 
   /** POST /api/billing/entitlements/sync (SUPER_ADMIN only) */
