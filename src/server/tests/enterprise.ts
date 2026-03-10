@@ -1,6 +1,7 @@
 import { addDays, differenceInCalendarDays } from 'date-fns';
 import { getRiskEngineRuntimeService } from '@/server/risk-engine/runtime';
 import { getTestsRuntimeService, type TestRecordDto, type TestRunRecordDto } from './runtime';
+import { createPgExecutor, getPostgresPool, readPostgresRuntimeConfig } from '@/server/db/postgres';
 import {
   createJiraTicket,
   forwardSiemEvent,
@@ -139,7 +140,31 @@ const TEMPLATE_LIBRARY: TestTemplateDto[] = [
   },
 ];
 
-const FRAMEWORK_BASELINE = ['SOC 2', 'ISO 27001', 'NIST', 'HIPAA'];
+/**
+ * Returns the list of framework names that are active for the current org.
+ * Falls back to the hardcoded baseline when no DB is available (e.g. in tests).
+ * Gap 8 fix: replaced static constant with a live DB query to organization_frameworks.
+ */
+async function getActiveFrameworkNames(organizationId?: string): Promise<string[]> {
+  const FALLBACK = ['SOC 2', 'ISO 27001', 'NIST', 'HIPAA'];
+  if (!organizationId) return FALLBACK;
+  try {
+    const config = readPostgresRuntimeConfig();
+    if (!config) return FALLBACK;
+    const pool = getPostgresPool(config);
+    const executor = createPgExecutor(pool);
+    const result = await executor.query<{ name: string }>(
+      `select f.name from organization_frameworks of
+         join frameworks f on f.id = of.framework_id
+        where of.organization_id = $1 and of.status = 'active'`,
+      [organizationId],
+    );
+    if (result.rows.length === 0) return FALLBACK;
+    return result.rows.map(r => r.name);
+  } catch {
+    return FALLBACK;
+  }
+}
 
 function plural(value: number, label: string) {
   return `${value} ${label}${value === 1 ? '' : 's'}`;
@@ -183,15 +208,16 @@ export async function getTestsDashboard(): Promise<TestDashboardDto> {
   };
 }
 
-export async function getTestGapAnalysis(): Promise<TestGapAnalysisDto> {
+export async function getTestGapAnalysis(organizationId?: string): Promise<TestGapAnalysisDto> {
   const service = await getMutableService();
   const tests = asRecords(service);
   const coveredFrameworks = new Set(tests.flatMap((test) => test.frameworks.map((framework) => framework.frameworkName)));
   const controlsWithoutTests = TEMPLATE_LIBRARY.flatMap((template) => template.controls).filter((control) => !tests.some((test) => test.controls.some((link) => link.control.title === control || link.controlId === control)));
+  const activeFrameworks = await getActiveFrameworkNames(organizationId);
 
   return {
     controlsWithoutTests: Array.from(new Set(controlsWithoutTests)),
-    frameworksWithoutCoverage: FRAMEWORK_BASELINE.filter((framework) => !coveredFrameworks.has(framework)),
+    frameworksWithoutCoverage: activeFrameworks.filter((framework) => !coveredFrameworks.has(framework)),
     testsWithoutEvidence: tests.filter((test) => test.evidences.length === 0).map((test) => ({ id: test.id, name: test.name })),
   };
 }

@@ -1,8 +1,9 @@
-import { riskEngineSchemaSql } from './schema';
+import { frameworkSchemaSql, riskEngineSchemaSql } from './schema';
 import type { SqlExecutor } from './persistence';
 
 export async function applyRiskEngineSchema(db: SqlExecutor) {
   await db.query(riskEngineSchemaSql);
+  await db.query(frameworkSchemaSql);
 }
 
 export const riskEngineMigration = {

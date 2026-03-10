@@ -4,6 +4,7 @@ import { registerRiskEngineModule } from '@/server/risk-engine/module';
 import { registerTestsModule } from '@/server/tests/module';
 import { registerGenericIntegrationModules } from '@/server/integrations/genericIntegrationModule';
 import { registerGithubIntegrationModule } from '@/server/integrations/github/module';
+import { registerFrameworksModule } from '@/server/frameworks/module';
 import { authenticate } from '@/server/middleware/authenticate';
 
 export async function createServerApp() {
@@ -70,6 +71,22 @@ export async function createServerApp() {
       app.route({
         method: definition.method,
         url: definition.url,
+        handler: async (request) => definition.handler({
+          body: (request as { body?: unknown }).body,
+          params: (request as { params?: Record<string, string> }).params,
+          query: (request as { query?: unknown }).query,
+          user: (request as any).user,
+        }),
+      });
+    },
+  });
+
+  registerFrameworksModule({
+    route(definition) {
+      app.route({
+        method: definition.method,
+        url: definition.url,
+        schema: definition.schema,
         handler: async (request) => definition.handler({
           body: (request as { body?: unknown }).body,
           params: (request as { params?: Record<string, string> }).params,

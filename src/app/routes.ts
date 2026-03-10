@@ -17,6 +17,7 @@ import { AuthCallbackPage } from "@/app/pages/auth/AuthCallbackPage";
 
 // Compliance
 import { FrameworksPage } from "@/app/pages/compliance/FrameworksPage";
+import { FrameworkDetailPage } from "@/app/pages/compliance/FrameworkDetailPage";
 import { ControlsPage } from "@/app/pages/controls/ControlsPage";
 import { PoliciesPage } from "@/app/pages/compliance/PoliciesPage";
 import { DocumentsPage } from "@/app/pages/compliance/DocumentsPage";
@@ -136,6 +137,7 @@ export const router = createBrowserRouter([
 
       // Compliance routes
       { path: "compliance/frameworks", Component: FrameworksPage },
+      { path: "compliance/frameworks/:slug", Component: FrameworkDetailPage },
       { path: "compliance/controls", Component: ControlsPage },
       { path: "compliance/policies", Component: PoliciesPage },
       { path: "compliance/documents", Component: DocumentsPage },

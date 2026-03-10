@@ -271,3 +271,180 @@ export function renderCreateTableSql(table: TableDefinition) {
 }
 
 export const riskEngineSchemaSql = riskEngineTables.map(renderCreateTableSql).join('\n\n');
+
+// ── Framework catalog tables ───────────────────────────────────────────────────
+// These are global (not tenant-specific) and seeded once at boot.
+// Org-specific activation and mapping tables are also here.
+
+export const frameworkTables: TableDefinition[] = [
+  {
+    name: 'frameworks',
+    columns: [
+      { name: 'id',          type: 'uuid',        primaryKey: true },
+      { name: 'slug',        type: 'varchar(255)', unique: true },
+      { name: 'name',        type: 'varchar(255)' },
+      { name: 'version',     type: 'varchar(255)' },
+      { name: 'description', type: 'text',         nullable: true },
+      { name: 'status',      type: 'varchar(255)', defaultValue: "'active'" },
+      { name: 'created_at',  type: 'timestamp with time zone', defaultValue: 'now()' },
+    ],
+  },
+  {
+    name: 'framework_requirements',
+    columns: [
+      { name: 'id',           type: 'uuid',        primaryKey: true },
+      { name: 'framework_id', type: 'uuid' },
+      { name: 'code',         type: 'varchar(255)' },
+      { name: 'title',        type: 'varchar(255)' },
+      { name: 'description',  type: 'text',         nullable: true },
+      { name: 'domain',       type: 'varchar(255)', nullable: true },
+      { name: 'created_at',   type: 'timestamp with time zone', defaultValue: 'now()' },
+    ],
+    indexes: [
+      { name: 'idx_framework_requirements_fw_code', columns: ['framework_id', 'code'], unique: true },
+    ],
+  },
+  {
+    name: 'organization_frameworks',
+    columns: [
+      { name: 'id',              type: 'uuid',        primaryKey: true },
+      { name: 'organization_id', type: 'uuid' },
+      { name: 'framework_id',    type: 'uuid' },
+      { name: 'status',          type: 'varchar(255)', defaultValue: "'setup_in_progress'" },
+      { name: 'activated_at',    type: 'timestamp with time zone', nullable: true },
+      { name: 'activated_by',    type: 'uuid',         nullable: true },
+      { name: 'archived_at',     type: 'timestamp with time zone', nullable: true },
+      { name: 'archived_by',     type: 'uuid',         nullable: true },
+      { name: 'scope_note',      type: 'text',         nullable: true },
+      { name: 'created_at',      type: 'timestamp with time zone', defaultValue: 'now()' },
+      { name: 'updated_at',      type: 'timestamp with time zone', defaultValue: 'now()' },
+    ],
+    indexes: [
+      { name: 'idx_org_frameworks_org_fw',  columns: ['organization_id', 'framework_id'], unique: true },
+      { name: 'idx_org_frameworks_status',  columns: ['organization_id', 'status'] },
+    ],
+  },
+  {
+    // Tracks per-org per-requirement applicability, review state, owner, and due date.
+    // Append-only insert behavior: rows are created at activation; updated in place
+    // only for applicability/owner changes (not a time-series table like coverage snapshots).
+    name: 'organization_framework_requirement_status',
+    columns: [
+      { name: 'id',                   type: 'uuid',        primaryKey: true },
+      { name: 'organization_id',      type: 'uuid' },
+      { name: 'framework_requirement_id', type: 'uuid' },
+      { name: 'applicability_status', type: 'varchar(255)', defaultValue: "'applicable'" },
+      { name: 'justification',        type: 'text',         nullable: true },
+      { name: 'review_status',        type: 'varchar(255)', defaultValue: "'not_started'" },
+      { name: 'owner_id',             type: 'uuid',         nullable: true },
+      { name: 'due_date',             type: 'timestamp with time zone', nullable: true },
+      { name: 'updated_at',           type: 'timestamp with time zone', defaultValue: 'now()' },
+      { name: 'updated_by',           type: 'uuid',         nullable: true },
+    ],
+    indexes: [
+      { name: 'idx_ofrs_org_req', columns: ['organization_id', 'framework_requirement_id'], unique: true },
+      { name: 'idx_ofrs_org_applicability', columns: ['organization_id', 'applicability_status'] },
+    ],
+  },
+  {
+    // Append-only coverage snapshots. Never UPDATE; always INSERT a new row.
+    // Dashboard reads latest row per org+framework via ORDER BY calculated_at DESC LIMIT 1.
+    name: 'framework_coverage_snapshots',
+    columns: [
+      { name: 'id',                   type: 'uuid',    primaryKey: true },
+      { name: 'organization_id',      type: 'uuid' },
+      { name: 'framework_id',         type: 'uuid' },
+      // Layer 1 — canonical baseline
+      { name: 'total_requirements',   type: 'integer' },
+      // Layer 2 — org adoption
+      { name: 'total_mapped',         type: 'integer' },
+      // Layer 3 — applicability
+      { name: 'not_applicable',       type: 'integer' },
+      { name: 'applicable',           type: 'integer' },
+      // Layer 4 — implementation (of applicable only)
+      { name: 'covered',              type: 'integer' },
+      { name: 'partially_covered',    type: 'integer' },
+      { name: 'not_covered',          type: 'integer' },
+      // Derived scores
+      { name: 'control_coverage_pct', type: 'integer' },
+      { name: 'test_pass_rate_pct',   type: 'integer' },
+      // Test counts (separate metric)
+      { name: 'mapped_test_count',    type: 'integer' },
+      { name: 'passing_test_count',   type: 'integer' },
+      // Gap summary
+      { name: 'open_gaps',            type: 'integer' },
+      { name: 'calculated_at',        type: 'timestamp with time zone', defaultValue: 'now()' },
+    ],
+    indexes: [
+      { name: 'idx_fw_coverage_org_fw_date', columns: ['organization_id', 'framework_id', 'calculated_at'] },
+    ],
+  },
+  // ── Mapping tables ───────────────────────────────────────────────────────────
+  {
+    name: 'control_framework_requirement_mappings',
+    columns: [
+      { name: 'id',                      type: 'uuid', primaryKey: true },
+      { name: 'organization_id',         type: 'uuid' },
+      { name: 'control_id',              type: 'uuid' },   // isms-backend control UUID
+      { name: 'framework_requirement_id',type: 'uuid' },
+      { name: 'framework_id',            type: 'uuid' },   // denormalized for fast filtering
+      { name: 'mapping_type',            type: 'varchar(255)', defaultValue: "'suggested'" },
+      { name: 'created_at',              type: 'timestamp with time zone', defaultValue: 'now()' },
+    ],
+    indexes: [
+      { name: 'idx_ctrl_fw_req_map_org_fw',   columns: ['organization_id', 'framework_id'] },
+      { name: 'idx_ctrl_fw_req_map_uniq',     columns: ['organization_id', 'control_id', 'framework_requirement_id'], unique: true },
+    ],
+  },
+  {
+    name: 'test_framework_requirement_mappings',
+    columns: [
+      { name: 'id',                      type: 'uuid', primaryKey: true },
+      { name: 'organization_id',         type: 'uuid' },
+      { name: 'test_id',                 type: 'uuid' },   // Manzen test UUID
+      { name: 'framework_requirement_id',type: 'uuid' },
+      { name: 'framework_id',            type: 'uuid' },
+      { name: 'mapping_type',            type: 'varchar(255)', defaultValue: "'suggested'" },
+      { name: 'created_at',              type: 'timestamp with time zone', defaultValue: 'now()' },
+    ],
+    indexes: [
+      { name: 'idx_test_fw_req_map_org_fw',   columns: ['organization_id', 'framework_id'] },
+      { name: 'idx_test_fw_req_map_uniq',     columns: ['organization_id', 'test_id', 'framework_requirement_id'], unique: true },
+    ],
+  },
+  {
+    name: 'policy_framework_requirement_mappings',
+    columns: [
+      { name: 'id',                      type: 'uuid', primaryKey: true },
+      { name: 'organization_id',         type: 'uuid' },
+      { name: 'policy_id',               type: 'uuid' },   // isms-backend policy UUID
+      { name: 'framework_requirement_id',type: 'uuid' },
+      { name: 'framework_id',            type: 'uuid' },
+      { name: 'created_at',              type: 'timestamp with time zone', defaultValue: 'now()' },
+    ],
+    indexes: [
+      { name: 'idx_policy_fw_req_map_org_fw',  columns: ['organization_id', 'framework_id'] },
+      { name: 'idx_policy_fw_req_map_uniq',    columns: ['organization_id', 'policy_id', 'framework_requirement_id'], unique: true },
+    ],
+  },
+  {
+    name: 'subscription_entitlements',
+    columns: [
+      { name: 'id',              type: 'uuid',        primaryKey: true },
+      { name: 'organization_id', type: 'uuid' },
+      { name: 'framework_slug',  type: 'varchar(255)' },
+      { name: 'plan_name',       type: 'varchar(255)' },
+      { name: 'is_active',       type: 'boolean',     defaultValue: 'true' },
+      { name: 'valid_from',      type: 'timestamp with time zone' },
+      { name: 'valid_until',     type: 'timestamp with time zone', nullable: true },
+      { name: 'created_at',      type: 'timestamp with time zone', defaultValue: 'now()' },
+      { name: 'updated_at',      type: 'timestamp with time zone', defaultValue: 'now()' },
+    ],
+    indexes: [
+      { name: 'idx_entitlements_org_fw', columns: ['organization_id', 'framework_slug', 'is_active'] },
+      { name: 'idx_entitlements_org_fw_plan_uniq', columns: ['organization_id', 'framework_slug', 'plan_name'], unique: true },
+    ],
+  },
+];
+
+export const frameworkSchemaSql = frameworkTables.map(renderCreateTableSql).join('\n\n');
