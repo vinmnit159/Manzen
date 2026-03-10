@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FrameworkFilter } from '@/app/components/compliance/FrameworkFilter';
 import { useNavigate } from 'react-router';
-import { useQuery, useQueries, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { policiesService, PolicyTemplate } from '@/services/api/policies';
-import { frameworksService } from '@/services/api/frameworks';
 import { Policy } from '@/services/api/types';
 import { QK } from '@/lib/queryKeys';
 import { STALE } from '@/lib/queryClient';
@@ -571,7 +570,7 @@ export function PoliciesPage() {
   const [showTemplates, setShowTemplates] = useState(false);
   const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
 
-  const filterKey = { search: filter.search, status: filter.status };
+  const filterKey = { search: filter.search, status: filter.status, frameworkSlugs: frameworkFilter };
 
   const { data: rawPolicies, isLoading: loading, isError, error: queryError, isFetching } =
     useQuery({
@@ -580,6 +579,7 @@ export function PoliciesPage() {
         const response = await policiesService.getPolicies({
           search: filter.search || undefined,
           status: filter.status || undefined,
+          frameworkSlugs: frameworkFilter.length > 0 ? frameworkFilter : undefined,
         });
         if (response.success && response.data) return response.data as Policy[];
         throw new Error('Failed to load policies from the server.');
@@ -591,18 +591,6 @@ export function PoliciesPage() {
       },
     });
 
-  const mappingQueries = useQueries({
-    queries: frameworkFilter.map((slug) => ({
-      queryKey: ['frameworks', 'mappings', slug],
-      queryFn: () => frameworksService.getFrameworkMappings(slug),
-      staleTime: 60_000,
-    })),
-  });
-
-  const mappedPolicyIds = new Set(
-    mappingQueries.flatMap((query) => query.data?.data?.policies.map((mapping) => mapping.policyId) ?? []),
-  );
-
   // Client-side sort (no extra fetch)
   const policies: Policy[] = rawPolicies
     ? [...rawPolicies].sort((a, b) => {
@@ -612,9 +600,7 @@ export function PoliciesPage() {
         return sortDir === 'desc' ? -cmp : cmp;
       })
     : [];
-  const filteredPolicies: Policy[] = frameworkFilter.length === 0
-    ? policies
-    : policies.filter((policy) => mappedPolicyIds.has(policy.id));
+  const filteredPolicies: Policy[] = policies;
 
   const error: string | null = isError ? ((queryError as any)?.message ?? 'An unexpected error occurred.') : null;
 

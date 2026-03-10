@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router';
-import { useQuery, useQueries, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { controlsService } from '@/services/api/controls';
-import { frameworksService } from '@/services/api/frameworks';
 import { Control, ControlFilter, ColumnConfig, DEFAULT_COLUMNS } from './types';
 import { ControlsFilter } from './ControlsFilter';
 import { ControlsTable } from './ControlsTable';
@@ -37,7 +36,7 @@ export function ControlsPage() {
     localStorage.setItem('controls-columns', JSON.stringify(columns));
   }, [columns]);
 
-  const filterKey = { search: filter.search, status: filter.status, isoReference: filter.isoReference };
+  const filterKey = { search: filter.search, status: filter.status, isoReference: filter.isoReference, frameworkSlugs: frameworkFilter };
 
   const { data: rawControls, isLoading: loading, isError, error: queryError, isFetching, refetch } =
     useQuery({
@@ -47,6 +46,7 @@ export function ControlsPage() {
           search: filter.search || undefined,
           status: filter.status || undefined,
           isoReference: filter.isoReference || undefined,
+          frameworkSlugs: frameworkFilter.length > 0 ? frameworkFilter : undefined,
         });
         if (response.success && response.data) return response.data as Control[];
         throw new Error('Failed to load controls from the server.');
@@ -61,18 +61,6 @@ export function ControlsPage() {
         return count < 1;
       },
     });
-
-  const mappingQueries = useQueries({
-    queries: frameworkFilter.map((slug) => ({
-      queryKey: ['frameworks', 'mappings', slug],
-      queryFn: () => frameworksService.getFrameworkMappings(slug),
-      staleTime: 60_000,
-    })),
-  });
-
-  const mappedControlIds = new Set(
-    mappingQueries.flatMap((query) => query.data?.data?.controls.map((mapping) => mapping.controlId) ?? []),
-  );
 
   // Client-side sort applied to cached data
   const controls: Control[] = rawControls
@@ -92,9 +80,7 @@ export function ControlsPage() {
 
   const error: string | null = isError ? ((queryError as any)?.message ?? 'An unexpected error occurred.') : null;
 
-  const filteredControls: Control[] = frameworkFilter.length === 0
-    ? controls
-    : controls.filter((control) => mappedControlIds.has(control.id));
+  const filteredControls: Control[] = controls;
 
   const fetchControls = useCallback(() => {
     qc.invalidateQueries({ queryKey: ['controls'] });

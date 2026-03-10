@@ -28,10 +28,12 @@ export class PoliciesService {
   async getPolicies(params?: {
     search?: string;
     status?: string;
+    frameworkSlugs?: string[];
   }): Promise<ApiResponse<Policy[]>> {
     const cleanParams: Record<string, string> = {};
     if (params?.search) cleanParams.search = params.search;
     if (params?.status) cleanParams.status = params.status;
+    if (params?.frameworkSlugs?.length) cleanParams.frameworkSlugs = params.frameworkSlugs.join(',');
     return apiClient.get(
       '/api/policies',
       Object.keys(cleanParams).length ? cleanParams : undefined

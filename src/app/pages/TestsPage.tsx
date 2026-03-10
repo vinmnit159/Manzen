@@ -1,9 +1,8 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { RefreshCw, SlidersHorizontal, X, CheckCircle, AlertTriangle, Clock, Columns, Database, ChevronLeft, ChevronRight } from 'lucide-react';
 import { FrameworkFilter } from '@/app/components/compliance/FrameworkFilter';
-import { frameworksService } from '@/services/api/frameworks';
 import { QK } from '@/lib/queryKeys';
 import { STALE } from '@/lib/queryClient';
 import { testsService } from '@/services/api/tests';
@@ -252,6 +251,7 @@ export function TestsPage() {
     type:     (effectiveFilter.type    as TestType)     || undefined,
     dueFrom:  effectiveFilter.dueFrom  || undefined,
     dueTo:    effectiveFilter.dueTo    || undefined,
+    frameworkSlugs: frameworkFilter.length > 0 ? frameworkFilter : undefined,
     page,
     limit: PAGE_SIZE,
   };
@@ -277,9 +277,9 @@ export function TestsPage() {
 
   // ── Summary query ──
   const { data: summary } = useQuery({
-    queryKey: QK.testSummary(),
+    queryKey: [...QK.testSummary(), frameworkFilter.join(',')],
     queryFn: async () => {
-      const res = await testsService.getTestSummary();
+      const res = await testsService.getTestSummary({ frameworkSlugs: frameworkFilter });
       if (res.success && res.data) return res.data;
       return null;
     },
@@ -331,17 +331,6 @@ export function TestsPage() {
     staleTime: STALE.CONTROLS,
   });
 
-  const mappingQueries = useQueries({
-    queries: frameworkFilter.map((slug) => ({
-      queryKey: ['frameworks', 'mappings', slug],
-      queryFn: () => frameworksService.getFrameworkMappings(slug),
-      staleTime: 60_000,
-    })),
-  });
-
-  const mappedTestIds = new Set(
-    mappingQueries.flatMap((query) => query.data?.data?.tests.map((mapping) => mapping.testId) ?? []),
-  );
 
   // ── Seed mutation (admin only) ──
   const seedMutation = useMutation({
@@ -376,12 +365,9 @@ export function TestsPage() {
   });
 
   const tests: TestRecord[] = (testsData ?? []) as TestRecord[];
-  const frameworkFilteredTests = frameworkFilter.length === 0
-    ? tests
-    : tests.filter((test) => mappedTestIds.has(test.id));
 
   // Client-side sort
-  const sorted = [...frameworkFilteredTests].sort((a, b) => {
+  const sorted = [...tests].sort((a, b) => {
     const aVal = (a as any)[sortColumn];
     const bVal = (b as any)[sortColumn];
     if (aVal == null || bVal == null) return 0;

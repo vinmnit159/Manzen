@@ -119,6 +119,7 @@ export interface ListTestsParams {
   search?: string;
   dueFrom?: string;
   dueTo?: string;
+  frameworkSlugs?: string[];
 }
 
 // ─── Create / update payloads ─────────────────────────────────────────────────
@@ -255,14 +256,17 @@ export class TestsService {
       if (params.ownerId)  clean.ownerId  = params.ownerId;
       if (params.dueFrom)  clean.dueFrom  = params.dueFrom;
       if (params.dueTo)    clean.dueTo    = params.dueTo;
+      if (params.frameworkSlugs?.length) clean.frameworkSlugs = params.frameworkSlugs.join(',');
       if (params.page   !== undefined) clean.page  = String(params.page);
       if (params.limit  !== undefined) clean.limit = String(params.limit);
     }
     return apiClient.get('/api/tests', Object.keys(clean).length ? clean : undefined);
   }
 
-  async getTestSummary(): Promise<ApiResponse<TestSummary>> {
-    return apiClient.get('/api/tests/summary');
+  async getTestSummary(params?: { frameworkSlugs?: string[] }): Promise<ApiResponse<TestSummary>> {
+    const clean: Record<string, string> = {};
+    if (params?.frameworkSlugs?.length) clean.frameworkSlugs = params.frameworkSlugs.join(',');
+    return apiClient.get('/api/tests/summary', Object.keys(clean).length ? clean : undefined);
   }
 
   async getDashboard(): Promise<ApiResponse<TestDashboard>> {

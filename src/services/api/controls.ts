@@ -15,6 +15,7 @@ export class ControlsService {
     status?: ControlStatus;
     search?: string;
     isoReference?: string;
+    frameworkSlugs?: string[];
   }): Promise<ApiResponse<Control[]>> {
     // Build clean params - omit undefined/empty values
     const cleanParams: Record<string, string> = {};
@@ -22,6 +23,7 @@ export class ControlsService {
       if (params.search) cleanParams.search = params.search;
       if (params.status) cleanParams.status = params.status;
       if (params.isoReference) cleanParams.isoReference = params.isoReference;
+      if (params.frameworkSlugs?.length) cleanParams.frameworkSlugs = params.frameworkSlugs.join(',');
       if (params.page !== undefined) cleanParams.page = String(params.page);
       if (params.limit !== undefined) cleanParams.limit = String(params.limit);
     }
