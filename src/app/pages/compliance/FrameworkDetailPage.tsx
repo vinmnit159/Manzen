@@ -18,8 +18,9 @@ import {
   ArrowLeft, Loader2, ShieldCheck, FlaskConical, FileText, Target,
   AlertTriangle, CheckCircle2, Circle, XCircle, User, Calendar,
   LayoutDashboard, ListChecks, Link2, FileBox, Gauge, ThumbsUp, ThumbsDown,
-  ExternalLink,
+  ExternalLink, Download, FileDown,
 } from "lucide-react";
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import {
   frameworksService,
   type RequirementStatusDto,
@@ -28,6 +29,10 @@ import {
   type TestMappingDto,
   type PolicyMappingDto,
 } from "@/services/api/frameworks";
+import { controlsService } from "@/services/api/controls";
+import { testsService, type TestRecord } from "@/services/api/tests";
+import { policiesService } from "@/services/api/policies";
+import type { Control, Policy } from "@/services/api/types";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -77,7 +82,12 @@ function OverviewTab({ slug }: { slug: string }) {
     queryKey: ['frameworks', 'coverage', slug],
     queryFn: () => frameworksService.getCoverage(slug),
   });
+  const { data: historyRes } = useQuery({
+    queryKey: ['frameworks', 'coverage-history', slug],
+    queryFn: () => frameworksService.getCoverageHistory(slug, 24),
+  });
   const snap: CoverageSnapshotDto | null = covRes?.data ?? null;
+  const history: CoverageSnapshotDto[] = historyRes?.data ?? [];
 
   if (isLoading) return <TabPlaceholder icon={Gauge} text="Loading coverage data…" />;
 
@@ -152,6 +162,37 @@ function OverviewTab({ slug }: { slug: string }) {
           })}
         </CardContent>
       </Card>
+
+      {history.length > 1 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Readiness over time</CardTitle>
+            <p className="text-xs text-gray-400">Latest {history.length} append-only snapshots</p>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart
+                  data={history.map((item) => ({
+                    time: new Date(item.calculatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+                    controlCoveragePct: item.controlCoveragePct,
+                    testPassRatePct: item.testPassRatePct,
+                    openGaps: item.openGaps,
+                  }))}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis dataKey="time" tick={{ fontSize: 12, fill: '#6b7280' }} />
+                  <YAxis domain={[0, 100]} tick={{ fontSize: 12, fill: '#6b7280' }} />
+                  <Tooltip />
+                  <Area type="monotone" dataKey="controlCoveragePct" stroke="#2563eb" fill="#bfdbfe" name="Control coverage" />
+                  <Area type="monotone" dataKey="testPassRatePct" stroke="#16a34a" fill="#bbf7d0" name="Test pass rate" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="mt-3 text-xs text-gray-500">Open gaps now: <span className="font-medium text-gray-800">{snap.openGaps}</span></div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
@@ -160,6 +201,8 @@ function OverviewTab({ slug }: { slug: string }) {
 function RequirementsTab({ slug }: { slug: string }) {
   const qc = useQueryClient();
   const [ownerDialog, setOwnerDialog] = useState<RequirementStatusDto | null>(null);
+  const [applicabilityDialog, setApplicabilityDialog] = useState<RequirementStatusDto | null>(null);
+  const [applicabilityJustification, setApplicabilityJustification] = useState('');
   const [ownerInput, setOwnerInput] = useState('');
   const [dueDateInput, setDueDateInput] = useState('');
 
@@ -183,9 +226,11 @@ function RequirementsTab({ slug }: { slug: string }) {
   });
 
   const applicabilityMutation = useMutation({
-    mutationFn: ({ r, status }: { r: RequirementStatusDto; status: 'applicable' | 'not_applicable' }) =>
-      frameworksService.updateApplicability(r.id, { applicabilityStatus: status }),
+    mutationFn: ({ r, status, justification }: { r: RequirementStatusDto; status: 'applicable' | 'not_applicable'; justification?: string }) =>
+      frameworksService.updateApplicability(r.id, { applicabilityStatus: status, justification }),
     onSuccess: () => {
+      setApplicabilityDialog(null);
+      setApplicabilityJustification('');
       qc.invalidateQueries({ queryKey: ['frameworks', 'org-requirements', slug] });
       qc.invalidateQueries({ queryKey: ['frameworks', 'coverage', slug] });
     },
@@ -252,8 +297,9 @@ function RequirementsTab({ slug }: { slug: string }) {
                       <button
                         className="text-xs text-gray-300 hover:text-gray-500 px-1"
                         onClick={e => {
-                          e.stopPropagation();
-                          applicabilityMutation.mutate({ r: req, status: 'not_applicable' });
+                         e.stopPropagation();
+                          setApplicabilityDialog(req);
+                          setApplicabilityJustification(req.justification ?? '');
                         }}
                         title="Mark N/A"
                       >
@@ -323,6 +369,42 @@ function RequirementsTab({ slug }: { slug: string }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!applicabilityDialog} onOpenChange={() => setApplicabilityDialog(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Mark requirement not applicable</DialogTitle>
+            <DialogDescription className="text-sm">
+              <span className="font-mono text-xs text-gray-500">{applicabilityDialog?.code}</span>{' '}
+              {applicabilityDialog?.title}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="na-justification" className="text-sm font-medium">Justification</Label>
+            <Textarea
+              id="na-justification"
+              rows={4}
+              value={applicabilityJustification}
+              onChange={(e) => setApplicabilityJustification(e.target.value)}
+              placeholder="Explain why this requirement does not apply to your organization."
+            />
+          </div>
+          <DialogFooter className="gap-2 pt-2">
+            <Button variant="outline" onClick={() => setApplicabilityDialog(null)}>Cancel</Button>
+            <Button
+              onClick={() => applicabilityDialog && applicabilityMutation.mutate({
+                r: applicabilityDialog,
+                status: 'not_applicable',
+                justification: applicabilityJustification.trim(),
+              })}
+              disabled={applicabilityMutation.isPending || !applicabilityJustification.trim()}
+            >
+              {applicabilityMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : null}
+              Save exclusion
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -335,8 +417,13 @@ function ControlsTab({ slug }: { slug: string }) {
     queryKey: ['frameworks', 'mappings', slug],
     queryFn: () => frameworksService.getFrameworkMappings(slug),
   });
+  const { data: controlsRes } = useQuery({
+    queryKey: ['controls', 'framework-detail'],
+    queryFn: () => controlsService.getControls({ limit: 500 }),
+  });
 
   const controlMappings: ControlMappingDto[] = mappingsRes?.data?.controls ?? [];
+  const controlsById = new Map(((controlsRes?.data ?? []) as Control[]).map((control) => [control.id, control]));
 
   const confirmMutation = useMutation({
     mutationFn: (mapping: ControlMappingDto) =>
@@ -386,9 +473,14 @@ function ControlsTab({ slug }: { slug: string }) {
                       <span className="font-mono text-xs text-gray-400">{mapping.requirementCode}</span>
                       <span className="text-xs text-gray-500 truncate">{mapping.requirementTitle}</span>
                     </div>
-                    <p className="text-xs text-gray-400">Control ID: <span className="font-mono">{mapping.controlId}</span></p>
+                    <p className="text-xs text-gray-500">
+                      {controlsById.get(mapping.controlId)?.isoReference ?? 'Unlinked'} · {controlsById.get(mapping.controlId)?.title ?? mapping.controlId}
+                    </p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
+                    <Badge variant="outline" className="text-xs">
+                      {controlsById.get(mapping.controlId)?.status ?? 'UNKNOWN'}
+                    </Badge>
                     {mappingTypeBadge(mapping.mappingType)}
                     <Button
                       size="sm"
@@ -425,9 +517,14 @@ function ControlsTab({ slug }: { slug: string }) {
                       <span className="font-mono text-xs text-gray-400">{mapping.requirementCode}</span>
                       <span className="text-xs text-gray-500 truncate">{mapping.requirementTitle}</span>
                     </div>
-                    <p className="text-xs text-gray-400">Control ID: <span className="font-mono">{mapping.controlId}</span></p>
+                    <p className="text-xs text-gray-500">
+                      {controlsById.get(mapping.controlId)?.isoReference ?? 'Unlinked'} · {controlsById.get(mapping.controlId)?.title ?? mapping.controlId}
+                    </p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
+                    <Badge variant="outline" className="text-xs">
+                      {controlsById.get(mapping.controlId)?.status ?? 'UNKNOWN'}
+                    </Badge>
                     {mappingTypeBadge(mapping.mappingType)}
                   </div>
                 </div>
@@ -446,8 +543,13 @@ function TestsTab({ slug }: { slug: string }) {
     queryKey: ['frameworks', 'mappings', slug],
     queryFn: () => frameworksService.getFrameworkMappings(slug),
   });
+  const { data: testsRes } = useQuery({
+    queryKey: ['tests', 'framework-detail'],
+    queryFn: () => testsService.listTests({ page: 1, limit: 500 }),
+  });
 
   const testMappings: TestMappingDto[] = mappingsRes?.data?.tests ?? [];
+  const testsById = new Map(((testsRes?.data ?? []) as TestRecord[]).map((test) => [test.id, test]));
 
   if (isLoading) return <TabPlaceholder icon={FlaskConical} text="Loading test mappings…" />;
 
@@ -488,7 +590,10 @@ function TestsTab({ slug }: { slug: string }) {
                       <span className="font-mono text-xs text-gray-400">{mapping.requirementCode}</span>
                       <span className="text-xs text-gray-700 truncate">{mapping.requirementTitle}</span>
                     </div>
-                    <p className="text-xs text-gray-400">Test ID: <span className="font-mono">{mapping.testId}</span></p>
+                    <p className="text-xs text-gray-500">{testsById.get(mapping.testId)?.name ?? mapping.testId}</p>
+                    <p className="text-xs text-gray-400">
+                      Last result: {testsById.get(mapping.testId)?.lastResult ?? 'Not_Run'} · Evidence: {testsById.get(mapping.testId)?.evidences?.length ?? 0}
+                    </p>
                   </div>
                   <p className="text-xs text-gray-400 shrink-0">{new Date(mapping.createdAt).toLocaleDateString()}</p>
                 </div>
@@ -507,8 +612,13 @@ function PoliciesTab({ slug }: { slug: string }) {
     queryKey: ['frameworks', 'mappings', slug],
     queryFn: () => frameworksService.getFrameworkMappings(slug),
   });
+  const { data: policiesRes } = useQuery({
+    queryKey: ['policies', 'framework-detail'],
+    queryFn: () => policiesService.getPolicies(),
+  });
 
   const policyMappings: PolicyMappingDto[] = mappingsRes?.data?.policies ?? [];
+  const policiesById = new Map(((policiesRes?.data ?? []) as Policy[]).map((policy) => [policy.id, policy]));
 
   if (isLoading) return <TabPlaceholder icon={FileText} text="Loading policy mappings…" />;
 
@@ -548,7 +658,8 @@ function PoliciesTab({ slug }: { slug: string }) {
                       <span className="font-mono text-xs text-gray-400">{mapping.requirementCode}</span>
                       <span className="text-xs text-gray-700 truncate">{mapping.requirementTitle}</span>
                     </div>
-                    <p className="text-xs text-gray-400">Policy ID: <span className="font-mono">{mapping.policyId}</span></p>
+                    <p className="text-xs text-gray-500">{policiesById.get(mapping.policyId)?.name ?? mapping.policyId}</p>
+                    <p className="text-xs text-gray-400">Status: {policiesById.get(mapping.policyId)?.status ?? 'UNKNOWN'}</p>
                   </div>
                   <p className="text-xs text-gray-400 shrink-0">{new Date(mapping.createdAt).toLocaleDateString()}</p>
                 </div>
@@ -572,8 +683,22 @@ function GapsTab({ slug }: { slug: string }) {
     queryKey: ['frameworks', 'org-requirements', slug],
     queryFn: () => frameworksService.listOrgRequirements(slug),
   });
+  const { data: mappingsRes } = useQuery({
+    queryKey: ['frameworks', 'mappings', slug],
+    queryFn: () => frameworksService.getFrameworkMappings(slug),
+  });
+  const { data: controlsRes } = useQuery({
+    queryKey: ['controls', 'framework-gaps'],
+    queryFn: () => controlsService.getControls({ limit: 500 }),
+  });
   const reqs: RequirementStatusDto[] = reqsRes?.data ?? [];
-  const gaps = reqs.filter(r => r.applicabilityStatus === 'applicable' && !r.ownerId);
+  const controlsById = new Map(((controlsRes?.data ?? []) as Control[]).map((control) => [control.id, control]));
+  const implementedRequirementIds = new Set(
+    (mappingsRes?.data?.controls ?? [])
+      .filter((mapping) => controlsById.get(mapping.controlId)?.status === 'IMPLEMENTED')
+      .map((mapping) => mapping.frameworkRequirementId),
+  );
+  const gaps = reqs.filter((req) => req.applicabilityStatus === 'applicable' && !implementedRequirementIds.has(req.frameworkRequirementId));
 
   const ownerMutation = useMutation({
     mutationFn: (r: RequirementStatusDto) =>
@@ -592,12 +717,12 @@ function GapsTab({ slug }: { slug: string }) {
 
   if (gaps.length === 0) {
     return (
-      <TabPlaceholder
-        icon={CheckCircle2}
-        text="No open gaps"
-        sub="All applicable requirements have an owner assigned, or there are no applicable requirements yet."
-      />
-    );
+        <TabPlaceholder
+          icon={CheckCircle2}
+          text="No open gaps"
+          sub="All applicable requirements have at least one implemented control, or there are no applicable requirements yet."
+        />
+      );
   }
 
   return (
@@ -717,6 +842,120 @@ function ExclusionsTab({ slug }: { slug: string }) {
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+function ExportsTab({ slug }: { slug: string }) {
+  const { data: fwRes } = useQuery({
+    queryKey: ['frameworks', 'catalog-item', slug],
+    queryFn: () => frameworksService.getFramework(slug),
+  });
+  const { data: coverageRes } = useQuery({
+    queryKey: ['frameworks', 'coverage', slug],
+    queryFn: () => frameworksService.getCoverage(slug),
+  });
+  const { data: requirementsRes } = useQuery({
+    queryKey: ['frameworks', 'org-requirements', slug],
+    queryFn: () => frameworksService.listOrgRequirements(slug),
+  });
+  const { data: mappingsRes } = useQuery({
+    queryKey: ['frameworks', 'mappings', slug],
+    queryFn: () => frameworksService.getFrameworkMappings(slug),
+  });
+
+  const framework = fwRes?.data;
+  const coverage = coverageRes?.data;
+  const requirements = requirementsRes?.data ?? [];
+  const mappings = mappingsRes?.data;
+
+  const downloadCsv = () => {
+    const header = [
+      ['Framework', framework?.name ?? slug],
+      ['Version', framework?.version ?? ''],
+      ['Generated At', new Date().toISOString()],
+      ['Control Coverage %', String(coverage?.controlCoveragePct ?? 0)],
+      ['Test Pass Rate %', String(coverage?.testPassRatePct ?? 0)],
+      ['Open Gaps', String(coverage?.openGaps ?? 0)],
+      [],
+      ['Code', 'Title', 'Applicability', 'Justification', 'Review Status', 'Owner', 'Due Date'],
+    ];
+    const rows = requirements.map((req) => [
+      req.code,
+      req.title,
+      req.applicabilityStatus,
+      req.justification ?? '',
+      req.reviewStatus,
+      req.ownerId ?? '',
+      req.dueDate ?? '',
+    ]);
+    const csv = [...header, ...rows]
+      .map((row) => row.map((cell) => `"${String(cell ?? '').replaceAll('"', '""')}"`).join(','))
+      .join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${slug}-audit-pack.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const printPdf = () => {
+    const win = window.open('', '_blank', 'noopener,noreferrer,width=1100,height=800');
+    if (!win) return;
+    const requirementRows = requirements.map((req) => `
+      <tr>
+        <td>${req.code}</td>
+        <td>${req.title}</td>
+        <td>${req.applicabilityStatus}</td>
+        <td>${req.justification ?? ''}</td>
+        <td>${req.reviewStatus}</td>
+        <td>${req.ownerId ?? ''}</td>
+        <td>${req.dueDate ? new Date(req.dueDate).toLocaleDateString() : ''}</td>
+      </tr>
+    `).join('');
+    win.document.write(`<!doctype html><html><head><title>${slug} audit pack</title><style>
+      body { font-family: Arial, sans-serif; padding: 24px; color: #111827; }
+      h1,h2 { margin: 0 0 12px; }
+      .meta { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; margin: 16px 0 24px; }
+      .card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; }
+      table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+      td, th { border: 1px solid #e5e7eb; padding: 8px; text-align: left; font-size: 12px; vertical-align: top; }
+      th { background: #f9fafb; }
+    </style></head><body>
+      <h1>${framework?.name ?? slug} Audit Pack</h1>
+      <p>Generated ${new Date().toLocaleString()}</p>
+      <div class="meta">
+        <div class="card"><strong>Control coverage</strong><br/>${coverage?.controlCoveragePct ?? 0}%</div>
+        <div class="card"><strong>Test pass rate</strong><br/>${coverage?.testPassRatePct ?? 0}%</div>
+        <div class="card"><strong>Open gaps</strong><br/>${coverage?.openGaps ?? 0}</div>
+      </div>
+      <h2>Mappings summary</h2>
+      <p>Controls: ${mappings?.controls.length ?? 0} · Tests: ${mappings?.tests.length ?? 0} · Policies: ${mappings?.policies.length ?? 0}</p>
+      <h2>Requirements</h2>
+      <table>
+        <thead><tr><th>Code</th><th>Title</th><th>Applicability</th><th>Justification</th><th>Review</th><th>Owner</th><th>Due</th></tr></thead>
+        <tbody>${requirementRows}</tbody>
+      </table>
+    </body></html>`);
+    win.document.close();
+    win.focus();
+    win.print();
+  };
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Audit Pack Exports</CardTitle>
+          <p className="text-sm text-gray-500">Download framework requirements with N/A rationale and print a PDF-friendly audit pack with current coverage metrics.</p>
+        </CardHeader>
+        <CardContent className="flex flex-col sm:flex-row gap-3">
+          <Button onClick={downloadCsv}><Download className="w-4 h-4 mr-2" /> Download CSV</Button>
+          <Button variant="outline" onClick={printPdf}><FileDown className="w-4 h-4 mr-2" /> Print / Save PDF</Button>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
@@ -860,11 +1099,7 @@ export function FrameworkDetailPage() {
         </TabsContent>
 
         <TabsContent value="exports" className="mt-0">
-          <TabPlaceholder
-            icon={FileBox}
-            text="Audit pack exports coming in Phase 4"
-            sub="Download CSV and PDF audit packs with coverage metrics, N/A rationale, and open gaps."
-          />
+          <ExportsTab slug={slug!} />
         </TabsContent>
       </Tabs>
     </PageTemplate>

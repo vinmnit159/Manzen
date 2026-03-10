@@ -10,6 +10,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
 import { riskCenterService } from '@/services/api/riskCenter';
 import { riskLevelVariant, riskStatusVariant, trendLabel } from '@/services/api/riskFormatting';
+import { FrameworkFilter } from '@/app/components/compliance/FrameworkFilter';
 import { QK } from '@/lib/queryKeys';
 import { STALE } from '@/lib/queryClient';
 
@@ -19,6 +20,7 @@ export function RisksPage() {
   const [severity, setSeverity] = useState('ALL');
   const [status, setStatus] = useState('ALL');
   const [query, setQuery] = useState('');
+  const [frameworkFilter, setFrameworkFilter] = useState<string[]>([]);
 
   const { data: risks = [], isLoading, isFetching } = useQuery({
     queryKey: QK.risks(),
@@ -32,9 +34,17 @@ export function RisksPage() {
       const matchesStatus = status === 'ALL' || risk.status === status;
       const haystack = `${risk.title} ${risk.assetName} ${risk.category} ${risk.owner.team}`.toLowerCase();
       const matchesQuery = query.trim() === '' || haystack.includes(query.toLowerCase());
-      return matchesSeverity && matchesStatus && matchesQuery;
+      const matchesFramework = frameworkFilter.length === 0 || risk.frameworks.some((framework) => {
+        const value = framework.toLowerCase();
+        if (frameworkFilter.includes('iso-27001') && value.includes('iso 27001')) return true;
+        if (frameworkFilter.includes('soc-2') && value.includes('soc 2')) return true;
+        if (frameworkFilter.includes('nist-csf') && value.includes('nist')) return true;
+        if (frameworkFilter.includes('hipaa') && value.includes('hipaa')) return true;
+        return false;
+      });
+      return matchesSeverity && matchesStatus && matchesQuery && matchesFramework;
     });
-  }, [query, risks, severity, status]);
+  }, [frameworkFilter, query, risks, severity, status]);
 
   return (
     <PageTemplate
@@ -52,7 +62,9 @@ export function RisksPage() {
       ) : (
         <div className="space-y-6">
           <Card className="p-4">
-            <div className="grid gap-3 lg:grid-cols-[1.5fr_0.6fr_0.6fr_auto]">
+            <div className="space-y-3">
+              <FrameworkFilter selected={frameworkFilter} onChange={setFrameworkFilter} />
+              <div className="grid gap-3 lg:grid-cols-[1.5fr_0.6fr_0.6fr_auto]">
               <div className="relative">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <Input value={query} onChange={(event) => setQuery(event.target.value)} className="pl-9" placeholder="Search risks, assets, teams, or categories" />
@@ -70,6 +82,7 @@ export function RisksPage() {
                 </SelectContent>
               </Select>
               <div className="flex items-center justify-end text-sm text-gray-500">{filtered.length} results</div>
+              </div>
             </div>
           </Card>
 

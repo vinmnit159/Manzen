@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FrameworkFilter } from '@/app/components/compliance/FrameworkFilter';
 import { useNavigate } from 'react-router';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueries, useQueryClient } from '@tanstack/react-query';
 import { policiesService, PolicyTemplate } from '@/services/api/policies';
+import { frameworksService } from '@/services/api/frameworks';
 import { Policy } from '@/services/api/types';
 import { QK } from '@/lib/queryKeys';
 import { STALE } from '@/lib/queryClient';
@@ -590,6 +591,18 @@ export function PoliciesPage() {
       },
     });
 
+  const mappingQueries = useQueries({
+    queries: frameworkFilter.map((slug) => ({
+      queryKey: ['frameworks', 'mappings', slug],
+      queryFn: () => frameworksService.getFrameworkMappings(slug),
+      staleTime: 60_000,
+    })),
+  });
+
+  const mappedPolicyIds = new Set(
+    mappingQueries.flatMap((query) => query.data?.data?.policies.map((mapping) => mapping.policyId) ?? []),
+  );
+
   // Client-side sort (no extra fetch)
   const policies: Policy[] = rawPolicies
     ? [...rawPolicies].sort((a, b) => {
@@ -599,6 +612,9 @@ export function PoliciesPage() {
         return sortDir === 'desc' ? -cmp : cmp;
       })
     : [];
+  const filteredPolicies: Policy[] = frameworkFilter.length === 0
+    ? policies
+    : policies.filter((policy) => mappedPolicyIds.has(policy.id));
 
   const error: string | null = isError ? ((queryError as any)?.message ?? 'An unexpected error occurred.') : null;
 
@@ -612,13 +628,16 @@ export function PoliciesPage() {
   const handleFilterChange = (field: keyof PolicyFilter, value: string) =>
     setFilter(prev => ({ ...prev, [field]: value }));
 
-  const clearFilters = () => setFilter({ search: '', status: '' });
-  const hasActiveFilters = !!(filter.search || filter.status);
+  const clearFilters = () => {
+    setFilter({ search: '', status: '' });
+    setFrameworkFilter([]);
+  };
+  const hasActiveFilters = !!(filter.search || filter.status || frameworkFilter.length > 0);
 
-  const published = policies.filter(p => p.status === 'PUBLISHED').length;
-  const draft     = policies.filter(p => p.status === 'DRAFT').length;
-  const inReview  = policies.filter(p => p.status === 'REVIEW').length;
-  const archived  = policies.filter(p => p.status === 'ARCHIVED').length;
+  const published = filteredPolicies.filter(p => p.status === 'PUBLISHED').length;
+  const draft     = filteredPolicies.filter(p => p.status === 'DRAFT').length;
+  const inReview  = filteredPolicies.filter(p => p.status === 'REVIEW').length;
+  const archived  = filteredPolicies.filter(p => p.status === 'ARCHIVED').length;
 
   const handleUploadDone = (_updated: Policy) => {
     qc.invalidateQueries({ queryKey: ['policies'] });
@@ -725,25 +744,25 @@ export function PoliciesPage() {
       </div>
 
       {/* ── Summary Cards ── */}
-      {!loading && !error && policies.length > 0 && (
+      {!loading && !error && filteredPolicies.length > 0 && (
         <div className="px-6 pt-4 pb-2 space-y-3">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <SummaryCard label="Total Policies"   value={policies.length}   color="text-gray-900"  bg="bg-white"    accent="border-gray-200" />
+            <SummaryCard label="Total Policies"   value={filteredPolicies.length}   color="text-gray-900"  bg="bg-white"    accent="border-gray-200" />
             <SummaryCard label="Published"         value={published}         color="text-green-700" bg="bg-green-50"  accent="border-green-200" />
             <SummaryCard label="In Review"         value={inReview}          color="text-amber-700" bg="bg-amber-50"  accent="border-amber-200" />
             <SummaryCard label="Draft / Archived"  value={draft + archived}  color="text-gray-600"  bg="bg-gray-50"   accent="border-gray-200" />
           </div>
-          {policies.length > 0 && (
+          {filteredPolicies.length > 0 && (
             <div className="bg-white rounded-xl border border-gray-200 px-4 py-3 shadow-sm">
               <div className="flex items-center justify-between mb-1.5">
                 <span className="text-sm font-medium text-gray-700">Publication rate</span>
                 <span className="text-sm font-semibold text-blue-700">
-                  {Math.round((published / policies.length) * 100)}%
+                  {Math.round((published / filteredPolicies.length) * 100)}%
                 </span>
               </div>
               <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                 <div className="h-full rounded-full bg-blue-500 transition-all duration-500"
-                  style={{ width: `${Math.round((published / policies.length) * 100)}%` }} />
+                  style={{ width: `${Math.round((published / filteredPolicies.length) * 100)}%` }} />
               </div>
             </div>
           )}
@@ -777,12 +796,12 @@ export function PoliciesPage() {
             <LoadingState />
           ) : error ? (
             <ErrorState message={error} onRetry={fetchPolicies} />
-          ) : policies.length === 0 ? (
+          ) : filteredPolicies.length === 0 ? (
             <EmptyState hasFilters={hasActiveFilters} onClear={clearFilters} onCreate={() => setShowCreate(true)} />
           ) : (
             <>
               <PoliciesTable
-                policies={policies}
+                policies={filteredPolicies}
                 sortKey={sortKey}
                 sortDir={sortDir}
                 onSort={handleSort}
@@ -791,8 +810,8 @@ export function PoliciesPage() {
               />
               <div className="flex items-center justify-between px-4 py-2 bg-white rounded-xl border border-gray-200 shadow-sm">
                 <span className="text-sm text-gray-500">
-                  Showing <span className="font-medium text-gray-800">{policies.length}</span>{' '}
-                  polic{policies.length !== 1 ? 'ies' : 'y'}
+                  Showing <span className="font-medium text-gray-800">{filteredPolicies.length}</span>{' '}
+                  polic{filteredPolicies.length !== 1 ? 'ies' : 'y'}
                   {hasActiveFilters && ' (filtered)'}
                 </span>
               </div>

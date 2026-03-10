@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
+import { useQuery, useQueries, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router";
 import type { ActivationSummaryDto } from "@/services/api/frameworks";
 import { PageTemplate } from "@/app/components/PageTemplate";
@@ -15,9 +15,10 @@ import { Textarea } from "@/app/components/ui/textarea";
 import { Label } from "@/app/components/ui/label";
 import {
   ShieldCheck, Target, Activity, ClipboardList, Plus, ArrowRight,
-  Loader2, Lock, AlertTriangle, CheckCircle2, Archive, BookOpen,
+  Loader2, Lock, AlertTriangle, CheckCircle2, Archive, BookOpen, Eye,
 } from "lucide-react";
 import { frameworksService, type OrgFrameworkDto, type FrameworkDto } from "@/services/api/frameworks";
+import { authService } from "@/services/api/auth";
 
 // ── Framework icon / color catalog (static metadata) ─────────────────────────
 const FRAMEWORK_META: Record<string, { icon: React.ElementType; color: string; description: string; requirementCount: number }> = {
@@ -64,9 +65,12 @@ function statusBadge(status: OrgFrameworkDto['status']) {
 }
 
 // ── Active framework card ─────────────────────────────────────────────────────
-function ActiveFrameworkCard({ orgFw, onRemove }: {
+function ActiveFrameworkCard({ orgFw, entitled, canManageScope, onRemove, onUpgrade }: {
   orgFw: OrgFrameworkDto;
+  entitled: boolean;
+  canManageScope: boolean;
   onRemove: (orgFw: OrgFrameworkDto) => void;
+  onUpgrade: (orgFw: OrgFrameworkDto) => void;
 }) {
   const navigate = useNavigate();
   const meta = getFrameworkMeta(orgFw.frameworkSlug);
@@ -85,7 +89,10 @@ function ActiveFrameworkCard({ orgFw, onRemove }: {
               <p className="text-xs text-gray-500 mt-0.5">v{orgFw.frameworkVersion}</p>
             </div>
           </div>
-          {statusBadge(orgFw.status)}
+          <div className="flex items-center gap-2">
+            {!entitled && <Badge variant="outline" className="text-amber-700 border-amber-300">View only</Badge>}
+            {statusBadge(orgFw.status)}
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4 pt-4">
@@ -119,14 +126,17 @@ function ActiveFrameworkCard({ orgFw, onRemove }: {
           >
             View readiness <ArrowRight className="w-3.5 h-3.5 ml-1" />
           </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="text-gray-400 hover:text-red-600"
-            onClick={() => onRemove(orgFw)}
-          >
-            <Archive className="w-4 h-4" />
-          </Button>
+          {canManageScope ? (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-gray-400 hover:text-red-600"
+              onClick={() => entitled ? onRemove(orgFw) : onUpgrade(orgFw)}
+              title={entitled ? 'Remove from active scope' : 'Upgrade to manage scope'}
+            >
+              {entitled ? <Archive className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+            </Button>
+          ) : null}
         </div>
       </CardContent>
     </Card>
@@ -134,10 +144,12 @@ function ActiveFrameworkCard({ orgFw, onRemove }: {
 }
 
 // ── Available framework card ──────────────────────────────────────────────────
-function AvailableFrameworkCard({ fw, entitled, onActivate, activating }: {
+function AvailableFrameworkCard({ fw, entitled, canManageScope, onActivate, onUpgrade, activating }: {
   fw: FrameworkDto;
   entitled: boolean;
+  canManageScope: boolean;
   onActivate: (fw: FrameworkDto) => void;
+  onUpgrade: (fw: FrameworkDto) => void;
   activating: boolean;
 }) {
   const meta = getFrameworkMeta(fw.slug);
@@ -161,13 +173,19 @@ function AvailableFrameworkCard({ fw, entitled, onActivate, activating }: {
         <p className="text-xs text-gray-500 leading-relaxed">{fw.description ?? meta.description}</p>
         <Button
           size="sm"
-          variant={entitled ? "default" : "outline"}
+          variant={entitled && canManageScope ? "default" : "outline"}
           className="w-full"
-          disabled={!entitled || activating}
-          onClick={() => entitled && onActivate(fw)}
+          disabled={activating || (!canManageScope && entitled)}
+          onClick={() => {
+            if (!canManageScope) return;
+            if (entitled) onActivate(fw);
+            else onUpgrade(fw);
+          }}
         >
           {activating ? (
             <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Activating…</>
+          ) : !canManageScope ? (
+            <><Eye className="w-3.5 h-3.5 mr-1.5" /> Contact admin</>
           ) : entitled ? (
             <><Plus className="w-3.5 h-3.5 mr-1.5" /> Add to scope</>
           ) : (
@@ -176,6 +194,45 @@ function AvailableFrameworkCard({ fw, entitled, onActivate, activating }: {
         </Button>
       </CardContent>
     </Card>
+  );
+}
+
+function EntitlementDialog({
+  framework,
+  canManageScope,
+  onClose,
+}: {
+  framework: Pick<FrameworkDto, 'name' | 'slug'> | Pick<OrgFrameworkDto, 'frameworkName' | 'frameworkSlug'> | null;
+  canManageScope: boolean;
+  onClose: () => void;
+}) {
+  if (!framework) return null;
+  const name = 'name' in framework ? framework.name : framework.frameworkName;
+  const slug = 'slug' in framework ? framework.slug : framework.frameworkSlug;
+
+  return (
+    <Dialog open={!!framework} onOpenChange={onClose}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Lock className="w-5 h-5 text-amber-500" />
+            {canManageScope ? 'Upgrade required' : 'Admin action required'}
+          </DialogTitle>
+          <DialogDescription className="text-sm text-gray-600 pt-1">
+            {canManageScope
+              ? `${name} is not included in your current entitlement. Upgrade your plan to activate or manage this framework.`
+              : `${name} can be viewed, but only an org admin can add or remove frameworks from active scope.`}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          Framework: <span className="font-medium">{name}</span>
+          <span className="text-amber-600"> ({slug})</span>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Close</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -232,8 +289,11 @@ function RemoveDialog({ orgFw, onClose, onConfirm, loading }: {
 export function FrameworksPage() {
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const cachedUser = authService.getCachedUser();
+  const canManageScope = cachedUser?.role === 'ORG_ADMIN' || cachedUser?.role === 'SUPER_ADMIN';
   const [removingFw, setRemovingFw] = useState<OrgFrameworkDto | null>(null);
   const [activatingSlug, setActivatingSlug] = useState<string | null>(null);
+  const [upgradeTarget, setUpgradeTarget] = useState<FrameworkDto | OrgFrameworkDto | null>(null);
 
   const { data: catalogRes, isLoading: catalogLoading } = useQuery({
     queryKey: ['frameworks', 'catalog'],
@@ -247,6 +307,23 @@ export function FrameworksPage() {
 
   const catalog: FrameworkDto[] = catalogRes?.data ?? [];
   const orgFrameworks: OrgFrameworkDto[] = orgFwRes?.data ?? [];
+
+  const entitlementQueries = useQueries({
+    queries: [...catalog, ...orgFrameworks.map((fw) => ({ slug: fw.frameworkSlug }))].map((fw) => ({
+      queryKey: ['frameworks', 'entitlement', fw.slug],
+      queryFn: () => frameworksService.checkEntitlement(fw.slug),
+      staleTime: 60_000,
+      enabled: !!fw.slug,
+    })),
+  });
+
+  const entitlementMap = useMemo(() => {
+    const entries = [...catalog, ...orgFrameworks.map((fw) => ({ slug: fw.frameworkSlug }))].map((fw, index) => [
+      fw.slug,
+      entitlementQueries[index]?.data?.data?.entitled ?? true,
+    ] as const);
+    return Object.fromEntries(entries);
+  }, [catalog, entitlementQueries, orgFrameworks]);
 
   // Slugs already active for this org
   const activeSlugSet = new Set(orgFrameworks.map(f => f.frameworkSlug));
@@ -267,7 +344,10 @@ export function FrameworksPage() {
         },
       });
     },
-    onError: () => {
+    onError: (err: any, fw) => {
+      if (err?.error === 'FRAMEWORK_NOT_ENTITLED' || err?.statusCode === 403) {
+        setUpgradeTarget(fw);
+      }
       setActivatingSlug(null);
     },
     onSettled: () => {
@@ -330,7 +410,10 @@ export function FrameworksPage() {
                   <ActiveFrameworkCard
                     key={fw.id}
                     orgFw={fw}
+                    entitled={entitlementMap[fw.frameworkSlug] ?? true}
+                    canManageScope={canManageScope}
                     onRemove={setRemovingFw}
+                    onUpgrade={setUpgradeTarget}
                   />
                 ))}
               </div>
@@ -354,8 +437,10 @@ export function FrameworksPage() {
                   <AvailableFrameworkCard
                     key={fw.id}
                     fw={fw}
-                    entitled={true} /* Phase 5 will gate this via entitlement check */
+                    entitled={entitlementMap[fw.slug] ?? true}
+                    canManageScope={canManageScope}
                     onActivate={(f) => activateMutation.mutate(f)}
+                    onUpgrade={setUpgradeTarget}
                     activating={activatingSlug === fw.slug}
                   />
                 ))}
@@ -371,6 +456,12 @@ export function FrameworksPage() {
         onClose={() => setRemovingFw(null)}
         onConfirm={(reason) => removingFw && removeMutation.mutate({ slug: removingFw.frameworkSlug, reason })}
         loading={removeMutation.isPending}
+      />
+
+      <EntitlementDialog
+        framework={upgradeTarget}
+        canManageScope={canManageScope}
+        onClose={() => setUpgradeTarget(null)}
       />
     </PageTemplate>
   );

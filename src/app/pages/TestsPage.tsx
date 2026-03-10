@@ -1,8 +1,9 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
 import { RefreshCw, SlidersHorizontal, X, CheckCircle, AlertTriangle, Clock, Columns, Database, ChevronLeft, ChevronRight } from 'lucide-react';
 import { FrameworkFilter } from '@/app/components/compliance/FrameworkFilter';
+import { frameworksService } from '@/services/api/frameworks';
 import { QK } from '@/lib/queryKeys';
 import { STALE } from '@/lib/queryClient';
 import { testsService } from '@/services/api/tests';
@@ -330,6 +331,18 @@ export function TestsPage() {
     staleTime: STALE.CONTROLS,
   });
 
+  const mappingQueries = useQueries({
+    queries: frameworkFilter.map((slug) => ({
+      queryKey: ['frameworks', 'mappings', slug],
+      queryFn: () => frameworksService.getFrameworkMappings(slug),
+      staleTime: 60_000,
+    })),
+  });
+
+  const mappedTestIds = new Set(
+    mappingQueries.flatMap((query) => query.data?.data?.tests.map((mapping) => mapping.testId) ?? []),
+  );
+
   // ── Seed mutation (admin only) ──
   const seedMutation = useMutation({
     mutationFn: () => testsService.seedTests(),
@@ -363,9 +376,12 @@ export function TestsPage() {
   });
 
   const tests: TestRecord[] = (testsData ?? []) as TestRecord[];
+  const frameworkFilteredTests = frameworkFilter.length === 0
+    ? tests
+    : tests.filter((test) => mappedTestIds.has(test.id));
 
   // Client-side sort
-  const sorted = [...tests].sort((a, b) => {
+  const sorted = [...frameworkFilteredTests].sort((a, b) => {
     const aVal = (a as any)[sortColumn];
     const bVal = (b as any)[sortColumn];
     if (aVal == null || bVal == null) return 0;
@@ -378,11 +394,12 @@ export function TestsPage() {
     else { setSortColumn(col); setSortDir('asc'); }
   };
 
-  const hasActiveFilters = !!(filter.search || filter.category || filter.status || filter.type || filter.dueFrom || filter.dueTo || statusFilterOverride);
+  const hasActiveFilters = !!(filter.search || filter.category || filter.status || filter.type || filter.dueFrom || filter.dueTo || statusFilterOverride || frameworkFilter.length > 0);
 
   const clearFilters = () => {
     setFilter({ search: '', category: '', status: '', type: '', dueFrom: '', dueTo: '' });
     setStatusFilterOverride('');
+    setFrameworkFilter([]);
     setPage(1);
   };
 

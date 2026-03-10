@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueries, useQueryClient } from '@tanstack/react-query';
 import { controlsService } from '@/services/api/controls';
+import { frameworksService } from '@/services/api/frameworks';
 import { Control, ControlFilter, ColumnConfig, DEFAULT_COLUMNS } from './types';
 import { ControlsFilter } from './ControlsFilter';
 import { ControlsTable } from './ControlsTable';
@@ -61,6 +62,18 @@ export function ControlsPage() {
       },
     });
 
+  const mappingQueries = useQueries({
+    queries: frameworkFilter.map((slug) => ({
+      queryKey: ['frameworks', 'mappings', slug],
+      queryFn: () => frameworksService.getFrameworkMappings(slug),
+      staleTime: 60_000,
+    })),
+  });
+
+  const mappedControlIds = new Set(
+    mappingQueries.flatMap((query) => query.data?.data?.controls.map((mapping) => mapping.controlId) ?? []),
+  );
+
   // Client-side sort applied to cached data
   const controls: Control[] = rawControls
     ? [...rawControls].sort((a, b) => {
@@ -79,14 +92,9 @@ export function ControlsPage() {
 
   const error: string | null = isError ? ((queryError as any)?.message ?? 'An unexpected error occurred.') : null;
 
-  // Client-side framework filter: if selected, only show controls whose isoReference
-  // starts with a code matching a requirement in those frameworks. For a lighter approach,
-  // we filter by isoReference prefix matching against framework slugs in the URL.
-  // The full mapping-table filter would require a join endpoint; for now we use the
-  // FrameworkFilter as a UX hint and filter is applied when controls have explicit iso refs.
   const filteredControls: Control[] = frameworkFilter.length === 0
     ? controls
-    : controls; // pass-through — framework filter is visual context; full filter via mappings tab
+    : controls.filter((control) => mappedControlIds.has(control.id));
 
   const fetchControls = useCallback(() => {
     qc.invalidateQueries({ queryKey: ['controls'] });
@@ -116,11 +124,11 @@ export function ControlsPage() {
   const hasActiveFilters = !!(filter.search || filter.status || filter.isoReference || frameworkFilter.length > 0);
 
   // Compliance summary counts
-  const implemented = controls.filter((c) => c.status === 'IMPLEMENTED').length;
-  const partial = controls.filter((c) => c.status === 'PARTIALLY_IMPLEMENTED').length;
-  const notImpl = controls.filter((c) => c.status === 'NOT_IMPLEMENTED').length;
-  const compliancePct = controls.length
-    ? Math.round((implemented / controls.length) * 100)
+  const implemented = filteredControls.filter((c) => c.status === 'IMPLEMENTED').length;
+  const partial = filteredControls.filter((c) => c.status === 'PARTIALLY_IMPLEMENTED').length;
+  const notImpl = filteredControls.filter((c) => c.status === 'NOT_IMPLEMENTED').length;
+  const compliancePct = filteredControls.length
+    ? Math.round((implemented / filteredControls.length) * 100)
     : 0;
 
   return (
@@ -175,12 +183,12 @@ export function ControlsPage() {
       </div>
 
       {/* ── Compliance Summary Cards (Material-style) ── */}
-      {!loading && !error && controls.length > 0 && (
+      {!loading && !error && filteredControls.length > 0 && (
         <div className="px-6 pt-4 pb-2">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <SummaryCard
               label="Total Controls"
-              value={controls.length}
+               value={filteredControls.length}
               color="text-gray-900"
               bg="bg-white"
             />

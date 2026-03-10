@@ -86,6 +86,15 @@ export interface FrameworkEntitlementDto {
   validUntil: string | null;
 }
 
+export interface BillingEntitlementDto {
+  frameworkSlug: string;
+  planName: string | null;
+  isActive: boolean;
+  validFrom: string;
+  validUntil: string | null;
+  createdAt: string;
+}
+
 export interface ActivateFrameworkRequest {
   frameworkSlug: string;
   scopeNote?: string;
@@ -227,6 +236,11 @@ class FrameworksService {
     return apiClient.get(`/api/org/frameworks/${frameworkSlug}/coverage`);
   }
 
+  /** GET /api/org/frameworks/:slug/coverage/history — recent coverage snapshots */
+  async getCoverageHistory(frameworkSlug: string, limit = 24): Promise<{ success: boolean; data: CoverageSnapshotDto[] }> {
+    return apiClient.get(`/api/org/frameworks/${frameworkSlug}/coverage/history`, { limit: String(limit) });
+  }
+
   /** GET /api/org/frameworks/:slug/mappings — all control/test/policy mappings */
   async getFrameworkMappings(frameworkSlug: string): Promise<{ success: boolean; data: FrameworkMappingsDto }> {
     return apiClient.get(`/api/org/frameworks/${frameworkSlug}/mappings`);
@@ -250,6 +264,11 @@ class FrameworksService {
   /** GET /api/org/frameworks/readiness — readiness summary for all active frameworks */
   async getReadinessSummary(): Promise<{ success: boolean; data: FrameworkReadinessDto[] }> {
     return apiClient.get('/api/org/frameworks/readiness');
+  }
+
+  /** GET /api/billing/entitlements — current org entitlements */
+  async listEntitlements(): Promise<{ success: boolean; data: BillingEntitlementDto[] }> {
+    return apiClient.get('/api/billing/entitlements');
   }
 
   /** POST /api/billing/entitlements/sync (SUPER_ADMIN only) */
