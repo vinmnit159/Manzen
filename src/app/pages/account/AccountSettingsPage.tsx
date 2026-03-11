@@ -203,6 +203,15 @@ export function AccountSettingsPage() {
         <CardContent>
           <Form {...passwordForm}>
             <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-4">
+              {/* Hidden username field for password manager / browser accessibility */}
+              <input
+                type="text"
+                autoComplete="username"
+                readOnly
+                value={user?.email ?? ''}
+                aria-hidden="true"
+                className="sr-only"
+              />
               {/* Current password */}
               <FormField
                 control={passwordForm.control}
