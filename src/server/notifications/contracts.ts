@@ -97,6 +97,11 @@ export const notificationsContracts = {
     body: updatePreferenceRequestSchema,
     response: okEnvelope(notificationPreferenceSchema),
   },
+  healthCheck: {
+    method: 'GET' as const,
+    path: '/api/notifications/health',
+    response: okEnvelope(z.object({ status: z.literal('ok') })),
+  },
 } as const;
 
 export type NotificationDto = z.infer<typeof notificationSchema>;

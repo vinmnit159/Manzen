@@ -87,6 +87,10 @@ export function createNotificationHandlers(deps: NotificationHandlerDeps = {}) {
       });
       return notificationsContracts.updatePreference.response.parse(ok(data));
     },
+
+    async healthCheck() {
+      return notificationsContracts.healthCheck.response.parse(ok({ status: 'ok' as const }));
+    },
   };
 }
 

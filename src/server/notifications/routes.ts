@@ -51,4 +51,10 @@ export const notificationRoutes: NotificationRouteDefinition[] = [
       response: notificationsContracts.updatePreference.response,
     },
   },
+  {
+    method: 'GET',
+    url: notificationsContracts.healthCheck.path,
+    handlerName: 'healthCheck',
+    schema: { response: notificationsContracts.healthCheck.response },
+  },
 ];
