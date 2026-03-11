@@ -16,4 +16,8 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  preview: {
+    host: '0.0.0.0',
+    allowedHosts: ['isms.bitcoingames1346.com'],
+  },
 })
