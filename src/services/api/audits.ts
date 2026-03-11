@@ -142,9 +142,9 @@ export const auditsService = {
   list(params?: { type?: AuditType; status?: AuditStatus; search?: string }) {
     // Strip out undefined/empty values so they aren't sent as the string "undefined"
     const clean: Record<string, string> = {};
-    if (params?.type   && params.type   !== 'undefined') clean.type   = params.type;
-    if (params?.status && params.status !== 'undefined') clean.status = params.status;
-    if (params?.search && params.search !== 'undefined') clean.search = params.search;
+    if (params?.type   && params.type   !== 'undefined' && params.type   !== 'all') clean.type   = params.type;
+    if (params?.status && params.status !== 'undefined' && params.status !== 'all') clean.status = params.status;
+    if (params?.search && params.search !== 'undefined' && params.search !== 'all') clean.search = params.search;
     return apiClient.get<{ success: boolean; data: AuditRecord[] }>('/api/audits', Object.keys(clean).length ? clean : undefined);
   },
 
