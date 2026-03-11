@@ -120,14 +120,6 @@ export function AccountSettingsPage() {
 
   return (
     <div className="max-w-3xl mx-auto p-4 sm:p-6 space-y-6">
-      {/* Page header */}
-      <div>
-        <h1 className="text-2xl font-semibold text-gray-900">Account Settings</h1>
-        <p className="text-sm text-gray-500 mt-1">
-          Manage your personal information and security preferences.
-        </p>
-      </div>
-
       {/* ── Profile overview card ── */}
       <Card>
         <CardHeader className="pb-4">

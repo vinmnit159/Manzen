@@ -133,9 +133,9 @@ const navigation: NavItem[] = [
     title: "Access",
     icon: KeyRound,
     children: [
-      { title: "Users",           href: "/access/users",    roles: [...ADMIN_ROLES] },
-      { title: "Roles",           href: "/access/roles",    roles: [...ADMIN_ROLES] },
-      { title: "Access Requests", href: "/access/requests" },
+      { title: "Users",           href: "/settings/access/users",    roles: [...ADMIN_ROLES] },
+      { title: "Roles",           href: "/settings/access/roles",    roles: [...ADMIN_ROLES] },
+      { title: "Access Requests", href: "/settings/access/requests" },
     ],
   },
   {
@@ -357,16 +357,16 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
       {/* User footer */}
       <div className="p-3 border-t border-slate-800 space-y-1">
         <Link
-          to="/account-settings"
+          to="/settings/profile"
           onClick={closeSidebar}
           className={cn(
             "flex items-center gap-2 px-3 py-2 rounded-md transition-colors",
             collapsed && "lg:justify-center",
-            isActive("/account-settings")
+            location.pathname.startsWith("/settings")
               ? "bg-blue-600 text-white"
               : "hover:bg-slate-800"
           )}
-          title="Account settings"
+          title="Settings"
         >
           <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-sm font-semibold flex-shrink-0">
             {initials}

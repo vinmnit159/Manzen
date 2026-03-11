@@ -2,7 +2,6 @@ import { Card } from '@/app/components/ui/card';
 import { Label } from '@/app/components/ui/label';
 import { Switch } from '@/app/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
-import { PageTemplate } from '@/app/components/PageTemplate';
 import { notificationEventDefinitions } from '@/app/features/notifications/notificationHelpers';
 import { useNotificationPreferences, useUpdateNotificationPreference } from '@/app/features/notifications/useNotifications';
 import { Loader2 } from 'lucide-react';
@@ -23,10 +22,7 @@ export function NotificationSettingsPage() {
   }, {});
 
   return (
-    <PageTemplate
-      title="Notification Settings"
-      description="Choose which workflow events reach your inbox now and which should be held for later digest delivery."
-    >
+    <div className="p-4 sm:p-6 space-y-6">
       <div className="space-y-6">
         {Object.entries(grouped).map(([category, preferences]) => (
           <Card key={category} className="p-6">
@@ -77,6 +73,6 @@ export function NotificationSettingsPage() {
           </Card>
         ))}
       </div>
-    </PageTemplate>
+    </div>
   );
 }

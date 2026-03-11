@@ -211,7 +211,7 @@ export function AccessRolesPage() {
   const roleUserCount = (role: AppRole) => users.filter(u => u.role === role).length;
 
   return (
-    <div className="flex flex-col bg-gray-50 min-h-screen">
+    <div className="flex flex-col bg-gray-50">
 
       {selectedRole && (
         <RoleDetailPanel

@@ -75,6 +75,9 @@ import { AccessUsersPage } from "@/app/pages/access/AccessUsersPage";
 import { AccessRolesPage } from "@/app/pages/access/AccessRolesPage";
 import { AccessRequestsPage } from "@/app/pages/access/AccessRequestsPage";
 
+// Settings shell
+import { SettingsLayout } from "@/app/components/settings/SettingsLayout";
+
 // Auth guard: redirect to /login if no token
 function requireAuth() {
   const token = localStorage.getItem("isms_token");
@@ -84,19 +87,6 @@ function requireAuth() {
   return null;
 }
 
-// Admin guard: redirect to /tests if not an admin role
-function requireAdmin() {
-  const token = localStorage.getItem("isms_token");
-  if (!token) return redirect("/login");
-  try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    const adminRoles = ["SUPER_ADMIN", "ORG_ADMIN", "SECURITY_OWNER"];
-    if (!adminRoles.includes(payload.role)) return redirect("/tests");
-  } catch {
-    // If token is malformed, fall through (auth middleware will catch it)
-  }
-  return null;
-}
 
 export const router = createBrowserRouter([
   // Public auth routes (no layout)
@@ -133,7 +123,6 @@ export const router = createBrowserRouter([
       { path: "tests/library", loader: async () => redirect('/compliance/frameworks') },
       { path: "reports", Component: ReportsPage },
       { path: "notifications", Component: NotificationsPage },
-      { path: "notifications/settings", Component: NotificationSettingsPage },
       { path: "reports/viewer/:reportId", Component: ReportViewerPage },
 
       // Auditor role
@@ -189,16 +178,19 @@ export const router = createBrowserRouter([
       { path: "integrations", Component: IntegrationsPage },
       { path: "integrations/partner-api", Component: PartnerApiPage },
       { path: "my-security-tasks", Component: MySecurityTasksPage },
-      // Redirect old placeholder route to the real Access Requests page
-      { path: "my-access-requests", loader: async () => redirect('/access/requests') },
 
-      // Access Management (RBAC)
-      { path: "access/users",    Component: AccessUsersPage },
-      { path: "access/roles",    Component: AccessRolesPage },
-      { path: "access/requests", Component: AccessRequestsPage },
-
-      // Account
-      { path: "account-settings", Component: AccountSettingsPage },
+      // Unified Settings (shell + nested pages)
+      {
+        path: "settings",
+        Component: SettingsLayout,
+        children: [
+          { path: "profile",          Component: AccountSettingsPage },
+          { path: "notifications",    Component: NotificationSettingsPage },
+          { path: "access/users",     Component: AccessUsersPage },
+          { path: "access/roles",     Component: AccessRolesPage },
+          { path: "access/requests",  Component: AccessRequestsPage },
+        ],
+      },
     ],
   },
 ]);
