@@ -202,8 +202,8 @@ export function HomePage() {
           })}
         </div>
 
-        {/* Main Content Grid — cards are flex-col so headers stay fixed and bodies fill remaining space */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
 
           {/* ── Recent Activity ── */}
           <Card className="p-6 flex flex-col h-72">
