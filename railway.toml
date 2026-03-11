@@ -1,6 +1,9 @@
 [build]
 builder = "nixpacks"
 
+[deploy]
+startCommand = "npm run preview -- --host 0.0.0.0 --port $PORT"
+
 [[services]]
 name = "backend-api"
 startCommand = "tsx src/server/index.ts"

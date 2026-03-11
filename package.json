@@ -6,6 +6,7 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite",
+    "preview": "vite preview",
     "server": "tsx src/server/index.ts",
     "worker:notifications": "WORKER_ROLE=notifications tsx src/workers/notificationWorker.ts",
     "worker:digests": "WORKER_ROLE=digests tsx src/workers/digestWorker.ts"
