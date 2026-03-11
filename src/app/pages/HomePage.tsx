@@ -160,14 +160,6 @@ export function HomePage() {
     },
   ];
 
-  const pct = compliance?.compliancePercentage ?? 0;
-  const partialPct = compliance
-    ? Math.round((compliance.partiallyImplemented / compliance.total) * 100)
-    : 0;
-  const notPct = compliance
-    ? Math.round((compliance.notImplemented / compliance.total) * 100)
-    : 0;
-
   return (
     <PageTemplate
       title="Dashboard"
@@ -212,69 +204,6 @@ export function HomePage() {
 
         {/* Main Content Grid — cards are flex-col so headers stay fixed and bodies fill remaining space */}
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-
-          {/* ── Compliance Overview ── */}
-          <Card className="p-6 flex flex-col h-72">
-            {/* fixed header */}
-            <div className="flex items-center justify-between mb-4 shrink-0">
-              <h2 className="text-lg font-semibold text-gray-900">Compliance Overview</h2>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => navigate("/compliance/frameworks")}
-              >
-                View All
-              </Button>
-            </div>
-
-            {/* scrollable body */}
-            <div className="flex-1 overflow-y-auto min-h-0">
-              {loadingCompliance ? (
-                <div className="flex items-center gap-3 py-6 text-sm text-gray-400">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Loading compliance data…
-                </div>
-              ) : !compliance ? (
-                <p className="text-sm text-gray-400 py-6">Could not load compliance data.</p>
-              ) : (
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-sm font-medium text-gray-700">ISO 27001:2022 — Implemented</span>
-                      <span className="text-xs text-gray-500">{pct.toFixed(1)}%</span>
-                    </div>
-                    <div className="w-full bg-gray-100 rounded-full h-2">
-                      <div className="bg-blue-600 h-2 rounded-full transition-all" style={{ width: `${pct}%` }} />
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-sm font-medium text-gray-700">ISO 27001:2022 — Partial</span>
-                      <span className="text-xs text-gray-500">{partialPct}%</span>
-                    </div>
-                    <div className="w-full bg-gray-100 rounded-full h-2">
-                      <div className="bg-amber-400 h-2 rounded-full transition-all" style={{ width: `${partialPct}%` }} />
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-sm font-medium text-gray-700">ISO 27001:2022 — Not implemented</span>
-                      <span className="text-xs text-gray-500">{notPct}%</span>
-                    </div>
-                    <div className="w-full bg-gray-100 rounded-full h-2">
-                      <div className="bg-red-400 h-2 rounded-full transition-all" style={{ width: `${notPct}%` }} />
-                    </div>
-                  </div>
-                  <div className="flex justify-between text-xs text-gray-500 pt-1 border-t">
-                    <span>{compliance.implemented} implemented</span>
-                    <span>{compliance.partiallyImplemented} partial</span>
-                    <span>{compliance.notImplemented} not implemented</span>
-                    <span className="font-medium text-gray-700">{compliance.total} total</span>
-                  </div>
-                </div>
-              )}
-            </div>
-          </Card>
 
           {/* ── Recent Activity ── */}
           <Card className="p-6 flex flex-col h-72">
