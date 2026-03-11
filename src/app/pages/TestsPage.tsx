@@ -363,7 +363,7 @@ export function TestsPage() {
         return (
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setSelectedTestId(test.id)}
+              onClick={() => navigate(`/tests/${test.id}`)}
               className="px-2.5 py-1 rounded-lg text-xs font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors"
             >
               View
