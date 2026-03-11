@@ -32,6 +32,9 @@ Thumbs.db
 # next.js build output
 .next
 
+# Vite build output
+dist
+
 # nuxt.js build output
 .nuxt
 
