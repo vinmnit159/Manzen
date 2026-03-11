@@ -1,8 +1,10 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { RefreshCw, SlidersHorizontal, X, CheckCircle, AlertTriangle, Clock, Columns, Database, ChevronLeft, ChevronRight } from 'lucide-react';
+import { RefreshCw, X, CheckCircle, AlertTriangle, Clock, Columns, Database, ChevronLeft, ChevronRight } from 'lucide-react';
 import { FrameworkFilter } from '@/app/components/compliance/FrameworkFilter';
+import { PageFilterBar } from '@/app/components/filters/PageFilterBar';
+import { useUrlFilterState } from '@/app/hooks/useUrlFilterState';
 import { QK } from '@/lib/queryKeys';
 import { STALE } from '@/lib/queryClient';
 import { testsService } from '@/services/api/tests';
@@ -109,7 +111,6 @@ function ColumnPicker({ columns, onToggle }: { columns: ColumnConfig[]; onToggle
   );
 }
 
-// ─── Filter panel ─────────────────────────────────────────────────────────────
 interface TestFilter {
   search: string;
   category: string;
@@ -119,114 +120,29 @@ interface TestFilter {
   dueTo: string;
 }
 
-function FilterPanel({
-  filter,
-  onChange,
-  onClear,
-}: {
-  filter: TestFilter;
-  onChange: (f: TestFilter) => void;
-  onClear: () => void;
-}) {
-  const set = (key: keyof TestFilter, val: string) => onChange({ ...filter, [key]: val });
-
-  return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 space-y-4 lg:w-64 flex-shrink-0">
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-semibold text-gray-800">Filters</span>
-        <button onClick={onClear} className="text-xs text-blue-600 hover:underline">Clear all</button>
-      </div>
-
-      {/* Search */}
-      <div>
-        <label className="block text-xs font-medium text-gray-500 mb-1">Search</label>
-        <input
-          type="text"
-          value={filter.search}
-          onChange={e => set('search', e.target.value)}
-          placeholder="Test name…"
-          className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-        />
-      </div>
-
-      {/* Category */}
-      <div>
-        <label className="block text-xs font-medium text-gray-500 mb-1">Category</label>
-        <select
-          value={filter.category}
-          onChange={e => set('category', e.target.value)}
-          className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="">All categories</option>
-          {CATEGORY_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
-        </select>
-      </div>
-
-      {/* Status */}
-      <div>
-        <label className="block text-xs font-medium text-gray-500 mb-1">Status</label>
-        <select
-          value={filter.status}
-          onChange={e => set('status', e.target.value)}
-          className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="">All statuses</option>
-          {STATUS_OPTIONS.map(s => <option key={s} value={s}>{STATUS_CONFIG[s].label}</option>)}
-        </select>
-      </div>
-
-      {/* Type */}
-      <div>
-        <label className="block text-xs font-medium text-gray-500 mb-1">Type</label>
-        <select
-          value={filter.type}
-          onChange={e => set('type', e.target.value)}
-          className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="">All types</option>
-          {TYPE_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
-        </select>
-      </div>
-
-      {/* Due date range */}
-      <div>
-        <label className="block text-xs font-medium text-gray-500 mb-1">Due From</label>
-        <input
-          type="date"
-          value={filter.dueFrom}
-          onChange={e => set('dueFrom', e.target.value)}
-          className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-gray-500 mb-1">Due To</label>
-        <input
-          type="date"
-          value={filter.dueTo}
-          onChange={e => set('dueTo', e.target.value)}
-          className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-      </div>
-    </div>
-  );
-}
-
 // ─── Main page ────────────────────────────────────────────────────────────────
 const PAGE_SIZE = 25;
 
 export function TestsPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
-
-  const [filter, setFilter] = useState<TestFilter>({
-    search: '', category: '', status: '', type: '', dueFrom: '', dueTo: '',
+  const { filters: urlFilters, update, reset } = useUrlFilterState({
+    defaults: { search: '', category: '', status: '', type: '', dueFrom: '', dueTo: '', frameworks: [] as string[] },
+    arrayKeys: ['frameworks'],
   });
-  const [frameworkFilter, setFrameworkFilter] = useState<string[]>([]);
+  const filter: TestFilter = {
+    search: urlFilters.search,
+    category: urlFilters.category,
+    status: urlFilters.status,
+    type: urlFilters.type,
+    dueFrom: urlFilters.dueFrom,
+    dueTo: urlFilters.dueTo,
+  };
+  const frameworkFilter = urlFilters.frameworks;
   const [page, setPage] = useState(1);
   const [sortColumn, setSortColumn] = useState('dueDate');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [columns, setColumns] = useState<ColumnConfig[]>(DEFAULT_COLUMNS);
-  const [filterOpen, setFilterOpen] = useState(false);
   const [statusFilterOverride, setStatusFilterOverride] = useState<string>('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [bulkOwnerId, setBulkOwnerId] = useState('');
@@ -383,11 +299,24 @@ export function TestsPage() {
   const hasActiveFilters = !!(filter.search || filter.category || filter.status || filter.type || filter.dueFrom || filter.dueTo || statusFilterOverride || frameworkFilter.length > 0);
 
   const clearFilters = () => {
-    setFilter({ search: '', category: '', status: '', type: '', dueFrom: '', dueTo: '' });
+    reset();
     setStatusFilterOverride('');
-    setFrameworkFilter([]);
     setPage(1);
   };
+
+  const activeFilters = [
+    ...(filter.search.trim() ? [{ key: 'search', label: `Search: ${filter.search.trim()}`, onRemove: () => update({ search: '' }) }] : []),
+    ...(filter.category ? [{ key: 'category', label: `Category: ${filter.category}`, onRemove: () => update({ category: '' }) }] : []),
+    ...(effectiveFilter.status ? [{ key: 'status', label: `Status: ${STATUS_CONFIG[effectiveFilter.status as TestStatus]?.label ?? effectiveFilter.status}`, onRemove: () => { update({ status: '' }); setStatusFilterOverride(''); } }] : []),
+    ...(filter.type ? [{ key: 'type', label: `Type: ${filter.type}`, onRemove: () => update({ type: '' }) }] : []),
+    ...(filter.dueFrom ? [{ key: 'dueFrom', label: `Due from: ${filter.dueFrom}`, onRemove: () => update({ dueFrom: '' }) }] : []),
+    ...(filter.dueTo ? [{ key: 'dueTo', label: `Due to: ${filter.dueTo}`, onRemove: () => update({ dueTo: '' }) }] : []),
+    ...frameworkFilter.map((slug) => ({
+      key: `framework-${slug}`,
+      label: `Framework: ${slug.replace(/-/g, ' ')}`,
+      onRemove: () => update({ frameworks: frameworkFilter.filter((item) => item !== slug) }),
+    })),
+  ];
 
   const visibleIds = sorted.map((test) => test.id);
   const selectedCount = selectedIds.length;
@@ -508,16 +437,6 @@ export function TestsPage() {
             <span className="hidden sm:inline">Export PDF</span>
             <span className="sm:hidden">PDF</span>
           </button>
-          <button
-            onClick={() => setFilterOpen(v => !v)}
-            className={[
-              'lg:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors',
-              hasActiveFilters ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50',
-            ].join(' ')}
-          >
-            <SlidersHorizontal className="w-4 h-4" />
-            Filters{hasActiveFilters ? ' •' : ''}
-          </button>
           {isAdmin && (
             <button
               onClick={() => seedMutation.mutate()}
@@ -541,9 +460,58 @@ export function TestsPage() {
         </div>
       </div>
 
-      {/* ── Framework filter bar ── */}
       <div className="px-6 pt-3 pb-1">
-        <FrameworkFilter selected={frameworkFilter} onChange={setFrameworkFilter} />
+        <PageFilterBar
+          searchValue={filter.search}
+          onSearchChange={(value) => { update({ search: value }); setPage(1); }}
+          searchPlaceholder="Search test name"
+          selects={[
+            {
+              key: 'category',
+              value: filter.category,
+              placeholder: 'Category',
+              onChange: (value) => { update({ category: value }); setPage(1); },
+              options: [{ value: '', label: 'All categories' }, ...CATEGORY_OPTIONS.map((item) => ({ value: item, label: item }))],
+            },
+            {
+              key: 'status',
+              value: effectiveFilter.status,
+              placeholder: 'Status',
+              onChange: (value) => { setStatusFilterOverride(''); update({ status: value }); setPage(1); },
+              options: [{ value: '', label: 'All statuses' }, ...STATUS_OPTIONS.map((item) => ({ value: item, label: STATUS_CONFIG[item].label }))],
+            },
+            {
+              key: 'type',
+              value: filter.type,
+              placeholder: 'Type',
+              onChange: (value) => { update({ type: value }); setPage(1); },
+              options: [{ value: '', label: 'All types' }, ...TYPE_OPTIONS.map((item) => ({ value: item, label: item }))],
+            },
+          ]}
+          auxiliary={(
+            <div className="space-y-3">
+              <FrameworkFilter selected={frameworkFilter} onChange={(value) => { update({ frameworks: value }); setPage(1); }} />
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <input
+                  type="date"
+                  value={filter.dueFrom}
+                  onChange={(event) => { update({ dueFrom: event.target.value }); setPage(1); }}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                />
+                <input
+                  type="date"
+                  value={filter.dueTo}
+                  onChange={(event) => { update({ dueTo: event.target.value }); setPage(1); }}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                />
+              </div>
+            </div>
+          )}
+          resultCount={sorted.length}
+          resultLabel={hasActiveFilters ? 'filtered tests' : 'tests'}
+          activeFilters={activeFilters}
+          onClearAll={clearFilters}
+        />
       </div>
 
       {/* ── Summary panels ── */}
@@ -622,30 +590,6 @@ export function TestsPage() {
 
       {/* ── Main content ── */}
       <div className="flex flex-col lg:flex-row gap-4 px-3 sm:px-6 py-4">
-
-        {/* Mobile overlay */}
-        {filterOpen && (
-          <div className="fixed inset-0 bg-black/40 z-20 lg:hidden" onClick={() => setFilterOpen(false)} />
-        )}
-
-        {/* Filter sidebar */}
-        <div className={[
-          'fixed bottom-0 left-0 right-0 z-30 lg:static lg:z-auto',
-          'transition-transform duration-300 ease-in-out lg:transition-none lg:translate-y-0',
-          filterOpen ? 'translate-y-0' : 'translate-y-full lg:translate-y-0',
-        ].join(' ')}>
-          <div className="lg:hidden flex items-center justify-between px-5 pt-4 pb-2 bg-white rounded-t-2xl border-t border-x border-gray-200 shadow-lg">
-            <span className="text-sm font-semibold text-gray-900">Filters</span>
-            <button onClick={() => setFilterOpen(false)} className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100">
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-          <FilterPanel
-            filter={filter}
-            onChange={(f) => { setFilter(f); setPage(1); }}
-            onClear={clearFilters}
-          />
-        </div>
 
         {/* Table */}
         <div className="flex-1 min-w-0 flex flex-col gap-3">

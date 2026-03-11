@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageTemplate } from '@/app/components/PageTemplate';
+import { PageFilterBar } from '@/app/components/filters/PageFilterBar';
+import { useUrlFilterState } from '@/app/hooks/useUrlFilterState';
 import { Button } from '@/app/components/ui/button';
 import { Card } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
@@ -488,9 +490,10 @@ export function AuditsPage() {
   const qc = useQueryClient();
   const [showModal,    setShowModal]    = useState(false);
   const [selected,     setSelected]     = useState<AuditRecord | null>(null);
-  const [search,       setSearch]       = useState('');
-  const [statusFilter, setStatusFilter] = useState<'' | AuditStatus>('');
-  const [typeFilter,   setTypeFilter]   = useState<'' | AuditType>('');
+  const { filters, update, reset } = useUrlFilterState({ defaults: { search: '', status: '', type: '' } });
+  const search = filters.search;
+  const statusFilter = filters.status as '' | AuditStatus;
+  const typeFilter = filters.type as '' | AuditType;
   const [toast,        setToast]        = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
 
   function showToast(type: 'success' | 'error', msg: string) {
@@ -514,6 +517,12 @@ export function AuditsPage() {
         (a.frameworkName ?? '').toLowerCase().includes(search.toLowerCase())
       )
     : audits;
+
+  const activeFilters = [
+    ...(search.trim() ? [{ key: 'search', label: `Search: ${search.trim()}`, onRemove: () => update({ search: '' }) }] : []),
+    ...(statusFilter ? [{ key: 'status', label: `Status: ${STATUS_FILTERS.find((item) => item.value === statusFilter)?.label ?? statusFilter}`, onRemove: () => update({ status: '' }) }] : []),
+    ...(typeFilter ? [{ key: 'type', label: `Type: ${typeFilter.replace(/_/g, ' ')}`, onRemove: () => update({ type: '' }) }] : []),
+  ];
 
   function onCreated() {
     showToast('success', 'Audit scheduled successfully');
@@ -561,48 +570,38 @@ export function AuditsPage() {
         ))}
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-2 mb-4">
-        {/* Search */}
-        <div className="flex items-center gap-2 border border-gray-300 rounded-md px-3 py-1.5 bg-white flex-1 min-w-[200px] max-w-sm">
-          <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
-          <input
-            className="text-sm outline-none flex-1 placeholder-gray-400"
-            placeholder="Search audits..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-        </div>
-
-        {/* Status filter pills */}
-        <div className="flex gap-1.5">
-          {STATUS_FILTERS.map(f => (
-            <button
-              key={f.value}
-              onClick={() => setStatusFilter(f.value)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                statusFilter === f.value
-                  ? 'bg-gray-900 text-white'
-                  : 'bg-white border border-gray-300 text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Type filter */}
-        <select
-          value={typeFilter}
-          onChange={e => setTypeFilter(e.target.value as '' | AuditType)}
-          className="text-sm border border-gray-300 rounded-md px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="">All Types</option>
-          <option value="INTERNAL">Internal</option>
-          <option value="EXTERNAL">External</option>
-          <option value="SURVEILLANCE">Surveillance</option>
-          <option value="RECERTIFICATION">Recertification</option>
-        </select>
+      <div className="mb-4">
+        <PageFilterBar
+          searchValue={search}
+          onSearchChange={(value) => update({ search: value })}
+          searchPlaceholder="Search audits or framework names"
+          selects={[
+            {
+              key: 'status',
+              value: statusFilter,
+              placeholder: 'Status',
+              onChange: (value) => update({ status: value as '' | AuditStatus }),
+              options: STATUS_FILTERS,
+            },
+            {
+              key: 'type',
+              value: typeFilter,
+              placeholder: 'Type',
+              onChange: (value) => update({ type: value as '' | AuditType }),
+              options: [
+                { value: '', label: 'All Types' },
+                { value: 'INTERNAL', label: 'Internal' },
+                { value: 'EXTERNAL', label: 'External' },
+                { value: 'SURVEILLANCE', label: 'Surveillance' },
+                { value: 'RECERTIFICATION', label: 'Recertification' },
+              ],
+            },
+          ]}
+          resultCount={filtered.length}
+          resultLabel="audits"
+          activeFilters={activeFilters}
+          onClearAll={reset}
+        />
       </div>
 
       {/* Table */}

@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { PageTemplate } from '@/app/components/PageTemplate';
+import { PageFilterBar } from '@/app/components/filters/PageFilterBar';
+import { useUrlFilterState } from '@/app/hooks/useUrlFilterState';
 import { Card } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
 import { Loader2, Database, Cloud, Monitor, Server, Package, Globe, HelpCircle } from 'lucide-react';
@@ -20,6 +22,7 @@ function criticalityVariant(c: string): 'default' | 'destructive' | 'secondary' 
 export function InventoryPage() {
   const [assets, setAssets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const { filters, update, reset } = useUrlFilterState({ defaults: { search: '', type: 'ALL', criticality: 'ALL' } });
 
   useEffect(() => {
     apiClient.get<any>('/api/assets')
@@ -27,6 +30,22 @@ export function InventoryPage() {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  const filteredAssets = useMemo(() => {
+    const search = filters.search.trim().toLowerCase();
+    return assets.filter((asset) => {
+      const matchesSearch = !search || `${asset.name} ${asset.description ?? ''}`.toLowerCase().includes(search);
+      const matchesType = filters.type === 'ALL' || asset.type === filters.type;
+      const matchesCriticality = filters.criticality === 'ALL' || asset.criticality === filters.criticality;
+      return matchesSearch && matchesType && matchesCriticality;
+    });
+  }, [assets, filters.criticality, filters.search, filters.type]);
+
+  const activeFilters = [
+    ...(filters.search.trim() ? [{ key: 'search', label: `Search: ${filters.search.trim()}`, onRemove: () => update({ search: '' }) }] : []),
+    ...(filters.type !== 'ALL' ? [{ key: 'type', label: `Type: ${filters.type}`, onRemove: () => update({ type: 'ALL' }) }] : []),
+    ...(filters.criticality !== 'ALL' ? [{ key: 'criticality', label: `Criticality: ${filters.criticality}`, onRemove: () => update({ criticality: 'ALL' }) }] : []),
+  ];
 
   // Summary by type
   const typeCounts = assets.reduce<Record<string, number>>((acc, a) => {
@@ -40,6 +59,38 @@ export function InventoryPage() {
         <div className="flex items-center justify-center h-48"><Loader2 className="w-8 h-8 animate-spin text-gray-400" /></div>
       ) : (
         <div className="space-y-6">
+          <PageFilterBar
+            searchValue={filters.search}
+            onSearchChange={(value) => update({ search: value })}
+            searchPlaceholder="Search asset name or description"
+            selects={[
+              {
+                key: 'type',
+                value: filters.type,
+                placeholder: 'Type',
+                onChange: (value) => update({ type: value }),
+                options: [{ value: 'ALL', label: 'All types' }, ...Object.keys(typeCounts).map((type) => ({ value: type, label: type }))],
+              },
+              {
+                key: 'criticality',
+                value: filters.criticality,
+                placeholder: 'Criticality',
+                onChange: (value) => update({ criticality: value }),
+                options: [
+                  { value: 'ALL', label: 'All criticality' },
+                  { value: 'LOW', label: 'Low' },
+                  { value: 'MEDIUM', label: 'Medium' },
+                  { value: 'HIGH', label: 'High' },
+                  { value: 'CRITICAL', label: 'Critical' },
+                ],
+              },
+            ]}
+            resultCount={filteredAssets.length}
+            resultLabel="assets"
+            activeFilters={activeFilters}
+            onClearAll={reset}
+          />
+
           {/* Type summary */}
           {assets.length > 0 && (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -67,9 +118,9 @@ export function InventoryPage() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {assets.length === 0 ? (
+                  {filteredAssets.length === 0 ? (
                     <tr><td colSpan={6} className="px-6 py-10 text-center text-sm text-gray-400">No assets yet. Connect GitHub to auto-discover repositories.</td></tr>
-                  ) : assets.map((asset) => {
+                  ) : filteredAssets.map((asset) => {
                     const Icon = TYPE_ICONS[asset.type] ?? HelpCircle;
                     return (
                       <tr key={asset.id} className="hover:bg-gray-50">

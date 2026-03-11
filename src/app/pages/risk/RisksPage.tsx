@@ -1,26 +1,30 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { PageTemplate } from '@/app/components/PageTemplate';
+import { PageFilterBar } from '@/app/components/filters/PageFilterBar';
 import { Card } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
 import { Button } from '@/app/components/ui/button';
-import { Input } from '@/app/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
-import { Loader2, RefreshCw, Search } from 'lucide-react';
+import { Loader2, RefreshCw } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
 import { riskCenterService } from '@/services/api/riskCenter';
 import { riskLevelVariant, riskStatusVariant, trendLabel } from '@/services/api/riskFormatting';
 import { FrameworkFilter } from '@/app/components/compliance/FrameworkFilter';
+import { useUrlFilterState } from '@/app/hooks/useUrlFilterState';
 import { QK } from '@/lib/queryKeys';
 import { STALE } from '@/lib/queryClient';
 
 export function RisksPage() {
   const qc = useQueryClient();
   const navigate = useNavigate();
-  const [severity, setSeverity] = useState('ALL');
-  const [status, setStatus] = useState('ALL');
-  const [query, setQuery] = useState('');
-  const [frameworkFilter, setFrameworkFilter] = useState<string[]>([]);
+  const { filters, update, reset } = useUrlFilterState({
+    defaults: { severity: 'ALL', status: 'ALL', query: '', frameworks: [] as string[] },
+    arrayKeys: ['frameworks'],
+  });
+  const severity = filters.severity;
+  const status = filters.status;
+  const query = filters.query;
+  const frameworkFilter = filters.frameworks;
 
   const { data: risks = [], isLoading, isFetching } = useQuery({
     queryKey: QK.risks(),
@@ -54,6 +58,17 @@ export function RisksPage() {
     });
   }, [frameworkFilter, query, risks, severity, status]);
 
+  const activeFilters = [
+    ...(query.trim() ? [{ key: 'query', label: `Search: ${query.trim()}`, onRemove: () => update({ query: '' }) }] : []),
+    ...(severity !== 'ALL' ? [{ key: 'severity', label: `Severity: ${severity}`, onRemove: () => update({ severity: 'ALL' }) }] : []),
+    ...(status !== 'ALL' ? [{ key: 'status', label: `Status: ${status.replace(/_/g, ' ')}`, onRemove: () => update({ status: 'ALL' }) }] : []),
+    ...frameworkFilter.map((slug) => ({
+      key: `framework-${slug}`,
+      label: `Framework: ${slug.replace(/-/g, ' ')}`,
+      onRemove: () => update({ frameworks: frameworkFilter.filter((item) => item !== slug) }),
+    })),
+  ];
+
   return (
     <PageTemplate
       title="Risks"
@@ -69,30 +84,32 @@ export function RisksPage() {
         <div className="flex h-48 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-gray-400" /></div>
       ) : (
         <div className="space-y-6">
-          <Card className="p-4">
-            <div className="space-y-3">
-              <FrameworkFilter selected={frameworkFilter} onChange={setFrameworkFilter} />
-              <div className="grid gap-3 lg:grid-cols-[1.5fr_0.6fr_0.6fr_auto]">
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                <Input value={query} onChange={(event) => setQuery(event.target.value)} className="pl-9" placeholder="Search risks, assets, teams, or categories" />
-              </div>
-              <Select value={severity} onValueChange={setSeverity}>
-                <SelectTrigger><SelectValue placeholder="Severity" /></SelectTrigger>
-                <SelectContent>
-                  {['ALL', 'CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <Select value={status} onValueChange={setStatus}>
-                <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
-                <SelectContent>
-                  {['ALL', 'OPEN', 'IN_PROGRESS', 'VERIFIED', 'ACCEPTED', 'TRANSFERRED'].map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <div className="flex items-center justify-end text-sm text-gray-500">{filtered.length} results</div>
-              </div>
-            </div>
-          </Card>
+          <PageFilterBar
+            searchValue={query}
+            onSearchChange={(value) => update({ query: value })}
+            searchPlaceholder="Search risks, assets, teams, or categories"
+            selects={[
+              {
+                key: 'severity',
+                value: severity,
+                placeholder: 'Severity',
+                onChange: (value) => update({ severity: value }),
+                options: ['ALL', 'CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].map((item) => ({ value: item, label: item })),
+              },
+              {
+                key: 'status',
+                value: status,
+                placeholder: 'Status',
+                onChange: (value) => update({ status: value }),
+                options: ['ALL', 'OPEN', 'IN_PROGRESS', 'VERIFIED', 'ACCEPTED', 'TRANSFERRED'].map((item) => ({ value: item, label: item.replace(/_/g, ' ') })),
+              },
+            ]}
+            auxiliary={<FrameworkFilter selected={frameworkFilter} onChange={(value) => update({ frameworks: value })} />}
+            resultCount={filtered.length}
+            resultLabel="results"
+            activeFilters={activeFilters}
+            onClearAll={reset}
+          />
 
           <Card>
             <div className="overflow-x-auto">

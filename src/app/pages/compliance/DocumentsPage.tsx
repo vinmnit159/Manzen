@@ -14,6 +14,8 @@ import { evidenceService } from '@/services/api/evidence';
 import { controlsService } from '@/services/api/controls';
 import { testsService } from '@/services/api/tests';
 import { FrameworkFilter } from '@/app/components/compliance/FrameworkFilter';
+import { PageFilterBar } from '@/app/components/filters/PageFilterBar';
+import { useUrlFilterState } from '@/app/hooks/useUrlFilterState';
 
 /**
  * Maps an ISO control reference prefix to a canonical framework slug.
@@ -476,8 +478,13 @@ export function DocumentsPage() {
   const [stats, setStats] = useState<{ total: number; automated: number; manual: number } | null>(null);
   const [controls, setControls] = useState<ControlOption[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'ALL' | 'AUTOMATED' | 'FILE'>('ALL');
-  const [frameworkFilter, setFrameworkFilter] = useState<string[]>([]);
+  const { filters, update, reset } = useUrlFilterState({
+    defaults: { type: 'ALL', search: '', frameworks: [] as string[] },
+    arrayKeys: ['frameworks'],
+  });
+  const filter = filters.type as 'ALL' | 'AUTOMATED' | 'FILE';
+  const search = filters.search;
+  const frameworkFilter = filters.frameworks;
   const [showUpload, setShowUpload] = useState(false);
   const [downloading, setDownloading] = useState<string | null>(null);
   const [selectedEvidence, setSelectedEvidence] = useState<EvidenceItem | null>(null);
@@ -504,15 +511,27 @@ export function DocumentsPage() {
   const filtered = useMemo(() => {
     return evidence.filter((e) => {
       const matchesType = filter === 'ALL' || e.type === filter;
+      const haystack = `${e.fileName ?? ''} ${e.control?.isoReference ?? ''} ${e.control?.title ?? ''} ${e.collectedBy ?? ''}`.toLowerCase();
+      const matchesSearch = search.trim() === '' || haystack.includes(search.trim().toLowerCase());
       const matchesFramework =
         frameworkFilter.length === 0 ||
         (() => {
           const slug = isoReferenceToFrameworkSlug(e.control?.isoReference ?? null);
           return slug !== null && frameworkFilter.includes(slug);
         })();
-      return matchesType && matchesFramework;
+      return matchesType && matchesFramework && matchesSearch;
     });
-  }, [evidence, filter, frameworkFilter]);
+  }, [evidence, filter, frameworkFilter, search]);
+
+  const activeFilters = [
+    ...(search.trim() ? [{ key: 'search', label: `Search: ${search.trim()}`, onRemove: () => update({ search: '' }) }] : []),
+    ...(filter !== 'ALL' ? [{ key: 'type', label: `Type: ${filter}`, onRemove: () => update({ type: 'ALL' }) }] : []),
+    ...frameworkFilter.map((slug) => ({
+      key: `framework-${slug}`,
+      label: `Framework: ${slug.replace(/-/g, ' ')}`,
+      onRemove: () => update({ frameworks: frameworkFilter.filter((item) => item !== slug) }),
+    })),
+  ];
 
   const handleDownload = async (ev: EvidenceItem, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -599,27 +618,29 @@ export function DocumentsPage() {
             </button>
           </div>
 
-          {/* Framework filter */}
-          <FrameworkFilter selected={frameworkFilter} onChange={setFrameworkFilter} />
-
-          {/* Type filter tabs */}
-          <div className="flex gap-2">
-            {(['ALL', 'AUTOMATED', 'FILE'] as const).map(f => (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={`px-3 py-1 rounded-full text-xs font-medium border transition-all ${
-                  filter === f
-                    ? 'bg-gray-900 text-white border-gray-900'
-                    : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
-                }`}
-              >
-                {f === 'ALL'
-                  ? `All (${evidence.length})`
-                  : `${f} (${evidence.filter(e => e.type === f).length})`}
-              </button>
-            ))}
-          </div>
+          <PageFilterBar
+            searchValue={search}
+            onSearchChange={(value) => update({ search: value })}
+            searchPlaceholder="Search files, controls, or collected by"
+            selects={[
+              {
+                key: 'type',
+                value: filter,
+                placeholder: 'Type',
+                onChange: (value) => update({ type: value as 'ALL' | 'AUTOMATED' | 'FILE' }),
+                options: [
+                  { value: 'ALL', label: `All (${evidence.length})` },
+                  { value: 'AUTOMATED', label: `Automated (${evidence.filter((item) => item.type === 'AUTOMATED').length})` },
+                  { value: 'FILE', label: `File (${evidence.filter((item) => item.type === 'FILE').length})` },
+                ],
+              },
+            ]}
+            auxiliary={<FrameworkFilter selected={frameworkFilter} onChange={(value) => update({ frameworks: value })} />}
+            resultCount={filtered.length}
+            resultLabel="evidence items"
+            activeFilters={activeFilters}
+            onClearAll={reset}
+          />
 
           {/* Table */}
           <Card>

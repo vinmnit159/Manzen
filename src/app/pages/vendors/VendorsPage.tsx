@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { PageTemplate } from '@/app/components/PageTemplate';
+import { PageFilterBar } from '@/app/components/filters/PageFilterBar';
+import { useUrlFilterState } from '@/app/hooks/useUrlFilterState';
 import { Button } from '@/app/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
-import { Input } from '@/app/components/ui/input';
 import { Progress } from '@/app/components/ui/progress';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/app/components/ui/dialog';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/app/components/ui/sheet';
@@ -12,9 +13,7 @@ import {
   Building2,
   CalendarClock,
   ClipboardCheck,
-  Filter,
   Plus,
-  Search,
   ShieldCheck,
   Sparkles,
 } from 'lucide-react';
@@ -55,10 +54,11 @@ function isDueWithinDays(isoDate: string, days: number): boolean {
 export function VendorsPage() {
   const [vendors, setVendors] = useState<VendorRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'ALL' | VendorStatus>('ALL');
-  const [tierFilter, setTierFilter] = useState<'ALL' | VendorTier>('ALL');
-  const [tab, setTab] = useState<TabKey>('ALL');
+  const { filters, update, reset } = useUrlFilterState({ defaults: { search: '', status: 'ALL', tier: 'ALL', tab: 'ALL' } });
+  const search = filters.search;
+  const statusFilter = filters.status as 'ALL' | VendorStatus;
+  const tierFilter = filters.tier as 'ALL' | VendorTier;
+  const tab = filters.tab as TabKey;
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [selected, setSelected] = useState<VendorRecord | null>(null);
   const [form, setForm] = useState<CreateVendorInput>(emptyVendorInput);
@@ -103,6 +103,13 @@ export function VendorsPage() {
       })
       .sort((a, b) => new Date(a.nextAssessmentAt).getTime() - new Date(b.nextAssessmentAt).getTime());
   }, [vendors, search, statusFilter, tierFilter, tab]);
+
+  const activeFilters = [
+    ...(search.trim() ? [{ key: 'search', label: `Search: ${search.trim()}`, onRemove: () => update({ search: '' }) }] : []),
+    ...(statusFilter !== 'ALL' ? [{ key: 'status', label: `Status: ${statusMeta[statusFilter].label}`, onRemove: () => update({ status: 'ALL' }) }] : []),
+    ...(tierFilter !== 'ALL' ? [{ key: 'tier', label: `Tier: ${tierMeta[tierFilter].label}`, onRemove: () => update({ tier: 'ALL' }) }] : []),
+    ...(tab !== 'ALL' ? [{ key: 'tab', label: `View: ${tab === 'DUE' ? 'Due soon' : 'High risk'}`, onRemove: () => update({ tab: 'ALL' }) }] : []),
+  ];
 
   async function onCreateVendor() {
     if (!form.name.trim() || !form.category.trim() || !form.owner.trim()) return;
@@ -190,44 +197,43 @@ export function VendorsPage() {
 
         <Card>
           <CardContent className="pt-6">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <div className="relative w-full lg:max-w-sm">
-                <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                <Input
-                  className="pl-9"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search vendor, category, owner"
-                />
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <Filter className="h-4 w-4 text-slate-500" />
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value as any)}
-                  className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-                >
-                  <option value="ALL">All statuses</option>
-                  <option value="MONITORED">Monitored</option>
-                  <option value="ASSESSMENT_DUE">Assessment due</option>
-                  <option value="IN_REVIEW">In review</option>
-                  <option value="BLOCKED">Blocked</option>
-                </select>
-
-                <select
-                  value={tierFilter}
-                  onChange={(e) => setTierFilter(e.target.value as any)}
-                  className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-                >
-                  <option value="ALL">All risk tiers</option>
-                  <option value="LOW">Low</option>
-                  <option value="MEDIUM">Medium</option>
-                  <option value="HIGH">High</option>
-                  <option value="CRITICAL">Critical</option>
-                </select>
-              </div>
-            </div>
+            <PageFilterBar
+              searchValue={search}
+              onSearchChange={(value) => update({ search: value })}
+              searchPlaceholder="Search vendor, category, owner"
+              selects={[
+                {
+                  key: 'status',
+                  value: statusFilter,
+                  placeholder: 'Status',
+                  onChange: (value) => update({ status: value as 'ALL' | VendorStatus }),
+                  options: [
+                    { value: 'ALL', label: 'All statuses' },
+                    { value: 'MONITORED', label: 'Monitored' },
+                    { value: 'ASSESSMENT_DUE', label: 'Assessment due' },
+                    { value: 'IN_REVIEW', label: 'In review' },
+                    { value: 'BLOCKED', label: 'Blocked' },
+                  ],
+                },
+                {
+                  key: 'tier',
+                  value: tierFilter,
+                  placeholder: 'Risk tier',
+                  onChange: (value) => update({ tier: value as 'ALL' | VendorTier }),
+                  options: [
+                    { value: 'ALL', label: 'All risk tiers' },
+                    { value: 'LOW', label: 'Low' },
+                    { value: 'MEDIUM', label: 'Medium' },
+                    { value: 'HIGH', label: 'High' },
+                    { value: 'CRITICAL', label: 'Critical' },
+                  ],
+                },
+              ]}
+              resultCount={filteredVendors.length}
+              resultLabel="vendors"
+              activeFilters={activeFilters}
+              onClearAll={reset}
+            />
 
             <div className="mt-4 flex flex-wrap gap-2">
               {[
@@ -238,7 +244,7 @@ export function VendorsPage() {
                 <Button
                   key={item.key}
                   variant={tab === item.key ? 'default' : 'outline'}
-                  onClick={() => setTab(item.key as TabKey)}
+                  onClick={() => update({ tab: item.key as TabKey })}
                   className="h-8"
                 >
                   {item.label}

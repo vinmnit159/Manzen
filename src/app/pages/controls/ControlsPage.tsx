@@ -3,28 +3,32 @@ import { useNavigate } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { controlsService } from '@/services/api/controls';
 import { Control, ControlFilter, ColumnConfig, DEFAULT_COLUMNS } from './types';
-import { ControlsFilter } from './ControlsFilter';
 import { ControlsTable } from './ControlsTable';
 import { ColumnSelector } from './ColumnSelector';
 import { ControlDetailPanel } from './ControlDetailPanel';
 import { FrameworkFilter } from '@/app/components/compliance/FrameworkFilter';
-import { SlidersHorizontal, X, RefreshCw } from 'lucide-react';
+import { PageFilterBar } from '@/app/components/filters/PageFilterBar';
+import { useUrlFilterState } from '@/app/hooks/useUrlFilterState';
+import { RefreshCw } from 'lucide-react';
 import { QK } from '@/lib/queryKeys';
 import { STALE } from '@/lib/queryClient';
 
 export function ControlsPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const [filter, setFilter] = useState<ControlFilter>({
-    search: '',
-    status: '',
-    isoReference: '',
+  const { filters, update, reset } = useUrlFilterState({
+    defaults: { search: '', status: '', isoReference: '', frameworks: [] as string[] },
+    arrayKeys: ['frameworks'],
   });
-  const [frameworkFilter, setFrameworkFilter] = useState<string[]>([]);
+  const filter: ControlFilter = {
+    search: filters.search,
+    status: filters.status as ControlFilter['status'],
+    isoReference: filters.isoReference,
+  };
+  const frameworkFilter = filters.frameworks;
   const [columns, setColumns] = useState<ColumnConfig[]>(DEFAULT_COLUMNS);
   const [sortColumn, setSortColumn] = useState<string>('isoReference');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-  const [filterOpen, setFilterOpen] = useState(false);
   const [selectedControl, setSelectedControl] = useState<Control | null>(null);
 
   // Load / persist column preferences in localStorage (unchanged)
@@ -86,11 +90,8 @@ export function ControlsPage() {
     qc.invalidateQueries({ queryKey: ['controls'] });
   }, [qc]);
 
-  const handleFilterChange = (newFilter: ControlFilter) => setFilter(newFilter);
-
   const handleClearFilters = () => {
-    setFilter({ search: '', status: '', isoReference: '' });
-    setFrameworkFilter([]);
+    reset();
   };
 
   const handleColumnToggle = (columnId: string) =>
@@ -108,6 +109,16 @@ export function ControlsPage() {
   };
 
   const hasActiveFilters = !!(filter.search || filter.status || filter.isoReference || frameworkFilter.length > 0);
+  const activeFilters = [
+    ...(filter.search.trim() ? [{ key: 'search', label: `Search: ${filter.search.trim()}`, onRemove: () => update({ search: '' }) }] : []),
+    ...(filter.status ? [{ key: 'status', label: `Status: ${filter.status.replace(/_/g, ' ').toLowerCase()}`, onRemove: () => update({ status: '' }) }] : []),
+    ...(filter.isoReference.trim() ? [{ key: 'isoReference', label: `ISO: ${filter.isoReference.trim()}`, onRemove: () => update({ isoReference: '' }) }] : []),
+    ...frameworkFilter.map((slug) => ({
+      key: `framework-${slug}`,
+      label: `Framework: ${slug.replace(/-/g, ' ')}`,
+      onRemove: () => update({ frameworks: frameworkFilter.filter((item) => item !== slug) }),
+    })),
+  ];
 
   // Compliance summary counts
   const implemented = filteredControls.filter((c) => c.status === 'IMPLEMENTED').length;
@@ -136,20 +147,6 @@ export function ControlsPage() {
               Filters active
             </span>
           )}
-          {/* Mobile filter toggle */}
-          <button
-            onClick={() => setFilterOpen((v) => !v)}
-            className={[
-              'lg:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors',
-              hasActiveFilters
-                ? 'bg-blue-600 text-white border-blue-600'
-                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50',
-            ].join(' ')}
-            aria-label="Toggle filters"
-          >
-            <SlidersHorizontal className="w-4 h-4" />
-            Filters{hasActiveFilters ? ' •' : ''}
-          </button>
           <button
             onClick={fetchControls}
             disabled={isFetching}
@@ -163,9 +160,38 @@ export function ControlsPage() {
         </div>
       </div>
 
-      {/* ── Framework filter bar ── */}
       <div className="px-6 pt-3 pb-1">
-        <FrameworkFilter selected={frameworkFilter} onChange={setFrameworkFilter} />
+        <PageFilterBar
+          searchValue={filter.search}
+          onSearchChange={(value) => update({ search: value })}
+          searchPlaceholder="Search title or description"
+          selects={[
+            {
+              key: 'status',
+              value: filter.status,
+              placeholder: 'Status',
+              onChange: (value) => update({ status: value }),
+              options: [
+                { value: '', label: 'All statuses' },
+                { value: 'IMPLEMENTED', label: 'Implemented' },
+                { value: 'PARTIALLY_IMPLEMENTED', label: 'Partially Implemented' },
+                { value: 'NOT_IMPLEMENTED', label: 'Not Implemented' },
+              ],
+            },
+            {
+              key: 'isoReference',
+              value: filter.isoReference,
+              placeholder: 'ISO Reference',
+              onChange: (value) => update({ isoReference: value }),
+              options: [{ value: '', label: 'All references' }],
+            },
+          ]}
+          auxiliary={<FrameworkFilter selected={frameworkFilter} onChange={(value) => update({ frameworks: value })} />}
+          resultCount={filteredControls.length}
+          resultLabel="controls"
+          activeFilters={activeFilters}
+          onClearAll={handleClearFilters}
+        />
       </div>
 
       {/* ── Compliance Summary Cards (Material-style) ── */}
@@ -219,45 +245,6 @@ export function ControlsPage() {
 
       {/* ── Main Content: Filters + Table ── */}
       <div className="flex flex-col lg:flex-row gap-4 px-3 sm:px-6 py-4">
-
-        {/* Mobile filter overlay */}
-        {filterOpen && (
-          <div
-            className="fixed inset-0 bg-black/40 z-20 lg:hidden"
-            onClick={() => setFilterOpen(false)}
-            aria-hidden="true"
-          />
-        )}
-
-        {/* Filter panel — drawer on mobile, sidebar on desktop */}
-        <div
-          className={[
-            // Mobile: fixed bottom drawer sliding up
-            'fixed bottom-0 left-0 right-0 z-30 lg:static lg:z-auto',
-            'lg:w-72 lg:flex-shrink-0',
-            'transition-transform duration-300 ease-in-out lg:transition-none lg:translate-y-0',
-            filterOpen ? 'translate-y-0' : 'translate-y-full lg:translate-y-0',
-          ].join(' ')}
-        >
-          {/* Close handle — mobile only */}
-          <div className="lg:hidden flex items-center justify-between px-5 pt-4 pb-2 bg-white rounded-t-2xl border-t border-x border-gray-200 shadow-lg">
-            <span className="text-sm font-semibold text-gray-900">Filters</span>
-            <button
-              onClick={() => setFilterOpen(false)}
-              className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100"
-              aria-label="Close filters"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-          <ControlsFilter
-            filter={filter}
-            onFilterChange={(f) => { handleFilterChange(f); }}
-            onClearFilters={handleClearFilters}
-            mobileDrawer
-          />
-        </div>
-
         {/* Table area */}
         <div className="flex-1 min-w-0 flex flex-col gap-3">
           {loading ? (
