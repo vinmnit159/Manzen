@@ -6,6 +6,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/app/components/ui/button';
 import { cn } from '@/app/components/ui/utils';
 
+function getEmptySelectValue(key: string) {
+  return `__empty__${key}`;
+}
+
 export interface FilterSelectOption {
   value: string;
   label: string;
@@ -68,13 +72,20 @@ export function PageFilterBar({
             ) : null}
 
             {selects.map((select) => (
-              <Select key={select.key} value={select.value} onValueChange={select.onChange}>
+              <Select
+                key={select.key}
+                value={select.value === '' ? getEmptySelectValue(select.key) : select.value}
+                onValueChange={(value) => select.onChange(value === getEmptySelectValue(select.key) ? '' : value)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder={select.placeholder} />
                 </SelectTrigger>
                 <SelectContent>
                   {select.options.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
+                    <SelectItem
+                      key={`${select.key}-${option.value || 'empty'}`}
+                      value={option.value === '' ? getEmptySelectValue(select.key) : option.value}
+                    >
                       {option.label}
                     </SelectItem>
                   ))}
