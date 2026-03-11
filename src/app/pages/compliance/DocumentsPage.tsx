@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { PageTemplate } from '@/app/components/PageTemplate';
 import { Card } from '@/app/components/ui/card';
@@ -13,6 +13,22 @@ import { apiClient } from '@/services/api/client';
 import { evidenceService } from '@/services/api/evidence';
 import { controlsService } from '@/services/api/controls';
 import { testsService } from '@/services/api/tests';
+import { FrameworkFilter } from '@/app/components/compliance/FrameworkFilter';
+
+/**
+ * Maps an ISO control reference prefix to a canonical framework slug.
+ * ISO 27001 controls start with "A.", SOC 2 with "CC", NIST with category codes,
+ * HIPAA with "164.". Evidence items inherit their framework from their linked control.
+ */
+function isoReferenceToFrameworkSlug(isoRef: string | undefined | null): string | null {
+  if (!isoRef) return null;
+  const ref = isoRef.trim().toUpperCase();
+  if (ref.startsWith('A.') || ref.startsWith('ISO')) return 'iso-27001';
+  if (ref.startsWith('CC') || ref.startsWith('A1') || ref.startsWith('C1') || ref.startsWith('P') || ref.startsWith('PI')) return 'soc-2';
+  if (ref.startsWith('164.')) return 'hipaa';
+  if (ref.startsWith('GV.') || ref.startsWith('ID.') || ref.startsWith('PR.') || ref.startsWith('DE.') || ref.startsWith('RS.') || ref.startsWith('RC.')) return 'nist-csf';
+  return null;
+}
 
 interface EvidenceItem {
   id: string;
@@ -461,6 +477,7 @@ export function DocumentsPage() {
   const [controls, setControls] = useState<ControlOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'ALL' | 'AUTOMATED' | 'FILE'>('ALL');
+  const [frameworkFilter, setFrameworkFilter] = useState<string[]>([]);
   const [showUpload, setShowUpload] = useState(false);
   const [downloading, setDownloading] = useState<string | null>(null);
   const [selectedEvidence, setSelectedEvidence] = useState<EvidenceItem | null>(null);
@@ -484,7 +501,18 @@ export function DocumentsPage() {
 
   useEffect(() => { loadData(); }, []);
 
-  const filtered = filter === 'ALL' ? evidence : evidence.filter(e => e.type === filter);
+  const filtered = useMemo(() => {
+    return evidence.filter((e) => {
+      const matchesType = filter === 'ALL' || e.type === filter;
+      const matchesFramework =
+        frameworkFilter.length === 0 ||
+        (() => {
+          const slug = isoReferenceToFrameworkSlug(e.control?.isoReference ?? null);
+          return slug !== null && frameworkFilter.includes(slug);
+        })();
+      return matchesType && matchesFramework;
+    });
+  }, [evidence, filter, frameworkFilter]);
 
   const handleDownload = async (ev: EvidenceItem, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -571,7 +599,10 @@ export function DocumentsPage() {
             </button>
           </div>
 
-          {/* Filter tabs */}
+          {/* Framework filter */}
+          <FrameworkFilter selected={frameworkFilter} onChange={setFrameworkFilter} />
+
+          {/* Type filter tabs */}
           <div className="flex gap-2">
             {(['ALL', 'AUTOMATED', 'FILE'] as const).map(f => (
               <button

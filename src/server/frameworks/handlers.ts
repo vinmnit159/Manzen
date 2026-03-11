@@ -181,6 +181,72 @@ export function createFrameworkHandlers(deps: FrameworkHandlerDeps = {}) {
       await service.syncEntitlement(body);
       return frameworkContracts.syncEntitlement.response.parse(ok({ synced: true as const }));
     },
+
+    /** GET /api/billing/entitlements */
+    async listEntitlements(request?: HandlerRequest) {
+      const service = deps.service ?? getService(request);
+      const user = request?.user;
+      if (!user?.organizationId) {
+        throw Object.assign(new Error('Authentication required'), { statusCode: 401 });
+      }
+      const data = await service.listEntitlements(user.organizationId);
+      return frameworkContracts.listEntitlements.response.parse(ok(data));
+    },
+
+    /** GET /api/org/frameworks/readiness */
+    async getReadinessSummary(request?: HandlerRequest) {
+      const service = deps.service ?? getService(request);
+      const user = request?.user;
+      if (!user?.organizationId) {
+        throw Object.assign(new Error('Authentication required'), { statusCode: 401 });
+      }
+      const data = await service.getReadinessSummary(user.organizationId);
+      return frameworkContracts.getReadinessSummary.response.parse(ok(data));
+    },
+
+    /** GET /api/org/frameworks/:frameworkSlug/coverage/history */
+    async getCoverageHistory(request?: HandlerRequest) {
+      const service = deps.service ?? getService(request);
+      const user = request?.user;
+      if (!user?.organizationId) {
+        throw Object.assign(new Error('Authentication required'), { statusCode: 401 });
+      }
+      const frameworkSlug = request?.params?.frameworkSlug ?? '';
+      const rawLimit = (request?.query as Record<string, string> | undefined)?.limit;
+      const limit = rawLimit ? Math.min(parseInt(rawLimit, 10) || 24, 100) : 24;
+      const data = await service.getCoverageHistory(user.organizationId, frameworkSlug, limit);
+      return frameworkContracts.getCoverageHistory.response.parse(ok(data));
+    },
+
+    /** GET /api/org/frameworks/:frameworkSlug/mappings */
+    async getFrameworkMappings(request?: HandlerRequest) {
+      const service = deps.service ?? getService(request);
+      const user = request?.user;
+      if (!user?.organizationId) {
+        throw Object.assign(new Error('Authentication required'), { statusCode: 401 });
+      }
+      const frameworkSlug = request?.params?.frameworkSlug ?? '';
+      const data = await service.getFrameworkMappings(user.organizationId, frameworkSlug);
+      return frameworkContracts.getFrameworkMappings.response.parse(ok(data));
+    },
+
+    /** POST /api/org/frameworks/:frameworkSlug/mappings/confirm */
+    async confirmMapping(request?: HandlerRequest) {
+      const service = deps.service ?? getService(request);
+      const user = request?.user;
+      if (!user?.organizationId) {
+        throw Object.assign(new Error('Authentication required'), { statusCode: 401 });
+      }
+      const frameworkSlug = request?.params?.frameworkSlug ?? '';
+      const body = frameworkContracts.confirmMapping.body.parse(request?.body ?? {});
+      await service.confirmMapping({
+        organizationId: user.organizationId,
+        frameworkSlug,
+        mappingType: body.mappingType,
+        mappingId: body.mappingId,
+      });
+      return frameworkContracts.confirmMapping.response.parse(ok({ confirmed: true as const }));
+    },
   } satisfies Record<string, (...args: any[]) => MaybePromise<unknown>>;
 }
 

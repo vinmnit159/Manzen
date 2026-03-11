@@ -17,9 +17,18 @@ import {
 import { toast } from "sonner";
 import { setupService, SetupRequest } from "@/services/api/setup";
 import { testsService } from "@/services/api/tests";
+import { frameworksService } from "@/services/api/frameworks";
 import { Eye, EyeOff, Settings, ShieldCheck, Users } from "lucide-react";
 import { Checkbox } from "@/app/components/ui/checkbox";
 import { FRAMEWORK_SUITE_OPTIONS } from "@/app/features/tests/frameworkSuites";
+
+/** Maps test suite template IDs to their canonical framework slugs */
+const SUITE_TO_FRAMEWORK_SLUG: Record<string, string> = {
+  'soc2-access-reviews':   'soc-2',
+  'iso-cloud-hardening':   'iso-27001',
+  'nist-sdlc':             'nist-csf',
+  'hipaa-data-retention':  'hipaa',
+};
 
 const setupSchema = z.object({
   organizationName: z.string().min(2, "Organization name must be at least 2 characters"),
@@ -80,12 +89,33 @@ export function SetupFormPage() {
           localStorage.setItem('isms_token', response.data.token);
         }
         if (data.selectedFrameworks.length > 0) {
-          const results = await Promise.allSettled(
+          // Create test suites from templates
+          const suiteResults = await Promise.allSettled(
             data.selectedFrameworks.map((templateId) => testsService.createSuiteFromTemplate(templateId))
           );
-          const succeeded = results.filter((result) => result.status === 'fulfilled').length;
-          if (succeeded > 0) {
-            toast.success(`Created ${succeeded} framework suite${succeeded === 1 ? '' : 's'} during setup.`);
+          const suitesSucceeded = suiteResults.filter((result) => result.status === 'fulfilled').length;
+          if (suitesSucceeded > 0) {
+            toast.success(`Created ${suitesSucceeded} framework suite${suitesSucceeded === 1 ? '' : 's'} during setup.`);
+          }
+
+          // Activate the corresponding compliance frameworks in the catalog
+          const frameworkSlugs = data.selectedFrameworks
+            .map((templateId) => SUITE_TO_FRAMEWORK_SLUG[templateId])
+            .filter(Boolean);
+          const uniqueSlugs = [...new Set(frameworkSlugs)];
+          if (uniqueSlugs.length > 0) {
+            const frameworkResults = await Promise.allSettled(
+              uniqueSlugs.map((slug) =>
+                frameworksService.activateFramework({
+                  frameworkSlug: slug,
+                  scopeNote: 'Activated during initial system setup',
+                })
+              )
+            );
+            const frameworksActivated = frameworkResults.filter((r) => r.status === 'fulfilled').length;
+            if (frameworksActivated > 0) {
+              toast.success(`Activated ${frameworksActivated} compliance framework${frameworksActivated === 1 ? '' : 's'}.`);
+            }
           }
         }
         

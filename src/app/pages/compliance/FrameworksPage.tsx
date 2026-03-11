@@ -339,8 +339,8 @@ export function FrameworksPage() {
       // Redirect to activation summary screen
       navigate(`/compliance/frameworks/${fw.slug}/activated`, {
         state: {
-          summary: (res as any).summary as ActivationSummaryDto,
-          orgFramework: res.data,
+          summary: res.data.summary,
+          orgFramework: res.data.orgFramework,
         },
       });
     },

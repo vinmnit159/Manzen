@@ -28,20 +28,28 @@ export function RisksPage() {
     staleTime: STALE.RISKS,
   });
 
+  /**
+   * Normalises a free-text framework name (from the risk engine) to its canonical slug.
+   * Matches the slugs produced by frameworkSeeds.ts so the FrameworkFilter can compare them.
+   */
+  function toFrameworkSlug(name: string): string {
+    const lower = name.toLowerCase();
+    if (lower.includes('iso') && (lower.includes('27001') || lower.includes('27k'))) return 'iso-27001';
+    if (lower.includes('soc') && (lower.includes('2') || lower.includes('ii'))) return 'soc-2';
+    if (lower.includes('nist') || lower.includes('csf')) return 'nist-csf';
+    if (lower.includes('hipaa')) return 'hipaa';
+    return lower.replace(/\s+/g, '-');
+  }
+
   const filtered = useMemo(() => {
     return risks.filter((risk) => {
       const matchesSeverity = severity === 'ALL' || risk.impact === severity;
       const matchesStatus = status === 'ALL' || risk.status === status;
       const haystack = `${risk.title} ${risk.assetName} ${risk.category} ${risk.owner.team}`.toLowerCase();
       const matchesQuery = query.trim() === '' || haystack.includes(query.toLowerCase());
-      const matchesFramework = frameworkFilter.length === 0 || risk.frameworks.some((framework) => {
-        const value = framework.toLowerCase();
-        if (frameworkFilter.includes('iso-27001') && value.includes('iso 27001')) return true;
-        if (frameworkFilter.includes('soc-2') && value.includes('soc 2')) return true;
-        if (frameworkFilter.includes('nist-csf') && value.includes('nist')) return true;
-        if (frameworkFilter.includes('hipaa') && value.includes('hipaa')) return true;
-        return false;
-      });
+      const matchesFramework =
+        frameworkFilter.length === 0 ||
+        risk.frameworks.some((fw) => frameworkFilter.includes(toFrameworkSlug(fw)));
       return matchesSeverity && matchesStatus && matchesQuery && matchesFramework;
     });
   }, [frameworkFilter, query, risks, severity, status]);

@@ -104,4 +104,42 @@ export const frameworkRoutes: FrameworkRouteDefinition[] = [
       response: frameworkContracts.syncEntitlement.response,
     },
   },
+  // Phase 5 — list org entitlements
+  {
+    method: 'GET',
+    url: frameworkContracts.listEntitlements.path,
+    handlerName: 'listEntitlements',
+    schema: { response: frameworkContracts.listEntitlements.response },
+  },
+  // Phase 4 — readiness summary (must be before :frameworkSlug routes to avoid param collision)
+  {
+    method: 'GET',
+    url: frameworkContracts.getReadinessSummary.path,
+    handlerName: 'getReadinessSummary',
+    schema: { response: frameworkContracts.getReadinessSummary.response },
+  },
+  // Phase 4 — coverage history
+  {
+    method: 'GET',
+    url: frameworkContracts.getCoverageHistory.path,
+    handlerName: 'getCoverageHistory',
+    schema: { response: frameworkContracts.getCoverageHistory.response },
+  },
+  // Phase 3 — get all mappings for a framework
+  {
+    method: 'GET',
+    url: frameworkContracts.getFrameworkMappings.path,
+    handlerName: 'getFrameworkMappings',
+    schema: { response: frameworkContracts.getFrameworkMappings.response },
+  },
+  // Phase 3 — confirm a suggested mapping
+  {
+    method: 'POST',
+    url: frameworkContracts.confirmMapping.path,
+    handlerName: 'confirmMapping',
+    schema: {
+      body: frameworkContracts.confirmMapping.body,
+      response: frameworkContracts.confirmMapping.response,
+    },
+  },
 ];
