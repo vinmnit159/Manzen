@@ -48,6 +48,12 @@ export const QK = {
   testHistory: (id: string)      => ['tests', 'history', id]     as const,
   testRuns:    (id: string)      => ['tests', 'runs', id]         as const,
 
+  // Notifications
+  notificationsRoot: () => ['notifications'] as const,
+  notificationsUnreadCount: () => ['notifications', 'unread-count'] as const,
+  notificationsInbox: (filter?: object) => ['notifications', 'inbox', filter] as const,
+  notificationsPreferences: () => ['notifications', 'preferences'] as const,
+
   // Partner API
   partnerKeys:     ()             => ['partner', 'keys']           as const,
   partnerResults:  (filter?: object) => ['partner', 'results', filter] as const,

@@ -234,11 +234,22 @@ export async function forwardSiemEvent(params: { testId: string; event: Record<s
   }
 }
 
-export async function maybeDispatchEscalation(params: { escalationKey: string; testId: string; stage: 'OWNER' | 'MANAGER' | 'CISO'; message: string; organizationId?: string }) {
+export async function maybeDispatchEscalation(params: {
+  escalationKey: string;
+  testId: string;
+  stage: 'OWNER' | 'MANAGER' | 'CISO';
+  message: string;
+  organizationId?: string;
+  channels?: { slack?: boolean; jira?: boolean };
+}) {
   if (dispatchedEscalations.has(params.escalationKey)) return;
   dispatchedEscalations.add(params.escalationKey);
-  await Promise.all([
-    sendSlackNotification({ testId: params.testId, title: `${params.stage} escalation`, body: params.message, severity: 'warning', organizationId: params.organizationId }),
-    createJiraTicket({ testId: params.testId, summary: `${params.stage} escalation for overdue test`, description: params.message, labels: ['test-escalation', params.stage.toLowerCase()], organizationId: params.organizationId }),
-  ]);
+  const tasks: Promise<unknown>[] = [];
+  if (params.channels?.slack !== false) {
+    tasks.push(sendSlackNotification({ testId: params.testId, title: `${params.stage} escalation`, body: params.message, severity: 'warning', organizationId: params.organizationId }));
+  }
+  if (params.channels?.jira !== false) {
+    tasks.push(createJiraTicket({ testId: params.testId, summary: `${params.stage} escalation for overdue test`, description: params.message, labels: ['test-escalation', params.stage.toLowerCase()], organizationId: params.organizationId }));
+  }
+  await Promise.all(tasks);
 }

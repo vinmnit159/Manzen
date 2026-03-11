@@ -19,6 +19,7 @@ import {
   X,
   ClipboardCheck,
   KeyRound,
+  Bell,
 } from "lucide-react";
 // ChevronDown and ChevronRight retained for other expandable nav groups
 import { useEffect, useState } from "react";
@@ -136,6 +137,11 @@ const navigation: NavItem[] = [
       { title: "Roles",           href: "/access/roles",    roles: [...ADMIN_ROLES] },
       { title: "Access Requests", href: "/access/requests" },
     ],
+  },
+  {
+    title: "Notifications",
+    href: "/notifications",
+    icon: Bell,
   },
   {
     title: "Integrations",

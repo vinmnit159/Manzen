@@ -13,6 +13,7 @@
  */
 
 import type { FastifyRequest, FastifyReply } from 'fastify';
+import { getNotificationServiceOrNull } from '@/server/notifications/module';
 
 export interface AuthUser {
   id: string;
@@ -60,6 +61,10 @@ export async function authenticate(request: FastifyRequest, reply: FastifyReply)
     return;
   }
   request.user = user;
+  const notificationService = getNotificationServiceOrNull();
+  if (notificationService) {
+    notificationService.ensureDefaultPreferences(user.id, user.organizationId, user.email).catch(() => {});
+  }
 }
 
 /**

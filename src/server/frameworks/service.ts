@@ -18,7 +18,17 @@ import type {
   RequirementStatusDto,
   CoverageSnapshotDto,
   SyncEntitlementRequestDto,
+  BillingEntitlementDto,
+  FrameworkReadinessDto,
+  ControlMappingDto,
+  TestMappingDto,
+  PolicyMappingDto,
+  FrameworkMappingsDto,
+  ActivationSummaryDto,
+  ActivateFrameworkResponseDto,
 } from './contracts';
+import { NotificationEventType } from '@/domain/notifications/eventTypes';
+import { getNotificationServiceOrNull } from '@/server/notifications/module';
 
 // ── Row shapes returned by Postgres ──────────────────────────────────────────
 
@@ -98,6 +108,52 @@ interface CoverageSnapshotRow {
   passing_test_count: number;
   open_gaps: number;
   calculated_at: string;
+}
+
+interface BillingEntitlementRow {
+  framework_slug: string;
+  plan_name: string | null;
+  is_active: boolean;
+  valid_from: string;
+  valid_until: string | null;
+  created_at: string;
+}
+
+interface ControlMappingRow {
+  id: string;
+  organization_id: string;
+  control_id: string;
+  framework_requirement_id: string;
+  framework_id: string;
+  mapping_type: string;
+  created_at: string;
+  requirement_code: string;
+  requirement_title: string;
+  requirement_domain: string | null;
+}
+
+interface TestMappingRow {
+  id: string;
+  organization_id: string;
+  test_id: string;
+  framework_requirement_id: string;
+  framework_id: string;
+  created_at: string;
+  requirement_code: string;
+  requirement_title: string;
+  requirement_domain: string | null;
+}
+
+interface PolicyMappingRow {
+  id: string;
+  organization_id: string;
+  policy_id: string;
+  framework_requirement_id: string;
+  framework_id: string;
+  created_at: string;
+  requirement_code: string;
+  requirement_title: string;
+  requirement_domain: string | null;
 }
 
 // ── Mappers ───────────────────────────────────────────────────────────────────
@@ -183,6 +239,66 @@ function toOrgFrameworkDto(row: OrgFrameworkRow): OrgFrameworkDto {
   };
 }
 
+function toBillingEntitlementDto(row: BillingEntitlementRow): BillingEntitlementDto {
+  return {
+    frameworkSlug: row.framework_slug,
+    planName: row.plan_name,
+    isActive: row.is_active,
+    validFrom: row.valid_from,
+    validUntil: row.valid_until,
+    createdAt: row.created_at,
+  };
+}
+
+function toControlMappingDto(row: ControlMappingRow): ControlMappingDto {
+  return {
+    id: row.id,
+    organizationId: row.organization_id,
+    controlId: row.control_id,
+    frameworkRequirementId: row.framework_requirement_id,
+    frameworkId: row.framework_id,
+    mappingType: row.mapping_type as ControlMappingDto['mappingType'],
+    createdAt: row.created_at,
+    requirementCode: row.requirement_code,
+    requirementTitle: row.requirement_title,
+    requirementDomain: row.requirement_domain,
+  };
+}
+
+function toTestMappingDto(row: TestMappingRow): TestMappingDto {
+  return {
+    id: row.id,
+    organizationId: row.organization_id,
+    testId: row.test_id,
+    frameworkRequirementId: row.framework_requirement_id,
+    frameworkId: row.framework_id,
+    createdAt: row.created_at,
+    requirementCode: row.requirement_code,
+    requirementTitle: row.requirement_title,
+    requirementDomain: row.requirement_domain,
+  };
+}
+
+function toPolicyMappingDto(row: PolicyMappingRow): PolicyMappingDto {
+  return {
+    id: row.id,
+    organizationId: row.organization_id,
+    policyId: row.policy_id,
+    frameworkRequirementId: row.framework_requirement_id,
+    frameworkId: row.framework_id,
+    createdAt: row.created_at,
+    requirementCode: row.requirement_code,
+    requirementTitle: row.requirement_title,
+    requirementDomain: row.requirement_domain,
+  };
+}
+
+function guessUserEmail(userId?: string | null) {
+  if (!userId) return undefined;
+  if (userId.includes('@')) return userId;
+  return `${userId}@manzen.dev`;
+}
+
 // ── Service ───────────────────────────────────────────────────────────────────
 
 export class FrameworkService {
@@ -265,7 +381,7 @@ export class FrameworkService {
     frameworkSlug: string;
     activatedBy: string;
     scopeNote?: string;
-  }): Promise<OrgFrameworkDto> {
+  }): Promise<ActivateFrameworkResponseDto> {
     const fw = await this.getFrameworkBySlug(opts.frameworkSlug);
     if (!fw) {
       throw Object.assign(new Error(`Framework not found: ${opts.frameworkSlug}`), { code: 'FRAMEWORK_NOT_FOUND', statusCode: 404 });
@@ -273,6 +389,14 @@ export class FrameworkService {
 
     // Check entitlement when enforcement is enabled
     await this.assertEntitled(opts.organizationId, opts.frameworkSlug);
+
+    // Check if this is a re-activation (already had a record)
+    const existingResult = await this.db.query<{ status: string }>(
+      `select status from organization_frameworks
+        where organization_id = $1 and framework_id = $2 limit 1`,
+      [opts.organizationId, fw.id],
+    );
+    const isReactivation = existingResult.rows.length > 0;
 
     const orgFwId = crypto.randomUUID();
     const now = new Date().toISOString();
@@ -292,34 +416,134 @@ export class FrameworkService {
       [orgFwId, opts.organizationId, fw.id, now, opts.activatedBy, opts.scopeNote ?? null],
     );
 
-    // Seed default requirement status rows (idempotent)
-    await this.db.query(
-      `insert into organization_framework_requirement_status
-         (id, organization_id, framework_requirement_id, applicability_status, review_status, updated_at)
-       select
-         gen_random_uuid(),
-         $1,
-         r.id,
-         'applicable',
-         'not_started',
-         now()
-       from framework_requirements r
-       where r.framework_id = $2
-       on conflict (organization_id, framework_requirement_id) do nothing`,
+    let requirementsLoaded = 0;
+    let mappingsSuggested = 0;
+    let mappingsSkipped = 0;
+
+    if (!isReactivation) {
+      // Seed default requirement status rows (idempotent)
+      const seedResult = await this.db.query<{ count: string }>(
+        `with inserted as (
+           insert into organization_framework_requirement_status
+             (id, organization_id, framework_requirement_id, applicability_status, review_status, updated_at)
+           select
+             gen_random_uuid(),
+             $1,
+             r.id,
+             'applicable',
+             'not_started',
+             now()
+           from framework_requirements r
+           where r.framework_id = $2
+           on conflict (organization_id, framework_requirement_id) do nothing
+           returning id
+         )
+         select count(*) as count from inserted`,
+        [opts.organizationId, fw.id],
+      );
+      requirementsLoaded = Number(seedResult.rows[0]?.count ?? 0);
+
+      // If no rows returned from CTE (some DBs), fall back to counting total requirements
+      if (requirementsLoaded === 0) {
+        const totalResult = await this.db.query<{ count: string }>(
+          `select count(*) as count from framework_requirements where framework_id = $1`,
+          [fw.id],
+        );
+        requirementsLoaded = Number(totalResult.rows[0]?.count ?? 0);
+      }
+    } else {
+      // Re-activation: count existing requirement rows
+      const countResult = await this.db.query<{ count: string }>(
+        `select count(*) as count
+           from organization_framework_requirement_status s
+           join framework_requirements r on r.id = s.framework_requirement_id
+          where s.organization_id = $1 and r.framework_id = $2`,
+        [opts.organizationId, fw.id],
+      );
+      requirementsLoaded = Number(countResult.rows[0]?.count ?? 0);
+    }
+
+    // Count existing mappings for summary (suggestd mappings seeding is Phase 3 activation;
+    // here we count what already exists so the summary is accurate)
+    const mappingCountResult = await this.db.query<{ count: string }>(
+      `select count(*) as count
+         from control_framework_requirement_mappings
+        where organization_id = $1 and framework_id = $2`,
       [opts.organizationId, fw.id],
     );
+    mappingsSuggested = Number(mappingCountResult.rows[0]?.count ?? 0);
+
+    const testMappingCountResult = await this.db.query<{ count: string }>(
+      `select count(*) as count
+         from test_framework_requirement_mappings
+        where organization_id = $1 and framework_id = $2`,
+      [opts.organizationId, fw.id],
+    );
+    mappingsSuggested += Number(testMappingCountResult.rows[0]?.count ?? 0);
+
+    const policyMappingCountResult = await this.db.query<{ count: string }>(
+      `select count(*) as count
+         from policy_framework_requirement_mappings
+        where organization_id = $1 and framework_id = $2`,
+      [opts.organizationId, fw.id],
+    );
+    mappingsSuggested += Number(policyMappingCountResult.rows[0]?.count ?? 0);
+
+    // Count requirements needing review (not_started)
+    const needingReviewResult = await this.db.query<{ count: string }>(
+      `select count(*) as count
+         from organization_framework_requirement_status s
+         join framework_requirements r on r.id = s.framework_requirement_id
+        where s.organization_id = $1
+          and r.framework_id = $2
+          and s.review_status = 'not_started'`,
+      [opts.organizationId, fw.id],
+    );
+    const requirementsNeedingReview = Number(needingReviewResult.rows[0]?.count ?? 0);
 
     const orgFw = await this.getOrgFramework(opts.organizationId, fw.id);
 
     // Phase 4: compute initial coverage snapshot (append-only INSERT)
+    let initialCoverageScore = 0;
     try {
       await computeAndInsertCoverageSnapshot(this.db, opts.organizationId, fw.id);
+      const snap = await this.getCoverage(opts.organizationId, opts.frameworkSlug);
+      initialCoverageScore = snap?.controlCoveragePct ?? 0;
     } catch (err) {
       console.error('[FrameworkService] Coverage snapshot failed after activation:', err);
       // Non-fatal — return org framework record regardless
     }
 
-    return orgFw!;
+    const summary: ActivationSummaryDto = {
+      requirementsLoaded,
+      mappingsSuggested,
+      mappingsSkipped,
+      requirementsNeedingReview,
+      initialCoverageScore,
+      isReactivation,
+      warnings: [],
+    };
+
+    const notificationService = getNotificationServiceOrNull();
+    if (notificationService) {
+      notificationService.emit({
+        organizationId: opts.organizationId,
+      recipientUserIds: [opts.activatedBy],
+      eventType: NotificationEventType.FRAMEWORK_ACTIVATED,
+      title: `${fw.name} activated`,
+        body: `${fw.name} is now active for your organization and ready for coverage review.`,
+      severity: 'info',
+      resourceType: 'framework',
+      resourceId: fw.id,
+      metadata: { frameworkSlug: fw.slug },
+      recipientEmails: { [opts.activatedBy]: guessUserEmail(opts.activatedBy) },
+      resourceUrl: '/compliance/frameworks',
+    }).catch((error) => {
+        console.error('[NotificationService] framework activation emit failed:', error);
+      });
+    }
+
+    return { orgFramework: orgFw!, summary };
   }
 
   /**
@@ -459,7 +683,27 @@ export class FrameworkService {
           and organization_id = $2`,
       [opts.requirementId, opts.organizationId, opts.ownerId ?? null, opts.dueDate ?? null, now],
     );
-    return this.getRequirementStatus(opts.requirementId, opts.organizationId);
+    const updated = await this.getRequirementStatus(opts.requirementId, opts.organizationId);
+    if (opts.ownerId) {
+      const notificationService = getNotificationServiceOrNull();
+      if (notificationService) {
+        notificationService.emit({
+          organizationId: opts.organizationId,
+          recipientUserIds: [opts.ownerId],
+          eventType: NotificationEventType.GAP_OWNER_ASSIGNED,
+          title: `Framework gap assigned: ${updated.code}`,
+          body: `You are now the owner for requirement ${updated.code} — ${updated.title}.`,
+          severity: 'warning',
+          resourceType: 'framework',
+          resourceId: updated.frameworkRequirementId,
+          recipientEmails: { [opts.ownerId]: guessUserEmail(opts.ownerId) },
+          resourceUrl: '/compliance/frameworks',
+        }).catch((error) => {
+          console.error('[NotificationService] framework owner assignment emit failed:', error);
+        });
+      }
+    }
+    return updated;
   }
 
   /** Sets applicability status on a requirement status row. */
@@ -497,7 +741,164 @@ export class FrameworkService {
     return updated;
   }
 
+  // ── Phase 4: Coverage history ───────────────────────────────────────────────
+
+  /** Returns recent coverage snapshots for this org + framework (ordered newest-first). */
+  async getCoverageHistory(organizationId: string, frameworkSlug: string, limit = 24): Promise<CoverageSnapshotDto[]> {
+    const result = await this.db.query<CoverageSnapshotRow>(
+      `select
+         cs.id, cs.organization_id, cs.framework_id,
+         cs.total_requirements, cs.total_mapped,
+         cs.not_applicable, cs.applicable,
+         cs.covered, cs.partially_covered, cs.not_covered,
+         cs.control_coverage_pct, cs.test_pass_rate_pct,
+         cs.mapped_test_count, cs.passing_test_count,
+         cs.open_gaps, cs.calculated_at
+       from framework_coverage_snapshots cs
+       join frameworks f on f.id = cs.framework_id
+       where cs.organization_id = $1
+         and f.slug = $2
+       order by cs.calculated_at asc
+       limit $3`,
+      [organizationId, frameworkSlug, limit],
+    );
+    return result.rows.map(toCoverageSnapshotDto);
+  }
+
+  // ── Phase 4: Readiness summary ──────────────────────────────────────────────
+
+  /** Returns a readiness summary for all active frameworks for the org. */
+  async getReadinessSummary(organizationId: string): Promise<FrameworkReadinessDto[]> {
+    // Get all active frameworks for the org
+    const activeFrameworks = await this.listOrgFrameworks(organizationId);
+    if (activeFrameworks.length === 0) return [];
+
+    // For each, fetch the latest coverage snapshot
+    const results: FrameworkReadinessDto[] = [];
+    for (const fw of activeFrameworks) {
+      const snap = await this.getCoverage(organizationId, fw.frameworkSlug);
+      results.push({
+        slug: fw.frameworkSlug,
+        name: fw.frameworkName,
+        version: fw.frameworkVersion,
+        controlCoveragePct: snap?.controlCoveragePct ?? null,
+        testPassRatePct: snap?.testPassRatePct ?? null,
+        openGaps: snap?.openGaps ?? null,
+        covered: snap?.covered ?? null,
+        applicable: snap?.applicable ?? null,
+        totalRequirements: snap?.totalRequirements ?? null,
+        calculatedAt: snap?.calculatedAt ?? null,
+      });
+    }
+    return results;
+  }
+
+  // ── Phase 3: Mappings ───────────────────────────────────────────────────────
+
+  /** Returns all control, test, and policy mappings for a framework + org. */
+  async getFrameworkMappings(organizationId: string, frameworkSlug: string): Promise<FrameworkMappingsDto> {
+    const fw = await this.getFrameworkBySlug(frameworkSlug);
+    if (!fw) {
+      throw Object.assign(new Error(`Framework not found: ${frameworkSlug}`), { code: 'FRAMEWORK_NOT_FOUND', statusCode: 404 });
+    }
+
+    const [controlsResult, testsResult, policiesResult] = await Promise.all([
+      this.db.query<ControlMappingRow>(
+        `select
+           m.id, m.organization_id, m.control_id,
+           m.framework_requirement_id, m.framework_id,
+           m.mapping_type, m.created_at,
+           r.code as requirement_code,
+           r.title as requirement_title,
+           r.domain as requirement_domain
+         from control_framework_requirement_mappings m
+         join framework_requirements r on r.id = m.framework_requirement_id
+         where m.organization_id = $1
+           and m.framework_id = $2
+         order by r.code asc`,
+        [organizationId, fw.id],
+      ),
+      this.db.query<TestMappingRow>(
+        `select
+           m.id, m.organization_id, m.test_id,
+           m.framework_requirement_id, m.framework_id,
+           m.created_at,
+           r.code as requirement_code,
+           r.title as requirement_title,
+           r.domain as requirement_domain
+         from test_framework_requirement_mappings m
+         join framework_requirements r on r.id = m.framework_requirement_id
+         where m.organization_id = $1
+           and m.framework_id = $2
+         order by r.code asc`,
+        [organizationId, fw.id],
+      ),
+      this.db.query<PolicyMappingRow>(
+        `select
+           m.id, m.organization_id, m.policy_id,
+           m.framework_requirement_id, m.framework_id,
+           m.created_at,
+           r.code as requirement_code,
+           r.title as requirement_title,
+           r.domain as requirement_domain
+         from policy_framework_requirement_mappings m
+         join framework_requirements r on r.id = m.framework_requirement_id
+         where m.organization_id = $1
+           and m.framework_id = $2
+         order by r.code asc`,
+        [organizationId, fw.id],
+      ),
+    ]);
+
+    return {
+      controls: controlsResult.rows.map(toControlMappingDto),
+      tests: testsResult.rows.map(toTestMappingDto),
+      policies: policiesResult.rows.map(toPolicyMappingDto),
+    };
+  }
+
+  /** Promotes a suggested mapping to direct (human-confirmed). */
+  async confirmMapping(opts: {
+    organizationId: string;
+    frameworkSlug: string;
+    mappingType: 'control' | 'test' | 'policy';
+    mappingId: string;
+  }): Promise<void> {
+    const tableMap = {
+      control: 'control_framework_requirement_mappings',
+      test: 'test_framework_requirement_mappings',
+      policy: 'policy_framework_requirement_mappings',
+    };
+    const table = tableMap[opts.mappingType];
+
+    // Only control mappings have a mapping_type column; test and policy do not
+    if (opts.mappingType === 'control') {
+      await this.db.query(
+        `update ${table}
+            set mapping_type = 'direct'
+          where id = $1
+            and organization_id = $2
+            and mapping_type = 'suggested'`,
+        [opts.mappingId, opts.organizationId],
+      );
+    }
+    // For test/policy mappings there is no mapping_type — confirming is a no-op
+    // (they are considered confirmed once explicitly created)
+  }
+
   // ── Phase 5: Billing entitlements ──────────────────────────────────────────
+
+  /** Lists all subscription entitlements for the organization. */
+  async listEntitlements(organizationId: string): Promise<BillingEntitlementDto[]> {
+    const result = await this.db.query<BillingEntitlementRow>(
+      `select framework_slug, plan_name, is_active, valid_from, valid_until, created_at
+         from subscription_entitlements
+        where organization_id = $1
+        order by framework_slug asc, created_at desc`,
+      [organizationId],
+    );
+    return result.rows.map(toBillingEntitlementDto);
+  }
 
   /** Upserts a subscription entitlement record (called from billing webhook sync). */
   async syncEntitlement(data: SyncEntitlementRequestDto): Promise<void> {

@@ -3,7 +3,7 @@ import { riskEngineRoutes } from './routes';
 
 export interface RouteRegistrar {
   route(definition: {
-    method: 'GET' | 'POST' | 'PATCH';
+    method: 'GET' | 'POST' | 'PUT' | 'PATCH';
     url: string;
     schema: { body?: unknown; response: unknown };
     handler: (request?: { body?: unknown; params?: Record<string, string>; query?: unknown }) => Promise<unknown>;

@@ -64,6 +64,8 @@ import { PersonnelSettingsPage } from "@/app/pages/personnel/SettingsPage";
 import { IntegrationsPage } from "@/app/pages/IntegrationsPage";
 import { PartnerApiPage } from "@/app/pages/integrations/PartnerApiPage";
 import { MySecurityTasksPage } from "@/app/pages/MySecurityTasksPage";
+import { NotificationsPage } from "@/app/pages/notifications/NotificationsPage";
+import { NotificationSettingsPage } from "@/app/pages/notifications/NotificationSettingsPage";
 
 // Account
 import { AccountSettingsPage } from "@/app/pages/account/AccountSettingsPage";
@@ -130,6 +132,8 @@ export const router = createBrowserRouter([
       { path: "tests/:testId", Component: TestDetailPage },
       { path: "tests/library", loader: async () => redirect('/compliance/frameworks') },
       { path: "reports", Component: ReportsPage },
+      { path: "notifications", Component: NotificationsPage },
+      { path: "notifications/settings", Component: NotificationSettingsPage },
       { path: "reports/viewer/:reportId", Component: ReportViewerPage },
 
       // Auditor role

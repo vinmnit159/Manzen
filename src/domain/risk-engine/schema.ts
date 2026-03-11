@@ -252,6 +252,69 @@ export const riskEngineTables: TableDefinition[] = [
   },
 ];
 
+export const notificationTables: TableDefinition[] = [
+  {
+    name: 'notifications',
+    columns: [
+      { name: 'id', type: 'uuid', primaryKey: true },
+      { name: 'organization_id', type: 'varchar(255)' },
+      { name: 'recipient_user_id', type: 'varchar(255)' },
+      { name: 'event_type', type: 'varchar(255)' },
+      { name: 'title', type: 'text' },
+      { name: 'body', type: 'text' },
+      { name: 'resource_type', type: 'varchar(255)', nullable: true },
+      { name: 'resource_id', type: 'varchar(255)', nullable: true },
+      { name: 'severity', type: 'varchar(255)' },
+      { name: 'read_at', type: 'timestamp with time zone', nullable: true },
+      { name: 'digested_at', type: 'timestamp with time zone', nullable: true },
+      { name: 'actioned_at', type: 'timestamp with time zone', nullable: true },
+      { name: 'metadata_json', type: 'jsonb', defaultValue: "'{}'::jsonb" },
+      { name: 'created_at', type: 'timestamp with time zone', defaultValue: 'now()' },
+    ],
+    indexes: [
+      { name: 'idx_notifications_org_user_read', columns: ['organization_id', 'recipient_user_id', 'read_at'] },
+      { name: 'idx_notifications_org_user_created', columns: ['organization_id', 'recipient_user_id', 'created_at'] },
+    ],
+  },
+  {
+    name: 'notification_preferences',
+    columns: [
+      { name: 'id', type: 'uuid', primaryKey: true },
+      { name: 'organization_id', type: 'varchar(255)' },
+      { name: 'user_id', type: 'varchar(255)' },
+      { name: 'event_type', type: 'varchar(255)' },
+      { name: 'user_email', type: 'varchar(255)', nullable: true },
+      { name: 'in_app_enabled', type: 'boolean', defaultValue: 'true' },
+      { name: 'email_enabled', type: 'boolean', defaultValue: 'false' },
+      { name: 'slack_enabled', type: 'boolean', defaultValue: 'false' },
+      { name: 'digest_mode', type: 'varchar(255)', defaultValue: "'immediate'" },
+      { name: 'created_at', type: 'timestamp with time zone', defaultValue: 'now()' },
+      { name: 'updated_at', type: 'timestamp with time zone', defaultValue: 'now()' },
+    ],
+    indexes: [
+      { name: 'idx_notification_preferences_org_user_event', columns: ['organization_id', 'user_id', 'event_type'], unique: true },
+    ],
+  },
+  {
+    name: 'notification_delivery_log',
+    columns: [
+      { name: 'id', type: 'uuid', primaryKey: true },
+      { name: 'notification_id', type: 'uuid' },
+      { name: 'organization_id', type: 'varchar(255)' },
+      { name: 'channel', type: 'varchar(255)' },
+      { name: 'status', type: 'varchar(255)' },
+      { name: 'destination', type: 'text', nullable: true },
+      { name: 'error_message', type: 'text', nullable: true },
+      { name: 'delivered_at', type: 'timestamp with time zone', nullable: true },
+      { name: 'created_at', type: 'timestamp with time zone', defaultValue: 'now()' },
+    ],
+    indexes: [
+      { name: 'idx_notification_delivery_log_notification', columns: ['notification_id'] },
+      { name: 'idx_notification_delivery_log_org_created', columns: ['organization_id', 'created_at'] },
+    ],
+  },
+];
+
 export function renderCreateTableSql(table: TableDefinition) {
   const columnSql = table.columns.map((column) => {
     const parts = [column.name, column.type];
@@ -271,6 +334,7 @@ export function renderCreateTableSql(table: TableDefinition) {
 }
 
 export const riskEngineSchemaSql = riskEngineTables.map(renderCreateTableSql).join('\n\n');
+export const notificationSchemaSql = notificationTables.map(renderCreateTableSql).join('\n\n');
 
 // ── Framework catalog tables ───────────────────────────────────────────────────
 // These are global (not tenant-specific) and seeded once at boot.

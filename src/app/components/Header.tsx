@@ -1,10 +1,10 @@
-import { Bell, Search, Settings, HelpCircle, LogOut, User, Menu } from "lucide-react";
-import { Badge } from "@/app/components/ui/badge";
+import { Search, Settings, HelpCircle, LogOut, User, Menu } from "lucide-react";
 import { Input } from "@/app/components/ui/input";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router";
 import { authService } from "@/services/api/auth";
 import { useSidebar } from "@/app/components/Layout";
+import { NotificationBell } from "@/app/components/notifications/NotificationBell";
 
 interface SearchResult {
   title: string;
@@ -50,6 +50,7 @@ const searchablePages: SearchResult[] = [
   { title: "Vulnerabilities", path: "/assets/vulnerabilities", category: "Assets" },
   { title: "People", path: "/personnel/people", category: "Personnel" },
   { title: "Integrations", path: "/integrations", category: "Settings" },
+  { title: "Notifications", path: "/notifications", category: "Main" },
 ];
 
 export function Header() {
@@ -164,12 +165,7 @@ export function Header() {
             <HelpCircle className="w-5 h-5" />
           </button>
 
-          <button className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-md" title="Notifications">
-            <Bell className="w-5 h-5" />
-            <Badge className="absolute -top-1 -right-1 w-5 h-5 p-0 flex items-center justify-center bg-red-500 text-white text-xs">
-              3
-            </Badge>
-          </button>
+          <NotificationBell />
 
           <button className="hidden sm:flex p-2 text-gray-600 hover:bg-gray-100 rounded-md" title="Settings">
             <Settings className="w-5 h-5" />

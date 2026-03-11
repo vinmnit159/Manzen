@@ -42,7 +42,7 @@ Worker + integration services (GitHub, AWS) + Postgres/Redis/MinIO
 
 ## Configuration
 
-Set backend base URL in `.env.local`:
+Set backend base URL in `.env.local` or copy from `.env.example`:
 
 ```env
 VITE_API_URL=http://localhost:3000
@@ -53,6 +53,25 @@ Notes:
 - The API client reads `VITE_API_URL` (not `VITE_API_BASE_URL`).
 - If unset, client defaults to `http://localhost:3000`.
 
+Notification and worker-related environment variables:
+
+```env
+DATABASE_URL=postgres://postgres:postgres@localhost:5432/manzen
+REDIS_URL=redis://localhost:6379
+RESEND_API_KEY=re_replace_me
+NOTIFICATION_FROM_EMAIL=notifications@example.com
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/replace/me
+SLACK_DEFAULT_CHANNEL=#security-alerts
+WORKER_ROLE=api
+```
+
+`WORKER_ROLE` values:
+
+- `api` - API only
+- `notifications` - notification delivery worker only
+- `digests` - digest/scheduler worker only
+- `all` - API plus in-process workers for local all-in-one testing
+
 ## Local development
 
 ```bash
@@ -61,6 +80,14 @@ npm run dev
 ```
 
 App runs on `http://localhost:5173` by default.
+
+Server and worker processes:
+
+```bash
+npm run server
+npm run worker:notifications
+npm run worker:digests
+```
 
 ## Project structure (high level)
 
@@ -82,3 +109,9 @@ npm run build
 ```
 
 Generated static assets are deployed via Railway for production.
+
+`railway.toml` defines three services for the notification system rollout:
+
+- `backend-api`
+- `worker-notifications`
+- `worker-digests`

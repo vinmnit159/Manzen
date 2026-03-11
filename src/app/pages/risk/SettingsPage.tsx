@@ -9,6 +9,15 @@ import { useQuery } from '@tanstack/react-query';
 import { QK } from '@/lib/queryKeys';
 import { STALE } from '@/lib/queryClient';
 import { riskCenterService } from '@/services/api/riskCenter';
+import { useNotificationPreferences, useUpdateNotificationPreference } from '@/app/features/notifications/useNotifications';
+import { notificationEventDefinitions } from '@/app/features/notifications/notificationHelpers';
+
+const RISK_EVENT_TYPES = [
+  'risk.critical',
+  'risk.created',
+  'risk.due',
+  'risk.owner_assigned',
+];
 
 export function RiskSettingsPage() {
   const { data, isLoading } = useQuery({
@@ -16,6 +25,8 @@ export function RiskSettingsPage() {
     queryFn: () => riskCenterService.getSettings(),
     staleTime: STALE.RISKS,
   });
+  const preferencesQuery = useNotificationPreferences();
+  const updatePreference = useUpdateNotificationPreference();
 
   return (
     <PageTemplate title="Risk Settings" description="Configure automation, scoring, and lifecycle governance for enterprise risk workflows." actions={<Button>Save Changes</Button>}>
@@ -26,15 +37,29 @@ export function RiskSettingsPage() {
           <Card className="p-6">
             <h2 className="text-lg font-semibold text-gray-900">Notifications</h2>
             <div className="mt-5 space-y-4">
-              {data.notifications.map((item) => (
-                <div key={item.id} className="flex items-center justify-between gap-4 rounded-xl border border-gray-100 p-4">
-                  <div>
-                    <Label htmlFor={item.id}>{item.label}</Label>
-                    <p className="mt-1 text-sm text-gray-500">{item.description}</p>
-                  </div>
-                  <Switch id={item.id} defaultChecked={item.enabled} />
-                </div>
-              ))}
+              {preferencesQuery.isLoading || !preferencesQuery.data ? (
+                <div className="flex h-24 items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-gray-400" /></div>
+              ) : (
+                notificationEventDefinitions
+                  .filter((definition) => RISK_EVENT_TYPES.includes(definition.eventType))
+                  .map((definition) => {
+                    const preference = preferencesQuery.data.find((item) => item.eventType === definition.eventType);
+                    if (!preference) return null;
+                    return (
+                      <div key={definition.eventType} className="flex items-center justify-between gap-4 rounded-xl border border-gray-100 p-4">
+                        <div>
+                          <Label htmlFor={definition.eventType}>{definition.label}</Label>
+                          <p className="mt-1 text-sm text-gray-500">{definition.description}</p>
+                        </div>
+                        <Switch
+                          id={definition.eventType}
+                          checked={preference.inAppEnabled}
+                          onCheckedChange={(checked) => updatePreference.mutate({ eventType: definition.eventType, body: { inAppEnabled: checked } })}
+                        />
+                      </div>
+                    );
+                  })
+              )}
             </div>
           </Card>
 

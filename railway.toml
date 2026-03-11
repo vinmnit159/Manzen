@@ -1,0 +1,24 @@
+[build]
+builder = "nixpacks"
+
+[[services]]
+name = "backend-api"
+startCommand = "tsx src/server/index.ts"
+
+[services.env]
+PORT = "4000"
+WORKER_ROLE = "api"
+
+[[services]]
+name = "worker-notifications"
+startCommand = "tsx src/workers/notificationWorker.ts"
+
+[services.env]
+WORKER_ROLE = "notifications"
+
+[[services]]
+name = "worker-digests"
+startCommand = "tsx src/workers/digestWorker.ts"
+
+[services.env]
+WORKER_ROLE = "digests"

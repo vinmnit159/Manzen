@@ -10,6 +10,8 @@ import {
   sendSlackNotification,
   triggerGithubActionsWorkflow,
 } from './workflowIntegrations';
+import { NotificationEventType } from '@/domain/notifications/eventTypes';
+import { getNotificationServiceOrNull } from '@/server/notifications/module';
 
 type ExportFormat = 'csv' | 'pdf';
 
@@ -180,6 +182,15 @@ async function getMutableService() {
   return (await getTestsRuntimeService()) as any;
 }
 
+function emitNotification(payload: Parameters<NonNullable<ReturnType<typeof getNotificationServiceOrNull>>['emit']>[0]) {
+  const notificationService = getNotificationServiceOrNull();
+  if (notificationService) {
+    notificationService.emit(payload).catch((error) => {
+      console.error('[NotificationService] emit failed:', error);
+    });
+  }
+}
+
 function asRecords(service: any): TestRecordDto[] {
   return service.listTests({ page: 1, limit: 1000 });
 }
@@ -221,6 +232,8 @@ export async function getTestGapAnalysis(organizationId?: string): Promise<TestG
     testsWithoutEvidence: tests.filter((test) => test.evidences.length === 0).map((test) => ({ id: test.id, name: test.name })),
   };
 }
+
+export const getGapAnalysis = getTestGapAnalysis;
 
 export async function getTestRiskContext(testId: string): Promise<TestRiskContextDto> {
   const service = await getMutableService();
@@ -293,6 +306,7 @@ export async function createTestSuiteFromTemplate(templateId: string) {
 export async function requestAttestation(testId: string, reviewerId: string) {
   const service = await getMutableService();
   const organizationId = getOrgIdForTest(service, testId);
+  const currentTest = service.getTest(testId) as TestRecordDto;
   const reviewer = { id: reviewerId, name: reviewerId, email: `${reviewerId}@manzen.dev` };
   service.updateRecord(testId, (current: TestRecordDto) => ({
     ...current,
@@ -303,15 +317,27 @@ export async function requestAttestation(testId: string, reviewerId: string) {
   }));
   service.addHistory(testId, 'Attestation requested', null, reviewerId, 'workflow');
   await Promise.all([
-    sendSlackNotification({ testId, title: 'Test attestation requested', body: `Reviewer ${reviewerId} has been requested to attest evidence for test ${testId}.`, severity: 'info', organizationId }),
     createJiraTicket({ testId, summary: `Attestation requested for ${testId}`, description: `Evidence review requested for test ${testId}. Reviewer: ${reviewerId}.`, labels: ['test-attestation'], organizationId }),
   ]);
+  emitNotification({
+    organizationId,
+    recipientUserIds: [reviewerId],
+    eventType: NotificationEventType.ATTESTATION_REQUESTED,
+    title: `Attestation requested for ${currentTest.name}`,
+    body: `Please review and attest evidence for test \"${currentTest.name}\".`,
+    severity: 'info',
+    resourceType: 'test',
+    resourceId: testId,
+    recipientEmails: { [reviewerId]: reviewer.email },
+    resourceUrl: `/tests/${testId}`,
+  });
   return service.getTest(testId) as TestRecordDto;
 }
 
 export async function signAttestation(testId: string, reviewerId: string) {
   const service = await getMutableService();
   const organizationId = getOrgIdForTest(service, testId);
+  const currentTest = service.getTest(testId) as TestRecordDto;
   const now = new Date().toISOString();
   service.updateRecord(testId, (current: TestRecordDto) => ({
     ...current,
@@ -322,7 +348,18 @@ export async function signAttestation(testId: string, reviewerId: string) {
     updatedAt: now,
   }));
   service.addHistory(testId, 'Evidence attested', null, reviewerId, 'auditor');
-  await sendSlackNotification({ testId, title: 'Test evidence attested', body: `Reviewer ${reviewerId} approved evidence for test ${testId}.`, severity: 'info', organizationId });
+  emitNotification({
+    organizationId,
+    recipientUserIds: [currentTest.ownerId],
+    eventType: NotificationEventType.ATTESTATION_SIGNED,
+    title: `Evidence attested for ${currentTest.name}`,
+    body: `Reviewer ${reviewerId} approved the evidence attached to \"${currentTest.name}\".`,
+    severity: 'info',
+    resourceType: 'test',
+    resourceId: testId,
+    recipientEmails: { [currentTest.ownerId]: currentTest.owner?.email ?? `${currentTest.ownerId}@manzen.dev` },
+    resourceUrl: `/tests/${testId}`,
+  });
   return service.getTest(testId) as TestRecordDto;
 }
 
@@ -403,7 +440,6 @@ export async function ingestPipelineRun(input: { pipelineName: string; provider:
   service.addHistory(test.id, 'Pipeline run ingested', null, run.status, 'ci');
   if (run.status === 'Fail') {
     await Promise.all([
-      sendSlackNotification({ testId: test.id, title: 'Pipeline compliance test failed', body: `${input.pipelineName} reported a failing pipeline run via ${input.provider}.`, severity: 'critical', organizationId }),
       createJiraTicket({ testId: test.id, summary: `Pipeline failure: ${input.pipelineName}`, description: input.summary, labels: ['pipeline-test', 'failure'], organizationId }),
       forwardSiemEvent({
         testId: test.id,
@@ -419,6 +455,19 @@ export async function ingestPipelineRun(input: { pipelineName: string; provider:
         },
       }),
     ]);
+    emitNotification({
+      organizationId,
+      recipientUserIds: [(test as TestRecordDto).ownerId],
+      eventType: NotificationEventType.TEST_FAILED,
+      title: `Pipeline test failed: ${(test as TestRecordDto).name}`,
+      body: `${input.pipelineName} reported a failing ${input.provider} run on ${input.branch ?? 'main'}.`,
+      severity: 'critical',
+      resourceType: 'test',
+      resourceId: test.id,
+      metadata: { provider: input.provider, branch: input.branch ?? 'main' },
+      recipientEmails: { [(test as TestRecordDto).ownerId]: (test as TestRecordDto).owner?.email ?? `${(test as TestRecordDto).ownerId}@manzen.dev` },
+      resourceUrl: `/tests/${test.id}`,
+    });
   }
   return service.getTest(test.id) as TestRecordDto;
 }
@@ -484,7 +533,26 @@ export async function listEscalations(): Promise<EscalationDto[]> {
     stage: item.stage,
     organizationId: tests.find((test) => test.id === item.testId)?.organizationId,
     message: `Escalation stage ${item.stage} triggered for overdue test ${item.testId}. Owner: ${item.owner}.`,
+    channels: item.stage === 'OWNER' ? { slack: false, jira: true } : undefined,
   })));
+  escalations
+    .filter((item) => item.stage === 'OWNER' && item.status === 'TRIGGERED')
+    .forEach((item) => {
+      const test = tests.find((record) => record.id === item.testId);
+      if (!test) return;
+      emitNotification({
+        organizationId: test.organizationId,
+        recipientUserIds: [test.ownerId],
+        eventType: NotificationEventType.TEST_OVERDUE,
+        title: `Overdue test: ${test.name}`,
+        body: `\"${test.name}\" is overdue and needs attention from ${item.owner}.`,
+        severity: 'warning',
+        resourceType: 'test',
+        resourceId: test.id,
+        recipientEmails: { [test.ownerId]: test.owner?.email ?? `${test.ownerId}@manzen.dev` },
+        resourceUrl: `/tests/${test.id}`,
+      });
+    });
   return escalations;
 }
 

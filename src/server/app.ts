@@ -6,6 +6,7 @@ import { registerGenericIntegrationModules } from '@/server/integrations/generic
 import { registerGithubIntegrationModule } from '@/server/integrations/github/module';
 import { registerFrameworksModule } from '@/server/frameworks/module';
 import { authenticate } from '@/server/middleware/authenticate';
+import { registerNotificationsModule } from '@/server/notifications/module';
 
 export async function createServerApp() {
   const app = Fastify({ logger: true });
@@ -82,6 +83,22 @@ export async function createServerApp() {
   });
 
   registerFrameworksModule({
+    route(definition) {
+      app.route({
+        method: definition.method,
+        url: definition.url,
+        schema: definition.schema,
+        handler: async (request) => definition.handler({
+          body: (request as { body?: unknown }).body,
+          params: (request as { params?: Record<string, string> }).params,
+          query: (request as { query?: unknown }).query,
+          user: (request as any).user,
+        }),
+      });
+    },
+  });
+
+  registerNotificationsModule({
     route(definition) {
       app.route({
         method: definition.method,
