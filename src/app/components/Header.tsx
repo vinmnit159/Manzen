@@ -167,7 +167,12 @@ export function Header() {
 
           <NotificationBell />
 
-          <button className="hidden sm:flex p-2 text-gray-600 hover:bg-gray-100 rounded-md" title="Settings">
+          <button
+            onClick={() => navigate("/settings/profile")}
+            className="hidden sm:flex p-2 text-gray-600 hover:bg-gray-100 rounded-md"
+            title="Settings"
+            aria-label="Open settings"
+          >
             <Settings className="w-5 h-5" />
           </button>
 
