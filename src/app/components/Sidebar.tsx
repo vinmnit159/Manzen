@@ -4,7 +4,7 @@ import {
   Briefcase, 
   FileCheck, 
   BarChart3, 
-  Shield, 
+  Shield,
   Users, 
   TrendingUp, 
   Building2, 
@@ -305,7 +305,19 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
           className={cn("flex items-center gap-2 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400", collapsed && "lg:justify-center lg:w-full")}
           aria-label="Go to home"
         >
-          <Shield className="w-8 h-8 text-blue-400" />
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8 text-blue-400">
+            <path d="M15 50 Q50 8 85 50" />
+            <path d="M85 50 Q50 92 15 50" />
+            <line x1="26" y1="24" x2="20" y2="18" />
+            <line x1="74" y1="24" x2="80" y2="18" />
+            <line x1="26" y1="76" x2="20" y2="82" />
+            <line x1="74" y1="76" x2="80" y2="82" />
+            <path d="M25 50 Q50 18 75 50 Q50 82 25 50 Z" />
+            <circle cx="50" cy="50" r="16" />
+            <path d="M50 34 Q66 34 66 50 Q66 62 56 67" />
+            <circle cx="50" cy="50" r="6.5" />
+            <path d="M38 60 Q50 70 62 60" />
+          </svg>
           <span className={cn("text-xl font-semibold", collapsed && "lg:hidden")}>CloudAnzen</span>
         </Link>
         {/* Close button — mobile only */}
