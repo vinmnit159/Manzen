@@ -21,8 +21,7 @@ import {
   KeyRound,
   Bell,
 } from "lucide-react";
-// ChevronDown and ChevronRight retained for other expandable nav groups
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/app/components/ui/utils";
 import { authService } from "@/services/api/auth";
 import { useSidebar } from "@/app/components/Layout";
@@ -33,7 +32,6 @@ interface NavItem {
   title: string;
   href?: string;
   icon: any;
-  /** If set, only these roles can see this nav item */
   roles?: AppRole[];
   children?: {
     title: string;
@@ -42,7 +40,6 @@ interface NavItem {
   }[];
 }
 
-// Roles that have full admin/operator access to all nav items
 const ADMIN_ROLES: AppRole[] = ['SUPER_ADMIN', 'ORG_ADMIN', 'SECURITY_OWNER'];
 
 const navigation: NavItem[] = [
@@ -172,6 +169,93 @@ function formatRole(role?: string): string {
     .join(" ");
 }
 
+// ── Flyout panel for collapsed sidebar ────────────────────────────────────────
+
+interface FlyoutProps {
+  item: NavItem;
+  visibleChildren: { title: string; href: string }[];
+  isActive: (href: string) => boolean;
+  closeSidebar: () => void;
+}
+
+function CollapsedFlyoutItem({ item, visibleChildren, isActive, closeSidebar }: FlyoutProps) {
+  const [open, setOpen] = useState(false);
+  const [top, setTop] = useState(0);
+  const triggerRef = useRef<HTMLDivElement>(null);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const Icon = item.icon;
+  const parentActive = visibleChildren.some((c) => isActive(c.href));
+
+  const showFlyout = () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    if (triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setTop(rect.top);
+    }
+    setOpen(true);
+  };
+
+  const hideFlyout = () => {
+    closeTimer.current = setTimeout(() => setOpen(false), 100);
+  };
+
+  const cancelHide = () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+  };
+
+  return (
+    <div
+      ref={triggerRef}
+      className="relative"
+      onMouseEnter={showFlyout}
+      onMouseLeave={hideFlyout}
+    >
+      {/* Icon-only trigger */}
+      <div
+        className={cn(
+          "w-full flex items-center justify-center px-3 py-2 rounded-md text-sm transition-colors cursor-default select-none",
+          parentActive ? "bg-blue-600 text-white" : "hover:bg-slate-800 text-slate-200"
+        )}
+        title={item.title}
+      >
+        <Icon className="w-4 h-4 flex-shrink-0" />
+      </div>
+
+      {/* Flyout panel — rendered in a fixed portal so it escapes sidebar overflow */}
+      {open && (
+        <div
+          className="fixed z-[200] ml-1 min-w-[200px] rounded-md border border-slate-700 bg-slate-900 shadow-xl py-1"
+          style={{ top, left: "5rem" /* sidebar collapsed width = 80px = 5rem */ }}
+          onMouseEnter={cancelHide}
+          onMouseLeave={hideFlyout}
+        >
+          {/* Section header */}
+          <p className="px-3 py-1.5 text-xs font-semibold tracking-wide text-slate-400 uppercase border-b border-slate-700 mb-1">
+            {item.title}
+          </p>
+          {visibleChildren.map((child) => (
+            <Link
+              key={child.href}
+              to={child.href}
+              onClick={() => { setOpen(false); closeSidebar(); }}
+              className={cn(
+                "block px-3 py-2 text-sm transition-colors",
+                isActive(child.href)
+                  ? "bg-blue-600 text-white"
+                  : "text-slate-200 hover:bg-slate-800"
+              )}
+            >
+              {child.title}
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Main Sidebar ───────────────────────────────────────────────────────────────
+
 export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
   const location = useLocation();
   const { close: closeSidebar } = useSidebar();
@@ -194,7 +278,6 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
   const initials = getInitials(user?.name, user?.email);
   const roleLabel = formatRole(user?.role);
 
-  // Role visibility helper
   const canSee = (roles?: AppRole[]) => {
     if (!roles || roles.length === 0) return true;
     return roles.includes(userRole);
@@ -214,6 +297,7 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
 
   return (
     <aside className={cn("h-full bg-slate-900 text-white flex flex-col w-64 lg:transition-[width] lg:duration-200", collapsed ? "lg:w-20" : "lg:w-64")}>
+      {/* Brand */}
       <div className="p-4 border-b border-slate-800 flex items-center justify-between">
         <Link
           to="/"
@@ -224,7 +308,7 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
           <Shield className="w-8 h-8 text-blue-400" />
           <span className={cn("text-xl font-semibold", collapsed && "lg:hidden")}>CloudAnzen</span>
         </Link>
-        {/* Close button — only visible on mobile */}
+        {/* Close button — mobile only */}
         <button
           onClick={closeSidebar}
           className="lg:hidden p-1.5 rounded-md text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
@@ -234,61 +318,38 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
         </button>
       </div>
 
+      {/* Nav */}
       <nav className="flex-1 overflow-y-auto overflow-x-visible p-3 space-y-1">
         {navigation.map((item) => {
-          // Hide items restricted to other roles
           if (!canSee(item.roles)) return null;
 
           const Icon = item.icon;
           const hasChildren = item.children && item.children.length > 0;
           const isExpanded = expandedItems.includes(item.title);
 
-          // Filter children by role
           const visibleChildren = hasChildren
             ? item.children!.filter(c => canSee(c.roles))
             : [];
 
           const parentActive = visibleChildren.length > 0 && isParentActive(visibleChildren);
 
-          // Skip parent groups where all children are hidden
           if (hasChildren && visibleChildren.length === 0) return null;
 
+          // ── Collapsed + has children → hover flyout ──────────────────────
+          if (hasChildren && isCompact) {
+            return (
+              <CollapsedFlyoutItem
+                key={item.title}
+                item={item}
+                visibleChildren={visibleChildren}
+                isActive={isActive}
+                closeSidebar={closeSidebar}
+              />
+            );
+          }
+
+          // ── Expanded + has children → inline accordion ───────────────────
           if (hasChildren) {
-            if (isCompact && visibleChildren.length > 0) {
-              return (
-                <div key={item.title} className="relative group">
-                  <Link
-                    to={visibleChildren[0].href}
-                    onClick={closeSidebar}
-                    title={item.title}
-                    className={cn(
-                      "w-full flex items-center justify-center px-3 py-2 rounded-md text-sm transition-colors",
-                      parentActive ? "bg-blue-600 text-white" : "hover:bg-slate-800 text-slate-200"
-                    )}
-                  >
-                    <Icon className="w-4 h-4 flex-shrink-0" />
-                  </Link>
-
-                  <div className="hidden lg:group-hover:block lg:group-focus-within:block lg:absolute lg:left-full lg:top-0 lg:ml-2 lg:min-w-[220px] lg:rounded-md lg:border lg:border-slate-700 lg:bg-slate-900 lg:shadow-xl lg:p-1 z-50">
-                    <p className="px-3 py-2 text-xs font-semibold tracking-wide text-slate-300 border-b border-slate-700">{item.title}</p>
-                    {visibleChildren.map((child) => (
-                      <Link
-                        key={child.href}
-                        to={child.href}
-                        onClick={closeSidebar}
-                        className={cn(
-                          "block mt-1 px-3 py-2 rounded-md text-sm transition-colors",
-                          isActive(child.href) ? "bg-blue-600 text-white" : "text-slate-200 hover:bg-slate-800"
-                        )}
-                      >
-                        {child.title}
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              );
-            }
-
             return (
               <div key={item.title}>
                 <button
@@ -333,6 +394,7 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
             );
           }
 
+          // ── Leaf item (no children) ───────────────────────────────────────
           return (
             <Link
               key={item.title}
