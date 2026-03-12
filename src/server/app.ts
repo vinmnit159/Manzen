@@ -1,5 +1,4 @@
 import Fastify from 'fastify';
-import { fastifyCors } from '@fastify/cors';
 import { registerRiskEngineModule } from '@/server/risk-engine/module';
 import { registerTestsModule } from '@/server/tests/module';
 import { registerGenericIntegrationModules } from '@/server/integrations/genericIntegrationModule';
@@ -18,25 +17,19 @@ const ALLOWED_ORIGINS = [
 export async function createServerApp() {
   const app = Fastify({ logger: true });
 
-  await app.register(fastifyCors, {
-    origin: (origin, cb) => {
-      if (!origin || ALLOWED_ORIGINS.includes(origin)) {
-        cb(null, true);
-      } else {
-        cb(new Error('Not allowed by CORS'), false);
-      }
-    },
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'authorization'],
-    credentials: true,
-  });
-
-  // Force CORS headers on every response so reverse proxies cannot strip them.
-  app.addHook('onSend', async (request, reply) => {
+  // Handle CORS manually via hooks so headers survive Cloudflare proxy.
+  // @fastify/cors is skipped in favour of explicit header injection.
+  app.addHook('onRequest', async (request, reply) => {
     const origin = request.headers.origin;
     if (origin && ALLOWED_ORIGINS.includes(origin)) {
       reply.header('Access-Control-Allow-Origin', origin);
       reply.header('Access-Control-Allow-Credentials', 'true');
+      reply.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+      reply.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,authorization');
+    }
+    // Respond to preflight immediately — no auth needed.
+    if (request.method === 'OPTIONS') {
+      reply.code(204).send();
     }
   });
 
