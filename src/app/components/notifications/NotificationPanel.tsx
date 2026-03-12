@@ -58,7 +58,7 @@ export function NotificationPanel({ notifications, isLoading, onClose }: Notific
         <Link to="/notifications" onClick={onClose} className="text-sm font-medium text-blue-600 hover:text-blue-700">
           View all
         </Link>
-        <Link to="/notifications/settings" onClick={onClose} className="text-sm text-gray-500 hover:text-gray-700">
+        <Link to="/settings/notifications" onClick={onClose} className="text-sm text-gray-500 hover:text-gray-700">
           Settings
         </Link>
       </div>
