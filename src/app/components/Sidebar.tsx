@@ -222,7 +222,7 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
           aria-label="Go to home"
         >
           <Shield className="w-8 h-8 text-blue-400" />
-          <span className={cn("text-xl font-semibold", collapsed && "lg:hidden")}>Manzen</span>
+          <span className={cn("text-xl font-semibold", collapsed && "lg:hidden")}>CloudAnzen</span>
         </Link>
         {/* Close button — only visible on mobile */}
         <button
