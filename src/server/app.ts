@@ -1,5 +1,5 @@
 import Fastify from 'fastify';
-import cors from '@fastify/cors';
+import { fastifyCors } from '@fastify/cors';
 import { registerRiskEngineModule } from '@/server/risk-engine/module';
 import { registerTestsModule } from '@/server/tests/module';
 import { registerGenericIntegrationModules } from '@/server/integrations/genericIntegrationModule';
@@ -10,7 +10,7 @@ import { registerNotificationsModule } from '@/server/notifications/module';
 
 export async function createServerApp() {
   const app = Fastify({ logger: true });
-  await app.register(cors, { origin: true });
+  await app.register(fastifyCors, { origin: true });
 
   // ── Global JWT authentication hook ────────────────────────────────────────
   // Every route registered through this server requires a valid Bearer JWT.
