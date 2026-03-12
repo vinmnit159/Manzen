@@ -49,6 +49,11 @@ function decodeJwtPayload(token: string): AuthUser | null {
  * Returns 401 if the token is missing or malformed.
  */
 export async function authenticate(request: FastifyRequest, reply: FastifyReply): Promise<void> {
+  // Let CORS preflight requests pass through without authentication.
+  // The browser sends OPTIONS with no Authorization header; blocking it
+  // prevents the CORS headers from being returned, breaking all cross-origin calls.
+  if (request.method === 'OPTIONS') return;
+
   const authHeader = request.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     reply.code(401).send({ success: false, error: 'Authentication required' });
