@@ -14,7 +14,7 @@ export async function createServerApp() {
 
   // ── Global JWT authentication hook ────────────────────────────────────────
   // Every route registered through this server requires a valid Bearer JWT.
-  // The token is issued by the external backend (ismsbackend.bitcoingames1346.com)
+  // The token is issued by the external backend (api.cloudanzen.com)
   // and carries: sub/id, email, role, organizationId.
   app.addHook('preHandler', authenticate);
 

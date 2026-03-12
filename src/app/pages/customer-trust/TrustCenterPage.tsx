@@ -18,7 +18,7 @@ import {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const BASE_URL = import.meta.env.VITE_APP_URL || 'https://isms.bitcoingames1346.com';
+const BASE_URL = import.meta.env.VITE_APP_URL || 'https://app.cloudanzen.com';
 
 function fmt(iso: string | null | undefined) {
   if (!iso) return '—';

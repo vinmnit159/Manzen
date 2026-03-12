@@ -18,6 +18,6 @@ export default defineConfig({
   },
   preview: {
     host: '0.0.0.0',
-    allowedHosts: ['isms.bitcoingames1346.com'],
+    allowedHosts: ['app.cloudanzen.com'],
   },
 })

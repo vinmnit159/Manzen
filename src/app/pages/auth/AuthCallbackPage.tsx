@@ -7,7 +7,7 @@ import { ShieldCheck } from "lucide-react";
  * Landing page for the Google OAuth redirect.
  *
  * The backend redirects here after a successful Google sign-in:
- *   https://isms.bitcoingames1346.com/auth/callback?token=JWT&user=encoded_json
+  *   https://app.cloudanzen.com/auth/callback?token=JWT&user=encoded_json
  *
  * This page:
  *  1. Reads the token + user from query params

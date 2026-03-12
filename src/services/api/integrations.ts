@@ -62,12 +62,12 @@ export const integrationsService = {
     return apiClient.get('/api/integrations/github/tests');
   },
   getConnectUrl(): string {
-    const backendUrl = (import.meta as any).env?.VITE_API_URL ?? 'https://ismsbackend.bitcoingames1346.com';
+    const backendUrl = (import.meta as any).env?.VITE_API_URL ?? 'https://api.cloudanzen.com';
     const token = localStorage.getItem('isms_token') ?? '';
     return `${backendUrl}/api/integrations/github/connect?token=${encodeURIComponent(token)}`;
   },
   getDriveConnectUrl(): string {
-    const backendUrl = (import.meta as any).env?.VITE_API_URL ?? 'https://ismsbackend.bitcoingames1346.com';
+    const backendUrl = (import.meta as any).env?.VITE_API_URL ?? 'https://api.cloudanzen.com';
     const token = localStorage.getItem('isms_token') ?? '';
     return `${backendUrl}/api/integrations/google/connect?token=${encodeURIComponent(token)}`;
   },

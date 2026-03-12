@@ -8,7 +8,7 @@ import { Label } from '@/app/components/ui/label';
 import { ExternalLink, RefreshCw, CheckCircle2, AlertCircle, Shield, Globe, Mail } from 'lucide-react';
 import { trustCenterService, UpdateSettingsPayload } from '@/services/api/trustCenter';
 
-const BASE_URL = import.meta.env.VITE_APP_URL || 'https://isms.bitcoingames1346.com';
+const BASE_URL = import.meta.env.VITE_APP_URL || 'https://app.cloudanzen.com';
 
 function fmt(iso: string | null | undefined) {
   if (!iso) return '—';

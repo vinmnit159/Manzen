@@ -18,7 +18,7 @@ import { toast } from "sonner";
 import { authService } from "@/services/api/auth";
 import { Eye, EyeOff, ShieldCheck, Lock, Mail } from "lucide-react";
 
-const BACKEND_URL = import.meta.env.VITE_API_URL || "https://ismsbackend.bitcoingames1346.com";
+const BACKEND_URL = import.meta.env.VITE_API_URL || "https://api.cloudanzen.com";
 
 // Google icon SVG as a small component
 function GoogleIcon() {
