@@ -8,9 +8,37 @@ import { registerFrameworksModule } from '@/server/frameworks/module';
 import { authenticate } from '@/server/middleware/authenticate';
 import { registerNotificationsModule } from '@/server/notifications/module';
 
+const ALLOWED_ORIGINS = [
+  process.env.FRONTEND_URL ?? 'https://app.cloudanzen.com',
+  'https://app.cloudanzen.com',
+  'http://localhost:5173',
+  'http://localhost:4173',
+];
+
 export async function createServerApp() {
   const app = Fastify({ logger: true });
-  await app.register(fastifyCors, { origin: true });
+
+  await app.register(fastifyCors, {
+    origin: (origin, cb) => {
+      if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+        cb(null, true);
+      } else {
+        cb(new Error('Not allowed by CORS'), false);
+      }
+    },
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'authorization'],
+    credentials: true,
+  });
+
+  // Force CORS headers on every response so reverse proxies cannot strip them.
+  app.addHook('onSend', async (request, reply) => {
+    const origin = request.headers.origin;
+    if (origin && ALLOWED_ORIGINS.includes(origin)) {
+      reply.header('Access-Control-Allow-Origin', origin);
+      reply.header('Access-Control-Allow-Credentials', 'true');
+    }
+  });
 
   // ── Global JWT authentication hook ────────────────────────────────────────
   // Every route registered through this server requires a valid Bearer JWT.
