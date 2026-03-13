@@ -1,5 +1,5 @@
 // Base API configuration and types
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.cloudanzen.com';
 
 export interface ApiResponse<T = any> {
   success: boolean;
