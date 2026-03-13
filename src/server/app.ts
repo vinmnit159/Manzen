@@ -46,7 +46,6 @@ export async function createServerApp() {
       app.route({
         method: definition.method,
         url: definition.url,
-        schema: definition.schema,
         handler: async (request) => definition.handler({
           body: (request as { body?: unknown }).body,
           params: (request as { params?: Record<string, string> }).params,
@@ -62,7 +61,6 @@ export async function createServerApp() {
       app.route({
         method: definition.method,
         url: definition.url,
-        schema: definition.schema,
         handler: async (request) => definition.handler({
           body: (request as { body?: unknown }).body,
           params: (request as { params?: Record<string, string> }).params,
@@ -108,7 +106,6 @@ export async function createServerApp() {
       app.route({
         method: definition.method,
         url: definition.url,
-        schema: definition.schema,
         handler: async (request) => definition.handler({
           body: (request as { body?: unknown }).body,
           params: (request as { params?: Record<string, string> }).params,
@@ -124,7 +121,6 @@ export async function createServerApp() {
       app.route({
         method: definition.method,
         url: definition.url,
-        schema: definition.schema,
         handler: async (request) => definition.handler({
           body: (request as { body?: unknown }).body,
           params: (request as { params?: Record<string, string> }).params,
