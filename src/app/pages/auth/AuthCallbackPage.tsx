@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useSearchParams } from "react-router";
 import { authService } from "@/services/api/auth";
-import { ShieldCheck } from "lucide-react";
+
 
 /**
  * Landing page for the Google OAuth redirect.
@@ -46,7 +46,7 @@ export function AuthCallbackPage() {
       <div className="text-center">
         <div className="flex justify-center mb-4">
           <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg animate-pulse">
-            <ShieldCheck className="w-9 h-9 text-white" />
+            <img src="/logo.svg" className="w-9 h-9" style={{ filter: "brightness(0) invert(1)" }} alt="CloudAnzen" />
           </div>
         </div>
         <p className="text-gray-600 text-sm">Signing you in…</p>

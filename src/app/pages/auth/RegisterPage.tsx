@@ -18,7 +18,7 @@ import { toast } from "sonner";
 import { setupService, SetupRequest } from "@/services/api/setup";
 import { authService } from "@/services/api/auth";
 import { testsService } from "@/services/api/tests";
-import { Eye, EyeOff, ShieldCheck, Building2, Users, ChevronLeft } from "lucide-react";
+import { Eye, EyeOff, Building2, Users, ChevronLeft } from "lucide-react";
 import { Checkbox } from "@/app/components/ui/checkbox";
 import { FRAMEWORK_SUITE_OPTIONS } from "@/app/features/tests/frameworkSuites";
 
@@ -191,7 +191,7 @@ export function RegisterPage() {
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
             <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg">
-              <ShieldCheck className="w-9 h-9 text-white" />
+              <img src="/logo.svg" className="w-9 h-9" style={{ filter: "brightness(0) invert(1)" }} alt="CloudAnzen" />
             </div>
           </div>
           <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Register Organization</h1>

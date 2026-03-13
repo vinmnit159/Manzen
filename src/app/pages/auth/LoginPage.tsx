@@ -16,7 +16,7 @@ import {
 } from "@/app/components/ui/form";
 import { toast } from "sonner";
 import { authService } from "@/services/api/auth";
-import { Eye, EyeOff, ShieldCheck, Lock, Mail } from "lucide-react";
+import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 
 const BACKEND_URL = import.meta.env.VITE_API_URL || "https://api.cloudanzen.com";
 
@@ -93,10 +93,10 @@ export function LoginPage() {
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
             <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg">
-              <ShieldCheck className="w-9 h-9 text-white" />
+              <img src="/logo.svg" className="w-9 h-9" style={{ filter: "brightness(0) invert(1)" }} alt="CloudAnzen" />
             </div>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Manzen</h1>
+          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">CloudAnzen</h1>
           <p className="text-gray-500 mt-1 text-sm">Information Security Management</p>
         </div>
 
