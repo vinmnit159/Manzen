@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import type React from 'react';
 import { PageTemplate } from '@/app/components/PageTemplate';
 import { PageFilterBar } from '@/app/components/filters/PageFilterBar';
 import { useUrlFilterState } from '@/app/hooks/useUrlFilterState';
@@ -7,7 +8,7 @@ import { Badge } from '@/app/components/ui/badge';
 import { Loader2, Database, Cloud, Monitor, Server, Package, Globe, HelpCircle } from 'lucide-react';
 import { apiClient } from '@/services/api/client';
 
-const TYPE_ICONS: Record<string, any> = {
+const TYPE_ICONS: Record<string, React.ElementType> = {
   CLOUD: Cloud, APPLICATION: Monitor, DATABASE: Database,
   SAAS: Globe, ENDPOINT: Server, NETWORK: Package, OTHER: HelpCircle,
 };
@@ -19,15 +20,27 @@ function criticalityVariant(c: string): 'default' | 'destructive' | 'secondary' 
   return 'outline';
 }
 
+interface AssetItem {
+  id: string;
+  name: string;
+  type: string;
+  criticality: string;
+  description?: string | null;
+  owner?: string | null;
+  environment?: string | null;
+  tags?: string[];
+  createdAt?: string;
+}
+
 export function InventoryPage() {
-  const [assets, setAssets] = useState<any[]>([]);
+  const [assets, setAssets] = useState<AssetItem[]>([]);
   const [loading, setLoading] = useState(true);
   const { filters, update, reset } = useUrlFilterState({ defaults: { search: '', type: 'ALL', criticality: 'ALL' } });
 
   useEffect(() => {
-    apiClient.get<any>('/api/assets')
+    apiClient.get<{ data?: AssetItem[] }>('/api/assets')
       .then((res) => setAssets(res?.data ?? []))
-      .catch(() => {})
+      .catch((err: unknown) => { console.error('Failed to load assets', err); })
       .finally(() => setLoading(false));
   }, []);
 

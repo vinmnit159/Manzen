@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, Suspense } from "react";
 import { Outlet } from "react-router";
 import { Sidebar } from "@/app/components/Sidebar";
 import { Header } from "@/app/components/Header";
@@ -84,7 +84,13 @@ export function Layout() {
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
           <Header />
           <main className="flex-1 overflow-y-auto">
-            <Outlet />
+            <Suspense fallback={
+              <div className="flex items-center justify-center h-64">
+                <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+              </div>
+            }>
+              <Outlet />
+            </Suspense>
           </main>
         </div>
       </div>

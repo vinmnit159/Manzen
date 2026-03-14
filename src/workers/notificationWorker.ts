@@ -88,5 +88,5 @@ export function startNotificationWorker() {
 
 if (process.env.WORKER_ROLE === 'notifications') {
   startNotificationWorker();
-  console.log('[worker-notifications] started');
+  console.info('[worker-notifications] started');
 }

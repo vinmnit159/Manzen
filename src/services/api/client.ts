@@ -1,7 +1,7 @@
 // Base API configuration and types
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.cloudanzen.com';
 
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
@@ -22,7 +22,7 @@ export interface ApiError {
   error: string;
   message: string;
   statusCode: number;
-  details?: any;
+  details?: unknown;
 }
 
 // HTTP client wrapper
@@ -101,21 +101,21 @@ class ApiClient {
     return this.request<T>(url);
   }
 
-  async post<T>(endpoint: string, data?: any): Promise<T> {
+  async post<T>(endpoint: string, data?: unknown): Promise<T> {
     return this.request<T>(endpoint, {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
-  async put<T>(endpoint: string, data?: any): Promise<T> {
+  async put<T>(endpoint: string, data?: unknown): Promise<T> {
     return this.request<T>(endpoint, {
       method: 'PUT',
       body: JSON.stringify(data),
     });
   }
 
-  async patch<T>(endpoint: string, data?: any): Promise<T> {
+  async patch<T>(endpoint: string, data?: unknown): Promise<T> {
     return this.request<T>(endpoint, {
       method: 'PATCH',
       body: JSON.stringify(data),
@@ -134,7 +134,7 @@ class ApiError extends Error {
     public error: string,
     public message: string,
     public statusCode: number,
-    public details?: any
+    public details?: unknown
   ) {
     super(message);
   }

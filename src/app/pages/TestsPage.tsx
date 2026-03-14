@@ -151,7 +151,7 @@ export function TestsPage() {
   // Persist column preferences
   useEffect(() => {
     const saved = localStorage.getItem('tests-columns');
-    if (saved) { try { setColumns(JSON.parse(saved)); } catch { /* ignore */ } }
+    if (saved) { try { setColumns(JSON.parse(saved)); } catch (err) { console.warn('Failed to parse saved column preferences', err); } }
   }, []);
   useEffect(() => { localStorage.setItem('tests-columns', JSON.stringify(columns)); }, [columns]);
 

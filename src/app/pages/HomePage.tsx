@@ -50,12 +50,12 @@ export function HomePage() {
     useQuery({
       queryKey: QK.complianceStats(),
       queryFn: async () => {
-        const res: any = await controlsService.getControlCompliance();
-        return (res?.data ?? res) as ComplianceStats;
+        const res = await controlsService.getControlCompliance();
+        return ((res as { data?: ComplianceStats })?.data ?? res) as ComplianceStats;
       },
       staleTime: STALE.DASHBOARD,
-      retry: (count, err: any) => {
-        if (err?.statusCode === 401) { window.location.href = '/login'; return false; }
+      retry: (count, err: unknown) => {
+        if ((err as { statusCode?: number })?.statusCode === 401) { window.location.href = '/login'; return false; }
         return count < 1;
       },
     });
@@ -64,8 +64,8 @@ export function HomePage() {
     useQuery({
       queryKey: QK.riskOverview(),
       queryFn: async () => {
-        const res: any = await risksService.getRisksOverview();
-        return (res?.data ?? res) as RiskOverview;
+        const res = await risksService.getRisksOverview();
+        return ((res as { data?: RiskOverview })?.data ?? res) as RiskOverview;
       },
       staleTime: STALE.DASHBOARD,
     });
@@ -74,8 +74,8 @@ export function HomePage() {
     useQuery({
       queryKey: QK.activityLog(8),
       queryFn: async () => {
-        const res: any = await activityLogsService.getRecentActivity(8);
-        return (res?.data ?? []) as ActivityLogEntry[];
+        const res = await activityLogsService.getRecentActivity(8);
+        return ((res as { data?: ActivityLogEntry[] })?.data ?? []) as ActivityLogEntry[];
       },
       staleTime: STALE.ACTIVITY,
     });

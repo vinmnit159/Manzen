@@ -11,7 +11,7 @@ async function startBackgroundInfrastructure() {
   await startScheduler();
   startNotificationWorker();
   startDigestWorker();
-  console.log('[server] in-process workers started');
+  console.info('[server] in-process workers started');
 }
 
 async function start() {

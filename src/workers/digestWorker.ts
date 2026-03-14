@@ -231,7 +231,7 @@ export function startDigestWorker() {
 if (process.env.WORKER_ROLE === 'digests') {
   startScheduler().then(() => {
     startDigestWorker();
-    console.log('[worker-digests] started');
+    console.info('[worker-digests] started');
   }).catch((error) => {
     console.error('[worker-digests] failed to start', error);
     process.exit(1);

@@ -574,7 +574,8 @@ export function PartnerApiPage() {
     }
   }
 
-  useEffect(() => { refresh(); }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { refresh(); }, []); // refresh is stable — no deps that change after mount
 
   // Stats
   const activeKeys = keys.filter(k => k.isActive);

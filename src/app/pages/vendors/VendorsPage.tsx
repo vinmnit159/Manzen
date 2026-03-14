@@ -71,7 +71,7 @@ export function VendorsPage() {
 
   useEffect(() => {
     refresh()
-      .catch(() => {})
+      .catch((err: unknown) => { console.error('Failed to load vendors', err); })
       .finally(() => setLoading(false));
   }, []);
 

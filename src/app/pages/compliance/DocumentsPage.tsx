@@ -12,7 +12,7 @@ import {
 import { apiClient } from '@/services/api/client';
 import { evidenceService } from '@/services/api/evidence';
 import { controlsService } from '@/services/api/controls';
-import { testsService } from '@/services/api/tests';
+import { testsService, type TestRecord } from '@/services/api/tests';
 import { FrameworkFilter } from '@/app/components/compliance/FrameworkFilter';
 import { PageFilterBar } from '@/app/components/filters/PageFilterBar';
 import { useUrlFilterState } from '@/app/hooks/useUrlFilterState';
@@ -94,8 +94,8 @@ function EvidenceDetailPanel({
   });
 
   const relatedTests = evidence.control
-    ? (allTests as any[]).filter((t: any) =>
-        t.controls?.some((c: any) => c.id === evidence.control!.id || c === evidence.control!.id)
+    ? (allTests as TestRecord[]).filter((t) =>
+        t.controls?.some((c) => c.id === evidence.control!.id)
       ).slice(0, 8)
     : [];
 
@@ -107,8 +107,8 @@ function EvidenceDetailPanel({
         evidence.id,
         evidence.fileName ?? `evidence-${evidence.id.slice(0, 8)}`
       );
-    } catch {
-      // silently fail
+    } catch (err) {
+      console.error('Failed to download evidence', err);
     } finally {
       setDownloading(false);
     }
@@ -492,21 +492,22 @@ export function DocumentsPage() {
   const loadData = () => {
     setLoading(true);
     Promise.all([
-      apiClient.get<any>('/api/evidence'),
-      apiClient.get<any>('/api/evidence/stats'),
-      controlsService.getControls({ limit: 200 } as any),
+      apiClient.get<{ data?: EvidenceItem[] }>('/api/evidence'),
+      apiClient.get<{ data?: { total: number; automated: number; manual: number } }>('/api/evidence/stats'),
+      controlsService.getControls({ limit: 200 }),
     ])
-      .then(([evidRes, statsRes, ctrlRes]: any[]) => {
+      .then(([evidRes, statsRes, ctrlRes]) => {
         setEvidence(evidRes?.data ?? []);
         setStats(statsRes?.data ?? null);
-        const ctrlData: any[] = ctrlRes?.data ?? [];
-        setControls(ctrlData.map((c: any) => ({ id: c.id, isoReference: c.isoReference, title: c.title })));
+        const ctrlData = (ctrlRes as { data?: ControlOption[] })?.data ?? [];
+        setControls(ctrlData.map((c) => ({ id: c.id, isoReference: c.isoReference, title: c.title })));
       })
-      .catch(() => {})
+      .catch((err: unknown) => { console.error('Failed to load evidence data', err); })
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { loadData(); }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { loadData(); }, []); // loadData is stable — no deps that change after mount
 
   const filtered = useMemo(() => {
     return evidence.filter((e) => {
@@ -539,8 +540,8 @@ export function DocumentsPage() {
     setDownloading(ev.id);
     try {
       await evidenceService.downloadEvidence(ev.id, ev.fileName ?? `evidence-${ev.id.slice(0, 8)}`);
-    } catch {
-      // silently fail
+    } catch (err) {
+      console.error('Failed to download evidence', err);
     } finally {
       setDownloading(null);
     }

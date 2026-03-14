@@ -1,84 +1,87 @@
 import { createBrowserRouter, redirect } from "react-router";
+import { lazy, Suspense } from "react";
 import { Layout } from "@/app/components/Layout";
-import { HomePage } from "@/app/pages/HomePage";
-import { MyWorkPage } from "@/app/pages/MyWorkPage";
-import { TestsPage } from "@/app/pages/TestsPage";
-import { TestDetailPage } from "@/app/pages/tests/TestDetailPage";
-import { ReportsPage } from "@/app/pages/ReportsPage";
-import { ReportViewerPage } from "@/app/pages/reports/ReportViewerPage";
-import { AuditorDashboardPage } from "@/app/pages/auditor/AuditorDashboardPage";
-import { AuditFinalReportPage } from "@/app/pages/auditor/AuditFinalReportPage";
-import { PublicTrustPortalPage } from "@/app/pages/trust/PublicTrustPortalPage";
+import { SettingsLayout } from "@/app/components/settings/SettingsLayout";
 
-// Auth
+// ── Eager imports (needed immediately on load) ────────────────────────────────
 import { LoginPage } from "@/app/pages/auth/LoginPage";
 import { RegisterPage } from "@/app/pages/auth/RegisterPage";
 import { AuthCallbackPage } from "@/app/pages/auth/AuthCallbackPage";
 
+// ── Lazy imports (code-split per route) ───────────────────────────────────────
+const HomePage             = lazy(() => import("@/app/pages/HomePage").then(m => ({ default: m.HomePage })));
+const MyWorkPage           = lazy(() => import("@/app/pages/MyWorkPage").then(m => ({ default: m.MyWorkPage })));
+const TestsPage            = lazy(() => import("@/app/pages/TestsPage").then(m => ({ default: m.TestsPage })));
+const TestDetailPage       = lazy(() => import("@/app/pages/tests/TestDetailPage").then(m => ({ default: m.TestDetailPage })));
+const ReportsPage          = lazy(() => import("@/app/pages/ReportsPage").then(m => ({ default: m.ReportsPage })));
+const ReportViewerPage     = lazy(() => import("@/app/pages/reports/ReportViewerPage").then(m => ({ default: m.ReportViewerPage })));
+const NotificationsPage    = lazy(() => import("@/app/pages/notifications/NotificationsPage").then(m => ({ default: m.NotificationsPage })));
+const NotificationSettingsPage = lazy(() => import("@/app/pages/notifications/NotificationSettingsPage").then(m => ({ default: m.NotificationSettingsPage })));
+
+// Auditor
+const AuditorDashboardPage = lazy(() => import("@/app/pages/auditor/AuditorDashboardPage").then(m => ({ default: m.AuditorDashboardPage })));
+const AuditFinalReportPage = lazy(() => import("@/app/pages/auditor/AuditFinalReportPage").then(m => ({ default: m.AuditFinalReportPage })));
+
+// Public Trust Portal
+const PublicTrustPortalPage = lazy(() => import("@/app/pages/trust/PublicTrustPortalPage").then(m => ({ default: m.PublicTrustPortalPage })));
+
 // Compliance
-import { FrameworksPage } from "@/app/pages/compliance/FrameworksPage";
-import { FrameworkDetailPage } from "@/app/pages/compliance/FrameworkDetailPage";
-import { ActivationSummaryPage } from "@/app/pages/compliance/ActivationSummaryPage";
-import { ControlsPage } from "@/app/pages/controls/ControlsPage";
-import { PoliciesPage } from "@/app/pages/compliance/PoliciesPage";
-import { DocumentsPage } from "@/app/pages/compliance/DocumentsPage";
-import { AuditsPage } from "@/app/pages/compliance/AuditsPage";
-import { FindingsPage } from "@/app/pages/compliance/FindingsPage";
-import { ComplianceSettingsPage } from "@/app/pages/compliance/SettingsPage";
+const FrameworksPage         = lazy(() => import("@/app/pages/compliance/FrameworksPage").then(m => ({ default: m.FrameworksPage })));
+const FrameworkDetailPage    = lazy(() => import("@/app/pages/compliance/FrameworkDetailPage").then(m => ({ default: m.FrameworkDetailPage })));
+const ActivationSummaryPage  = lazy(() => import("@/app/pages/compliance/ActivationSummaryPage").then(m => ({ default: m.ActivationSummaryPage })));
+const ControlsPage           = lazy(() => import("@/app/pages/controls/ControlsPage").then(m => ({ default: m.ControlsPage })));
+const PoliciesPage           = lazy(() => import("@/app/pages/compliance/PoliciesPage").then(m => ({ default: m.PoliciesPage })));
+const DocumentsPage          = lazy(() => import("@/app/pages/compliance/DocumentsPage").then(m => ({ default: m.DocumentsPage })));
+const AuditsPage             = lazy(() => import("@/app/pages/compliance/AuditsPage").then(m => ({ default: m.AuditsPage })));
+const FindingsPage           = lazy(() => import("@/app/pages/compliance/FindingsPage").then(m => ({ default: m.FindingsPage })));
+const ComplianceSettingsPage = lazy(() => import("@/app/pages/compliance/SettingsPage").then(m => ({ default: m.ComplianceSettingsPage })));
 
 // Customer Trust
-import { TrustCenterPage } from "@/app/pages/customer-trust/TrustCenterPage";
-import { CustomerTrustSettingsPage } from "@/app/pages/customer-trust/SettingsPage";
+const TrustCenterPage           = lazy(() => import("@/app/pages/customer-trust/TrustCenterPage").then(m => ({ default: m.TrustCenterPage })));
+const CustomerTrustSettingsPage = lazy(() => import("@/app/pages/customer-trust/SettingsPage").then(m => ({ default: m.CustomerTrustSettingsPage })));
 
 // Risk
-import { RiskOverviewPage } from "@/app/pages/risk/OverviewPage";
-import { RisksPage } from "@/app/pages/risk/RisksPage";
-import { RiskLibraryPage } from "@/app/pages/risk/RiskLibraryPage";
-import { ActionTrackerPage } from "@/app/pages/risk/ActionTrackerPage";
-import { SnapshotPage } from "@/app/pages/risk/SnapshotPage";
-import { RiskSettingsPage } from "@/app/pages/risk/SettingsPage";
-import { RiskDetailPage } from "@/app/pages/risk/RiskDetailPage";
-import { RiskEnginePage } from "@/app/pages/risk/EnginePage";
+const RiskOverviewPage  = lazy(() => import("@/app/pages/risk/OverviewPage").then(m => ({ default: m.RiskOverviewPage })));
+const RisksPage         = lazy(() => import("@/app/pages/risk/RisksPage").then(m => ({ default: m.RisksPage })));
+const RiskDetailPage    = lazy(() => import("@/app/pages/risk/RiskDetailPage").then(m => ({ default: m.RiskDetailPage })));
+const RiskLibraryPage   = lazy(() => import("@/app/pages/risk/RiskLibraryPage").then(m => ({ default: m.RiskLibraryPage })));
+const ActionTrackerPage = lazy(() => import("@/app/pages/risk/ActionTrackerPage").then(m => ({ default: m.ActionTrackerPage })));
+const SnapshotPage      = lazy(() => import("@/app/pages/risk/SnapshotPage").then(m => ({ default: m.SnapshotPage })));
+const RiskEnginePage    = lazy(() => import("@/app/pages/risk/EnginePage").then(m => ({ default: m.RiskEnginePage })));
+const RiskSettingsPage  = lazy(() => import("@/app/pages/risk/SettingsPage").then(m => ({ default: m.RiskSettingsPage })));
 
 // Vendors
-import { VendorsPage } from "@/app/pages/vendors/VendorsPage";
+const VendorsPage = lazy(() => import("@/app/pages/vendors/VendorsPage").then(m => ({ default: m.VendorsPage })));
 
 // Privacy
-import { DataInventoryPage } from "@/app/pages/privacy/DataInventoryPage";
-import { PrivacySettingsPage } from "@/app/pages/privacy/SettingsPage";
+const DataInventoryPage  = lazy(() => import("@/app/pages/privacy/DataInventoryPage").then(m => ({ default: m.DataInventoryPage })));
+const PrivacySettingsPage = lazy(() => import("@/app/pages/privacy/SettingsPage").then(m => ({ default: m.PrivacySettingsPage })));
 
 // Assets
-import { InventoryPage } from "@/app/pages/assets/InventoryPage";
-import { CodeChangesPage } from "@/app/pages/assets/CodeChangesPage";
-import { VulnerabilitiesPage } from "@/app/pages/assets/VulnerabilitiesPage";
-import { SecurityAlertsPage } from "@/app/pages/assets/SecurityAlertsPage";
-import { AssetsSettingsPage } from "@/app/pages/assets/SettingsPage";
+const InventoryPage      = lazy(() => import("@/app/pages/assets/InventoryPage").then(m => ({ default: m.InventoryPage })));
+const CodeChangesPage    = lazy(() => import("@/app/pages/assets/CodeChangesPage").then(m => ({ default: m.CodeChangesPage })));
+const VulnerabilitiesPage = lazy(() => import("@/app/pages/assets/VulnerabilitiesPage").then(m => ({ default: m.VulnerabilitiesPage })));
+const SecurityAlertsPage = lazy(() => import("@/app/pages/assets/SecurityAlertsPage").then(m => ({ default: m.SecurityAlertsPage })));
+const AssetsSettingsPage = lazy(() => import("@/app/pages/assets/SettingsPage").then(m => ({ default: m.AssetsSettingsPage })));
 
 // Personnel
-import { PeoplePage } from "@/app/pages/personnel/PeoplePage";
-import { ComputersPage } from "@/app/pages/personnel/ComputersPage";
-import { AccessPage } from "@/app/pages/personnel/AccessPage";
-import { PersonnelSettingsPage } from "@/app/pages/personnel/SettingsPage";
+const PeoplePage          = lazy(() => import("@/app/pages/personnel/PeoplePage").then(m => ({ default: m.PeoplePage })));
+const ComputersPage       = lazy(() => import("@/app/pages/personnel/ComputersPage").then(m => ({ default: m.ComputersPage })));
+const AccessPage          = lazy(() => import("@/app/pages/personnel/AccessPage").then(m => ({ default: m.AccessPage })));
+const PersonnelSettingsPage = lazy(() => import("@/app/pages/personnel/SettingsPage").then(m => ({ default: m.PersonnelSettingsPage })));
 
 // Other
-import { IntegrationsPage } from "@/app/pages/IntegrationsPage";
-import { PartnerApiPage } from "@/app/pages/integrations/PartnerApiPage";
-import { MySecurityTasksPage } from "@/app/pages/MySecurityTasksPage";
-import { NotificationsPage } from "@/app/pages/notifications/NotificationsPage";
-import { NotificationSettingsPage } from "@/app/pages/notifications/NotificationSettingsPage";
+const IntegrationsPage    = lazy(() => import("@/app/pages/IntegrationsPage").then(m => ({ default: m.IntegrationsPage })));
+const PartnerApiPage      = lazy(() => import("@/app/pages/integrations/PartnerApiPage").then(m => ({ default: m.PartnerApiPage })));
+const MySecurityTasksPage = lazy(() => import("@/app/pages/MySecurityTasksPage").then(m => ({ default: m.MySecurityTasksPage })));
 
-// Account
-import { AccountSettingsPage } from "@/app/pages/account/AccountSettingsPage";
+// Account / Access
+const AccountSettingsPage = lazy(() => import("@/app/pages/account/AccountSettingsPage").then(m => ({ default: m.AccountSettingsPage })));
+const AccessUsersPage     = lazy(() => import("@/app/pages/access/AccessUsersPage").then(m => ({ default: m.AccessUsersPage })));
+const AccessRolesPage     = lazy(() => import("@/app/pages/access/AccessRolesPage").then(m => ({ default: m.AccessRolesPage })));
+const AccessRequestsPage  = lazy(() => import("@/app/pages/access/AccessRequestsPage").then(m => ({ default: m.AccessRequestsPage })));
 
-// Access Management (RBAC)
-import { AccessUsersPage } from "@/app/pages/access/AccessUsersPage";
-import { AccessRolesPage } from "@/app/pages/access/AccessRolesPage";
-import { AccessRequestsPage } from "@/app/pages/access/AccessRequestsPage";
-
-// Settings shell
-import { SettingsLayout } from "@/app/components/settings/SettingsLayout";
-
-// Auth guard: redirect to /login if no token
+// ── Auth guard ────────────────────────────────────────────────────────────────
 function requireAuth() {
   const token = localStorage.getItem("isms_token");
   if (!token) {
@@ -87,28 +90,15 @@ function requireAuth() {
   return null;
 }
 
-
+// ── Router ────────────────────────────────────────────────────────────────────
 export const router = createBrowserRouter([
   // Public auth routes (no layout)
-  {
-    path: "/login",
-    Component: LoginPage,
-  },
-  {
-    path: "/register",
-    Component: RegisterPage,
-  },
-  {
-    // OAuth callback — stores JWT then redirects to "/"
-    path: "/auth/callback",
-    Component: AuthCallbackPage,
-  },
+  { path: "/login",         Component: LoginPage },
+  { path: "/register",      Component: RegisterPage },
+  { path: "/auth/callback", Component: AuthCallbackPage },
 
   // Public Trust Center portal (no auth, no app layout)
-  {
-    path: "/trust/:orgSlug",
-    Component: PublicTrustPortalPage,
-  },
+  { path: "/trust/:orgSlug", Component: PublicTrustPortalPage },
 
   // Protected app routes (with layout)
   {
@@ -116,81 +106,84 @@ export const router = createBrowserRouter([
     Component: Layout,
     loader: requireAuth,
     children: [
-      { index: true, Component: HomePage },
-      { path: "my-work", Component: MyWorkPage },
-      { path: "tests", Component: TestsPage },
-      { path: "tests/:testId", Component: TestDetailPage },
+      { index: true,                                    Component: HomePage },
+      { path: "my-work",                                Component: MyWorkPage },
+      { path: "tests",                                  Component: TestsPage },
+      { path: "tests/:testId",                          Component: TestDetailPage },
       { path: "tests/library", loader: async () => redirect('/compliance/frameworks') },
-      { path: "reports", Component: ReportsPage },
-      { path: "notifications", Component: NotificationsPage },
-      { path: "reports/viewer/:reportId", Component: ReportViewerPage },
+      { path: "reports",                                Component: ReportsPage },
+      { path: "notifications",                          Component: NotificationsPage },
+      { path: "reports/viewer/:reportId",               Component: ReportViewerPage },
 
-      // Auditor role
-      { path: "auditor/dashboard", Component: AuditorDashboardPage },
-      { path: "auditor/audits/:auditId/final-report", Component: AuditFinalReportPage },
+      // Auditor
+      { path: "auditor/dashboard",                       Component: AuditorDashboardPage },
+      { path: "auditor/audits/:auditId/final-report",    Component: AuditFinalReportPage },
 
-      // Compliance routes
-      { path: "compliance/frameworks", Component: FrameworksPage },
-      { path: "compliance/frameworks/:slug/activated", Component: ActivationSummaryPage },
-      { path: "compliance/frameworks/:slug", Component: FrameworkDetailPage },
-      { path: "compliance/controls", Component: ControlsPage },
-      { path: "compliance/policies", Component: PoliciesPage },
-      { path: "compliance/documents", Component: DocumentsPage },
-      { path: "compliance/audits",   Component: AuditsPage },
-      { path: "compliance/findings", Component: FindingsPage },
-      { path: "compliance/settings", Component: ComplianceSettingsPage },
+      // Compliance
+      { path: "compliance/frameworks",                   Component: FrameworksPage },
+      { path: "compliance/frameworks/:slug/activated",   Component: ActivationSummaryPage },
+      { path: "compliance/frameworks/:slug",             Component: FrameworkDetailPage },
+      { path: "compliance/controls",                     Component: ControlsPage },
+      { path: "compliance/policies",                     Component: PoliciesPage },
+      { path: "compliance/documents",                    Component: DocumentsPage },
+      { path: "compliance/audits",                       Component: AuditsPage },
+      { path: "compliance/findings",                     Component: FindingsPage },
+      { path: "compliance/settings",                     Component: ComplianceSettingsPage },
 
-      // Customer Trust routes
-      { path: "customer-trust/trust-center", Component: TrustCenterPage },
-      { path: "customer-trust/settings", Component: CustomerTrustSettingsPage },
+      // Customer Trust
+      { path: "customer-trust/trust-center",             Component: TrustCenterPage },
+      { path: "customer-trust/settings",                 Component: CustomerTrustSettingsPage },
 
-      // Risk routes
-      { path: "risk/overview", Component: RiskOverviewPage },
-      { path: "risk/risks", Component: RisksPage },
-      { path: "risk/risks/:riskId", Component: RiskDetailPage },
-      { path: "risk/library", Component: RiskLibraryPage },
-      { path: "risk/action-tracker", Component: ActionTrackerPage },
-      { path: "risk/snapshot", Component: SnapshotPage },
-      { path: "risk/engine", Component: RiskEnginePage },
-      { path: "risk/settings", Component: RiskSettingsPage },
+      // Risk
+      { path: "risk/overview",                           Component: RiskOverviewPage },
+      { path: "risk/risks",                              Component: RisksPage },
+      { path: "risk/risks/:riskId",                      Component: RiskDetailPage },
+      { path: "risk/library",                            Component: RiskLibraryPage },
+      { path: "risk/action-tracker",                     Component: ActionTrackerPage },
+      { path: "risk/snapshot",                           Component: SnapshotPage },
+      { path: "risk/engine",                             Component: RiskEnginePage },
+      { path: "risk/settings",                           Component: RiskSettingsPage },
 
       // Vendors
-      { path: "vendors", Component: VendorsPage },
+      { path: "vendors",                                 Component: VendorsPage },
 
-      // Privacy routes
-      { path: "privacy/data-inventory", Component: DataInventoryPage },
-      { path: "privacy/settings", Component: PrivacySettingsPage },
+      // Privacy
+      { path: "privacy/data-inventory",                  Component: DataInventoryPage },
+      { path: "privacy/settings",                        Component: PrivacySettingsPage },
 
-      // Assets routes
-      { path: "assets/inventory", Component: InventoryPage },
-      { path: "assets/code-changes", Component: CodeChangesPage },
-      { path: "assets/vulnerabilities", Component: VulnerabilitiesPage },
-      { path: "assets/security-alerts", Component: SecurityAlertsPage },
-      { path: "assets/settings", Component: AssetsSettingsPage },
+      // Assets
+      { path: "assets/inventory",                        Component: InventoryPage },
+      { path: "assets/code-changes",                     Component: CodeChangesPage },
+      { path: "assets/vulnerabilities",                  Component: VulnerabilitiesPage },
+      { path: "assets/security-alerts",                  Component: SecurityAlertsPage },
+      { path: "assets/settings",                         Component: AssetsSettingsPage },
 
-      // Personnel routes
-      { path: "personnel/people", Component: PeoplePage },
-      { path: "personnel/computers", Component: ComputersPage },
-      { path: "personnel/access", Component: AccessPage },
-      { path: "personnel/settings", Component: PersonnelSettingsPage },
+      // Personnel
+      { path: "personnel/people",                        Component: PeoplePage },
+      { path: "personnel/computers",                     Component: ComputersPage },
+      { path: "personnel/access",                        Component: AccessPage },
+      { path: "personnel/settings",                      Component: PersonnelSettingsPage },
 
-      // Other routes
-      { path: "integrations", Component: IntegrationsPage },
-      { path: "integrations/partner-api", Component: PartnerApiPage },
-      { path: "my-security-tasks", Component: MySecurityTasksPage },
+      // Other
+      { path: "integrations",                            Component: IntegrationsPage },
+      { path: "integrations/partner-api",                Component: PartnerApiPage },
+      { path: "my-security-tasks",                       Component: MySecurityTasksPage },
 
-      // Unified Settings (shell + nested pages)
+      // Settings shell
       {
         path: "settings",
         Component: SettingsLayout,
         children: [
-          { path: "profile",          Component: AccountSettingsPage },
-          { path: "notifications",    Component: NotificationSettingsPage },
-          { path: "access/users",     Component: AccessUsersPage },
-          { path: "access/roles",     Component: AccessRolesPage },
-          { path: "access/requests",  Component: AccessRequestsPage },
+          { path: "profile",           Component: AccountSettingsPage },
+          { path: "notifications",     Component: NotificationSettingsPage },
+          { path: "access/users",      Component: AccessUsersPage },
+          { path: "access/roles",      Component: AccessRolesPage },
+          { path: "access/requests",   Component: AccessRequestsPage },
         ],
       },
     ],
   },
 ]);
+
+// Re-export Suspense for convenience (used in Layout to wrap <Outlet />)
+export { Suspense };
