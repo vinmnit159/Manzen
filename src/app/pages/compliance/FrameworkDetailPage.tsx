@@ -59,19 +59,21 @@ function CoverageRing({ pct, label, color }: { pct: number; label: string; color
   const dash = (pct / 100) * circ;
   return (
     <div className="flex flex-col items-center gap-2">
-      <svg width="96" height="96" viewBox="0 0 96 96" className="-rotate-90">
-        <circle cx="48" cy="48" r={r} fill="none" stroke="#f3f4f6" strokeWidth="10" />
-        <circle
-          cx="48" cy="48" r={r} fill="none"
-          stroke={color} strokeWidth="10"
-          strokeDasharray={`${dash} ${circ}`}
-          strokeLinecap="round"
-        />
-      </svg>
-      <div className="text-center -mt-14">
-        <p className="text-2xl font-bold text-gray-900">{pct}%</p>
+      <div className="relative w-24 h-24">
+        <svg width="96" height="96" viewBox="0 0 96 96" className="-rotate-90">
+          <circle cx="48" cy="48" r={r} fill="none" stroke="#f3f4f6" strokeWidth="10" />
+          <circle
+            cx="48" cy="48" r={r} fill="none"
+            stroke={color} strokeWidth="10"
+            strokeDasharray={`${dash} ${circ}`}
+            strokeLinecap="round"
+          />
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <p className="text-2xl font-bold text-gray-900">{pct}%</p>
+        </div>
       </div>
-      <p className="text-xs text-gray-500 font-medium mt-6">{label}</p>
+      <p className="text-xs text-gray-500 font-medium">{label}</p>
     </div>
   );
 }
@@ -112,7 +114,7 @@ function OverviewTab({ slug }: { slug: string }) {
           <p className="text-xs text-gray-400">Latest snapshot · {new Date(snap.calculatedAt).toLocaleString()}</p>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap items-start justify-around gap-8 py-4">
+          <div className="flex flex-wrap items-center justify-around gap-8 py-4">
             <CoverageRing pct={snap.controlCoveragePct} label="Control coverage" color="#2563eb" />
             <CoverageRing pct={snap.testPassRatePct} label="Test pass rate" color="#16a34a" />
             <CoverageRing pct={snap.applicable > 0 ? Math.round((snap.notApplicable / snap.totalRequirements) * 100) : 0} label="N/A ratio" color="#9ca3af" />
