@@ -453,8 +453,7 @@ export function AccessUsersPage() {
   const { data: usersData, isLoading, isFetching, error } = useQuery({
     queryKey: QK.users(),
     queryFn: async () => {
-      const res = await usersService.listUsers();
-      return res.users;
+      return usersService.listUsers();
     },
     staleTime: STALE.USERS,
   });

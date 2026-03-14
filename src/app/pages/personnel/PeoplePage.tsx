@@ -229,8 +229,7 @@ export function PeoplePage() {
   const { data: usersData, isLoading: loadingUsers, isFetching, error: usersError } = useQuery({
     queryKey: QK.users(),
     queryFn: async () => {
-      const res = await usersService.listUsers();
-      return res.users;
+      return usersService.listUsers();
     },
     staleTime: STALE.USERS,
   });

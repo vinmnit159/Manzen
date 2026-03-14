@@ -56,18 +56,31 @@ export function AccessPage() {
     setLoading(true);
     setError(null);
     try {
-      const [membersRes, usersRes, slackRes] = await Promise.all([
+      const [membersResult, usersResult, slackResult] = await Promise.allSettled([
         usersService.getGitHubMembers(),
         usersService.listUsers(),
         usersService.getSlackMembers(),
       ]);
-      setMembers(membersRes.members);
-      setConnected(membersRes.connected);
-      setUsers(usersRes.users);
-      setSlackMembers(slackRes.members);
-      setSlackConnected(slackRes.connected);
-    } catch (e: any) {
-      setError(e?.message ?? "Failed to load data");
+
+      if (membersResult.status === 'fulfilled') {
+        setMembers(membersResult.value.members);
+        setConnected(membersResult.value.connected);
+      }
+      if (usersResult.status === 'fulfilled') {
+        setUsers(usersResult.value);
+      }
+      if (slackResult.status === 'fulfilled') {
+        setSlackMembers(slackResult.value.members);
+        setSlackConnected(slackResult.value.connected);
+      }
+
+      // Only show a page-level error if the users call (critical) failed
+      if (usersResult.status === 'rejected') {
+        const e = usersResult.reason;
+        setError((e as { message?: string })?.message ?? "Failed to load users");
+      }
+    } catch (e: unknown) {
+      setError((e as { message?: string })?.message ?? "Failed to load data");
     } finally {
       setLoading(false);
     }
@@ -118,7 +131,7 @@ export function AccessPage() {
         usersService.listUsers(),
       ]);
       setMembers(res.members);
-      setUsers(usersRes.users);
+      setUsers(usersRes);
       setMapping((prev) => ({ saving: null, errors: prev.errors }));
     } catch (e: any) {
       setMapping((prev) => ({
@@ -275,12 +288,12 @@ export function AccessPage() {
                       </td>
                       <td className="px-6 py-4">
                         {memberError && <p className="text-xs text-red-600 mb-1">{memberError}</p>}
-                        <select
-                          className="text-sm border border-gray-300 rounded-md px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60 min-w-[180px]"
-                          defaultValue={member.mappedUserId ?? ""}
-                          disabled={isSaving}
-                          onChange={(e) => { const uid = e.target.value; if (uid) handleMap(member, uid); }}
-                        >
+                         <select
+                           className="text-sm border border-gray-300 rounded-md px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60 min-w-[180px]"
+                           value={member.mappedUserId ?? ""}
+                           disabled={isSaving}
+                           onChange={(e) => { const uid = e.target.value; if (uid) handleMap(member, uid); }}
+                         >
                           <option value="">— Select user —</option>
                           {users.map((u) => (
                             <option key={u.id} value={u.id}>
@@ -419,12 +432,12 @@ export function AccessPage() {
                       {/* Map to user dropdown */}
                       <td className="px-6 py-4">
                         {memberError && <p className="text-xs text-red-600 mb-1">{memberError}</p>}
-                        <select
-                          className="text-sm border border-gray-300 rounded-md px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-60 min-w-[180px]"
-                          defaultValue={member.mappedUserId ?? ""}
-                          disabled={isSaving}
-                          onChange={(e) => { const uid = e.target.value; if (uid) handleSlackMap(member, uid); }}
-                        >
+                         <select
+                           className="text-sm border border-gray-300 rounded-md px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-60 min-w-[180px]"
+                           value={member.mappedUserId ?? ""}
+                           disabled={isSaving}
+                           onChange={(e) => { const uid = e.target.value; if (uid) handleSlackMap(member, uid); }}
+                         >
                           <option value="">— Select user —</option>
                           {users.map((u) => (
                             <option key={u.id} value={u.id}>

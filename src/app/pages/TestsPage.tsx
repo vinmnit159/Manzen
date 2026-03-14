@@ -233,7 +233,7 @@ export function TestsPage() {
     queryKey: QK.users(),
     queryFn: async () => {
       const res = await usersService.listUsers();
-      return res.users ?? [];
+      return res;
     },
     staleTime: STALE.USERS,
   });

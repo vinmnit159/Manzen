@@ -49,8 +49,9 @@ export interface UserWithSlack extends User {
 
 export const usersService = {
   /** List all users in the organisation */
-  async listUsers(): Promise<{ users: UserWithGit[] }> {
-    return apiClient.get('/api/users');
+  async listUsers(): Promise<UserWithGit[]> {
+    const res = await apiClient.get<{ success: boolean; data: UserWithGit[] }>('/api/users');
+    return res.data ?? [];
   },
 
   /** Get a single user by id */
