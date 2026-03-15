@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { RefreshCw, X, CheckCircle, AlertTriangle, Clock, Columns, Database, ChevronLeft, ChevronRight } from 'lucide-react';
+import { RefreshCw, X, CheckCircle, AlertTriangle, Clock, Database, ChevronLeft, ChevronRight } from 'lucide-react';
 import { FrameworkFilter } from '@/app/components/compliance/FrameworkFilter';
 import { PageFilterBar } from '@/app/components/filters/PageFilterBar';
 import { useUrlFilterState } from '@/app/hooks/useUrlFilterState';
@@ -14,102 +14,11 @@ import type { TestRecord, TestStatus, TestCategory, TestType, ListTestsParams } 
 import type { Control } from '@/services/api/types';
 import { authService } from '@/services/api/auth';
 
-// ─── Config ───────────────────────────────────────────────────────────────────
-
-const STATUS_CONFIG: Record<TestStatus, { label: string; bg: string; text: string; dot: string }> = {
-  OK:                { label: 'OK',                bg: 'bg-green-50',  text: 'text-green-700',  dot: 'bg-green-500'  },
-  Due_soon:          { label: 'Due Soon',          bg: 'bg-amber-50',  text: 'text-amber-700',  dot: 'bg-amber-500'  },
-  Overdue:           { label: 'Overdue',           bg: 'bg-red-50',    text: 'text-red-700',    dot: 'bg-red-500'    },
-  Needs_remediation: { label: 'Needs Remediation', bg: 'bg-purple-50', text: 'text-purple-700', dot: 'bg-purple-500' },
-};
-
-const CATEGORY_OPTIONS: TestCategory[] = ['Custom', 'Engineering', 'HR', 'IT', 'Policy', 'Risks'];
-const STATUS_OPTIONS: TestStatus[] = ['OK', 'Due_soon', 'Overdue', 'Needs_remediation'];
-const TYPE_OPTIONS: TestType[] = ['Document', 'Automated', 'Pipeline'];
-
-const CATEGORY_COLOR: Record<TestCategory, string> = {
-  Custom:      'bg-gray-100 text-gray-700',
-  Engineering: 'bg-blue-100 text-blue-700',
-  HR:          'bg-pink-100 text-pink-700',
-  IT:          'bg-cyan-100 text-cyan-700',
-  Policy:      'bg-indigo-100 text-indigo-700',
-  Risks:       'bg-orange-100 text-orange-700',
-};
-
-// ─── Column config ────────────────────────────────────────────────────────────
-interface ColumnConfig { id: string; label: string; visible: boolean; sortable: boolean; minWidth?: number; }
-
-const DEFAULT_COLUMNS: ColumnConfig[] = [
-  { id: 'name',     label: 'Test Name', visible: true,  sortable: true,  minWidth: 220 },
-  { id: 'category', label: 'Category',  visible: true,  sortable: true,  minWidth: 110 },
-  { id: 'type',     label: 'Type',      visible: true,  sortable: true,  minWidth: 100 },
-  { id: 'owner',    label: 'Owner',     visible: true,  sortable: false, minWidth: 140 },
-  { id: 'status',   label: 'Status',    visible: true,  sortable: true,  minWidth: 140 },
-  { id: 'dueDate',  label: 'Due Date',  visible: true,  sortable: true,  minWidth: 110 },
-  { id: 'actions',  label: 'Actions',   visible: true,  sortable: false, minWidth: 120 },
-];
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-function fmtDate(iso: string | null | undefined): string {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-}
-
-function StatusBadge({ status }: { status: TestStatus }) {
-  const cfg = STATUS_CONFIG[status] ?? { label: status, bg: 'bg-gray-50', text: 'text-gray-600', dot: 'bg-gray-400' };
-  return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${cfg.bg} ${cfg.text}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
-      {cfg.label}
-    </span>
-  );
-}
-
-function SortIcon({ active, direction }: { active: boolean; direction?: 'asc' | 'desc' }) {
-  return (
-    <span className={`flex flex-col -space-y-1 ${active ? 'opacity-100' : 'opacity-30'}`}>
-      <svg className={`w-3 h-3 ${active && direction === 'asc' ? 'text-blue-600' : 'text-gray-400'}`} fill="currentColor" viewBox="0 0 20 20"><path d="M10 3l6 6H4l6-6z" /></svg>
-      <svg className={`w-3 h-3 ${active && direction === 'desc' ? 'text-blue-600' : 'text-gray-400'}`} fill="currentColor" viewBox="0 0 20 20"><path d="M10 17l6-6H4l6 6z" /></svg>
-    </span>
-  );
-}
-
-// ─── Column picker ────────────────────────────────────────────────────────────
-function ColumnPicker({ columns, onToggle }: { columns: ColumnConfig[]; onToggle: (id: string) => void }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="relative">
-      <button
-        onClick={() => setOpen(v => !v)}
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 transition-colors shadow-sm"
-      >
-        <Columns className="w-4 h-4" />
-        <span className="hidden sm:inline">Columns</span>
-      </button>
-      {open && (
-        <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-2 w-56 bg-white border border-gray-200 rounded-xl shadow-lg z-20 p-4">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Toggle columns</p>
-            <div className="space-y-2">
-              {columns.filter(c => c.id !== 'actions').map(col => (
-                <label key={col.id} className="flex items-center gap-2.5 cursor-pointer hover:bg-gray-50 p-1.5 rounded-md">
-                  <input
-                    type="checkbox"
-                    checked={col.visible}
-                    onChange={() => { onToggle(col.id); }}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded"
-                  />
-                  <span className="text-sm text-gray-700">{col.label}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
+import { STATUS_CONFIG, CATEGORY_OPTIONS, STATUS_OPTIONS, TYPE_OPTIONS, CATEGORY_COLOR, DEFAULT_COLUMNS, fmtDate } from './testsPage/config';
+import type { ColumnConfig } from './testsPage/config';
+import { StatusBadge, SortIcon } from './testsPage/StatusBadge';
+import { ColumnPicker } from './testsPage/ColumnPicker';
+import { LoadingState, ErrorState, EmptyState } from './testsPage/StateComponents';
 
 interface TestFilter {
   search: string;
@@ -756,61 +665,6 @@ export function TestsPage() {
         </div>
       </div>
 
-    </div>
-  );
-}
-
-// ─── State components ─────────────────────────────────────────────────────────
-
-function LoadingState() {
-  return (
-    <div className="flex-1 flex flex-col items-center justify-center py-20 bg-white rounded-xl border border-gray-200 shadow-sm">
-      <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4" />
-      <p className="text-sm text-gray-500">Loading tests…</p>
-    </div>
-  );
-}
-
-function ErrorState({ onRetry }: { onRetry: () => void }) {
-  return (
-    <div className="flex-1 flex flex-col items-center justify-center py-20 bg-white rounded-xl border border-red-200 shadow-sm">
-      <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mb-4">
-        <AlertTriangle className="w-6 h-6 text-red-500" />
-      </div>
-      <p className="text-base font-medium text-gray-900 mb-1">Failed to load tests</p>
-      <button onClick={onRetry} className="mt-3 px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium shadow-sm">
-        Try again
-      </button>
-    </div>
-  );
-}
-
-function EmptyState({ hasFilters, onClear, onSeed }: { hasFilters: boolean; onClear: () => void; onSeed?: () => void }) {
-  return (
-    <div className="flex-1 flex flex-col items-center justify-center py-20 bg-white rounded-xl border border-gray-200 shadow-sm">
-      <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-        <CheckCircle className="w-6 h-6 text-gray-400" />
-      </div>
-      <p className="text-base font-medium text-gray-900 mb-1">No tests found</p>
-      <p className="text-sm text-gray-500 mb-4">
-        {hasFilters ? 'No tests match your current filters.' : 'No tests have been created yet.'}
-      </p>
-      <div className="flex gap-2">
-        {hasFilters && (
-          <button onClick={onClear} className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50">
-            Clear filters
-          </button>
-        )}
-        {onSeed && !hasFilters && (
-          <button
-            onClick={onSeed}
-            className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 shadow-sm flex items-center gap-2"
-          >
-            <Database className="w-4 h-4" />
-            Seed 14 Policy Tests
-          </button>
-        )}
-      </div>
     </div>
   );
 }
