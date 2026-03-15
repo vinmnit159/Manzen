@@ -507,7 +507,25 @@ export function DocumentsPage() {
   };
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { loadData(); }, []); // loadData is stable — no deps that change after mount
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    Promise.all([
+      apiClient.get<{ data?: EvidenceItem[] }>('/api/evidence'),
+      apiClient.get<{ data?: { total: number; automated: number; manual: number } }>('/api/evidence/stats'),
+      controlsService.getControls({ limit: 200 }),
+    ])
+      .then(([evidRes, statsRes, ctrlRes]) => {
+        if (cancelled) return;
+        setEvidence(evidRes?.data ?? []);
+        setStats(statsRes?.data ?? null);
+        const ctrlData = (ctrlRes as { data?: ControlOption[] })?.data ?? [];
+        setControls(ctrlData.map((c) => ({ id: c.id, isoReference: c.isoReference, title: c.title })));
+      })
+      .catch((err: unknown) => { if (!cancelled) console.error('Failed to load evidence data', err); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []); // loadData deps are stable — no changes after mount
 
   const filtered = useMemo(() => {
     return evidence.filter((e) => {

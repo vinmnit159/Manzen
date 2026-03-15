@@ -70,9 +70,12 @@ export function VendorsPage() {
   }
 
   useEffect(() => {
-    refresh()
-      .catch((err: unknown) => { console.error('Failed to load vendors', err); })
-      .finally(() => setLoading(false));
+    let cancelled = false;
+    vendorsService.list()
+      .then((data) => { if (!cancelled) setVendors(data); })
+      .catch((err: unknown) => { if (!cancelled) console.error('Failed to load vendors', err); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, []);
 
   const stats = useMemo(() => {

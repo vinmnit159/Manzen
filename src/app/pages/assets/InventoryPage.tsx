@@ -38,10 +38,12 @@ export function InventoryPage() {
   const { filters, update, reset } = useUrlFilterState({ defaults: { search: '', type: 'ALL', criticality: 'ALL' } });
 
   useEffect(() => {
+    let cancelled = false;
     apiClient.get<{ data?: AssetItem[] }>('/api/assets')
-      .then((res) => setAssets(res?.data ?? []))
-      .catch((err: unknown) => { console.error('Failed to load assets', err); })
-      .finally(() => setLoading(false));
+      .then((res) => { if (!cancelled) setAssets(res?.data ?? []); })
+      .catch((err: unknown) => { if (!cancelled) console.error('Failed to load assets', err); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, []);
 
   const filteredAssets = useMemo(() => {
