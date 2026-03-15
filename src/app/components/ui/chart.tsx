@@ -79,6 +79,7 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
   }
 
   return (
+    {/* Safe: content is entirely code-generated CSS custom properties, never derived from user input */}
     <style
       dangerouslySetInnerHTML={{
         __html: Object.entries(THEMES)
