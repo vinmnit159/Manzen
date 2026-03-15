@@ -11,7 +11,8 @@
     "types": ["node"],
     "allowJs": true,
     "skipLibCheck": true,
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "strict": true
   },
   "include": ["src", "vite.config.ts"]
 }

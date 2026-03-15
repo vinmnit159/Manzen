@@ -794,8 +794,8 @@ function NewRelicConnectModal({ onClose, onConnected }: {
     try {
       const res = await newRelicService.connect({ apiKey, accountId });
       onConnected(res.data);
-    } catch (err: any) {
-      setError(err?.message ?? 'Failed to connect to New Relic');
+    } catch (err: unknown) {
+      setError((err as { message?: string })?.message ?? 'Failed to connect to New Relic');
     } finally {
       setLoading(false);
     }
@@ -876,8 +876,8 @@ function SlackAddChannelModal({ onClose, onAdded }: { onClose: () => void; onAdd
       await slackService.addChannel({ channelId: channelId.trim(), channelName: channelName.trim(), eventType });
       await testsService.upsertWorkflowIntegrationConfig('slack', { channel: channelName.trim() });
       onAdded(); onClose();
-    } catch (err: any) {
-      setError(err?.message ?? 'Failed to add channel mapping');
+    } catch (err: unknown) {
+      setError((err as { message?: string })?.message ?? 'Failed to add channel mapping');
     } finally { setLoading(false); }
   }
 
@@ -1111,8 +1111,8 @@ function AzureConnectModal({
       const res = await azureService.connect({ subscriptionId: subscriptionId.trim(), tenantId: tenantId.trim(), clientId: clientId.trim(), clientSecret: clientSecret.trim(), label: label.trim() || undefined });
       onConnected(res.data);
       onClose();
-    } catch (err: any) {
-      setError(err?.message ?? 'Failed to connect to Azure. Check the credentials.');
+    } catch (err: unknown) {
+      setError((err as { message?: string })?.message ?? 'Failed to connect to Azure. Check the credentials.');
     } finally { setLoading(false); }
   }
 
@@ -1275,8 +1275,8 @@ function WizConnectModal({
       const res = await wizService.connect({ clientId: clientId.trim(), clientSecret: clientSecret.trim(), wizApiEndpoint: wizApiEndpoint.trim() || undefined, label: label.trim() || undefined });
       onConnected(res.data);
       onClose();
-    } catch (err: any) {
-      setError(err?.message ?? 'Failed to connect to Wiz. Check the client credentials.');
+    } catch (err: unknown) {
+      setError((err as { message?: string })?.message ?? 'Failed to connect to Wiz. Check the client credentials.');
     } finally { setLoading(false); }
   }
 
@@ -1435,8 +1435,8 @@ function LaceworkConnectModal({
       const res = await laceworkService.connect({ accountName: accountName.trim(), keyId: keyId.trim(), secret: secret.trim(), label: label.trim() || undefined });
       onConnected(res.data);
       onClose();
-    } catch (err: any) {
-      setError(err?.message ?? 'Failed to connect to Lacework. Check the credentials.');
+    } catch (err: unknown) {
+      setError((err as { message?: string })?.message ?? 'Failed to connect to Lacework. Check the credentials.');
     } finally { setLoading(false); }
   }
 
@@ -1593,8 +1593,8 @@ function SnykConnectModal({
     try {
       const res = await snykService.connect({ snykOrgId: snykOrgId.trim(), apiToken: apiToken.trim(), label: label.trim() || undefined });
       onConnected(res.data);
-    } catch (err: any) {
-      setError(err?.message ?? 'Failed to connect to Snyk. Check the org ID and API token.');
+    } catch (err: unknown) {
+      setError((err as { message?: string })?.message ?? 'Failed to connect to Snyk. Check the org ID and API token.');
     } finally { setLoading(false); }
   }
 
@@ -1747,8 +1747,8 @@ function SonarQubeConnectModal({
     try {
       const res = await sonarqubeService.connect({ instanceUrl: instanceUrl.trim(), token: token.trim(), label: label.trim() || undefined });
       onConnected(res.data);
-    } catch (err: any) {
-      setError(err?.message ?? 'Failed to connect to SonarQube. Check the instance URL and token.');
+    } catch (err: unknown) {
+      setError((err as { message?: string })?.message ?? 'Failed to connect to SonarQube. Check the instance URL and token.');
     } finally { setLoading(false); }
   }
 
@@ -1901,8 +1901,8 @@ function VeracodeConnectModal({
     try {
       const res = await veracodeService.connect({ apiId: apiId.trim(), apiKey: apiKey.trim(), label: label.trim() || undefined });
       onConnected(res.data);
-    } catch (err: any) {
-      setError(err?.message ?? 'Failed to connect to Veracode. Check the API ID and key.');
+    } catch (err: unknown) {
+      setError((err as { message?: string })?.message ?? 'Failed to connect to Veracode. Check the API ID and key.');
     } finally { setLoading(false); }
   }
 
@@ -2056,8 +2056,8 @@ function CheckmarxConnectModal({
     try {
       const res = await checkmarxService.connect({ instanceUrl: instanceUrl.trim(), clientId: clientId.trim(), clientSecret: clientSecret.trim(), label: label.trim() || undefined });
       onConnected(res.data);
-    } catch (err: any) {
-      setError(err?.message ?? 'Failed to connect to Checkmarx. Check the instance URL and credentials.');
+    } catch (err: unknown) {
+      setError((err as { message?: string })?.message ?? 'Failed to connect to Checkmarx. Check the instance URL and credentials.');
     } finally { setLoading(false); }
   }
 
@@ -2215,8 +2215,8 @@ function VaultConnectModal({
     try {
       const res = await vaultService.connect({ vaultAddr: vaultAddr.trim(), token: token.trim(), namespace: namespace.trim() || undefined, label: label.trim() || undefined });
       onConnected(res.data);
-    } catch (err: any) {
-      setError(err?.message ?? 'Failed to connect to Vault. Check the address and token.');
+    } catch (err: unknown) {
+      setError((err as { message?: string })?.message ?? 'Failed to connect to Vault. Check the address and token.');
     } finally { setLoading(false); }
   }
 
@@ -2383,8 +2383,8 @@ function SecretsManagerConnectModal({
     try {
       const res = await secretsManagerService.connect({ awsRegion, accessKeyId: accessKeyId.trim(), secretAccessKey: secretAccessKey.trim(), label: label.trim() || undefined });
       onConnected(res.data);
-    } catch (err: any) {
-      setError(err?.message ?? 'Failed to connect to AWS Secrets Manager. Check your region and credentials.');
+    } catch (err: unknown) {
+      setError((err as { message?: string })?.message ?? 'Failed to connect to AWS Secrets Manager. Check your region and credentials.');
     } finally { setLoading(false); }
   }
 
@@ -2567,8 +2567,8 @@ function CertManagerConnectModal({
       }
       const res = await certManagerService.connect(payload);
       onConnected(res.data);
-    } catch (err: any) {
-      setError(err?.message ?? 'Failed to connect Certificate Manager. Check the credentials.');
+    } catch (err: unknown) {
+      setError((err as { message?: string })?.message ?? 'Failed to connect Certificate Manager. Check the credentials.');
     } finally { setLoading(false); }
   }
 
@@ -2841,8 +2841,8 @@ function AwsOnboardModal({ onClose, onConnected }: {
     try {
       const res = await awsService.getTrustPolicy();
       setTrustData(res.data);
-    } catch (err: any) {
-      setPolicyError(err?.message ?? 'Failed to generate trust policy');
+    } catch (err: unknown) {
+      setPolicyError((err as { message?: string })?.message ?? 'Failed to generate trust policy');
     } finally { setLoadingPolicy(false); }
   }
 
@@ -2873,8 +2873,8 @@ function AwsOnboardModal({ onClose, onConnected }: {
         onConnected(res.data);
         onClose();
       }
-    } catch (err: any) {
-      setConnectError(err?.message ?? 'Failed to connect — check your Role ARN and trust policy');
+    } catch (err: unknown) {
+      setConnectError((err as { message?: string })?.message ?? 'Failed to connect — check your Role ARN and trust policy');
     } finally { setConnecting(false); }
   }
 
@@ -3187,8 +3187,8 @@ function BambooHRConnectModal({ onClose, onConnected }: {
         else onConnected({ id: res.data.id, subdomain: res.data.subdomain, label: res.data.label, status: res.data.status, lastSyncAt: null, createdAt: res.data.createdAt, personnel: [] });
         onClose();
       }
-    } catch (err: any) {
-      setError(err?.message ?? 'Failed to connect — check your subdomain and API key');
+    } catch (err: unknown) {
+      setError((err as { message?: string })?.message ?? 'Failed to connect — check your subdomain and API key');
     } finally { setLoading(false); }
   }
 
@@ -3427,8 +3427,8 @@ function CloudflareConnectModal({ onClose, onConnected }: {
         else onConnected({ id: res.data.id, cfAccountId: res.data.cfAccountId, label: res.data.label, status: res.data.status, lastScanAt: null, createdAt: res.data.createdAt, zones: [] });
         onClose();
       }
-    } catch (err: any) {
-      setError(err?.message ?? 'Failed to connect — check your API token and try again');
+    } catch (err: unknown) {
+      setError((err as { message?: string })?.message ?? 'Failed to connect — check your API token and try again');
     } finally { setLoading(false); }
   }
 
@@ -3671,8 +3671,8 @@ function WorkspaceConnectModal({ onClose, onConnected }: {
         });
         onClose();
       }
-    } catch (err: any) {
-      setError(err?.message ?? 'Failed to connect — check service account key, admin email, and domain-wide delegation scopes');
+    } catch (err: unknown) {
+      setError((err as { message?: string })?.message ?? 'Failed to connect — check service account key, admin email, and domain-wide delegation scopes');
     } finally { setLoading(false); }
   }
 
@@ -3909,8 +3909,8 @@ function RedashConnectModal({ onClose, onConnected }: {
         else onConnected({ id: res.data.id, baseUrl: res.data.baseUrl, label: res.data.label, status: res.data.status, lastScanAt: null, createdAt: res.data.createdAt, users: [], dataSources: [] });
         onClose();
       }
-    } catch (err: any) {
-      setError(err?.message ?? 'Failed to connect — check your base URL and API key');
+    } catch (err: unknown) {
+      setError((err as { message?: string })?.message ?? 'Failed to connect — check your base URL and API key');
     } finally { setLoading(false); }
   }
 
@@ -4136,8 +4136,8 @@ function FleetConnectModal({ onClose, onConnected }: {
         else onConnected({ id: res.data.id, baseUrl: res.data.baseUrl, label: res.data.label, status: res.data.status, lastScanAt: null, createdAt: res.data.createdAt, hosts: [], findings: [] });
         onClose();
       }
-    } catch (err: any) {
-      setError(err?.message ?? 'Failed to connect — check your Fleet URL and API token');
+    } catch (err: unknown) {
+      setError((err as { message?: string })?.message ?? 'Failed to connect — check your Fleet URL and API token');
     } finally { setLoading(false); }
   }
 
@@ -4494,8 +4494,8 @@ function BigIdConnectModal({
       const res = await bigIdService.connect({ baseUrl: baseUrl.trim(), apiToken: apiToken.trim(), label: label.trim() || undefined });
       onConnected(res.data);
       onClose();
-    } catch (err: any) {
-      setError(err?.message ?? 'Failed to connect to BigID. Check the URL and API token.');
+    } catch (err: unknown) {
+      setError((err as { message?: string })?.message ?? 'Failed to connect to BigID. Check the URL and API token.');
     } finally { setLoading(false); }
   }
 
@@ -4713,8 +4713,8 @@ function PagerDutyConnectModal({
       const res = await pagerdutyService.connect({ apiKey: apiKey.trim(), label: label.trim() || undefined, slaHours: Number(slaHours) || 4 });
       onConnected(res.data);
       onClose();
-    } catch (err: any) {
-      setError(err?.message ?? 'Failed to connect to PagerDuty. Check the API key.');
+    } catch (err: unknown) {
+      setError((err as { message?: string })?.message ?? 'Failed to connect to PagerDuty. Check the API key.');
     } finally { setLoading(false); }
   }
 
@@ -4870,8 +4870,8 @@ function OpsgenieConnectModal({
       const res = await opsgenieService.connect({ apiKey: apiKey.trim(), region, label: label.trim() || undefined, slaHours: Number(slaHours) || 4 });
       onConnected(res.data);
       onClose();
-    } catch (err: any) {
-      setError(err?.message ?? 'Failed to connect to Opsgenie. Check the API key.');
+    } catch (err: unknown) {
+      setError((err as { message?: string })?.message ?? 'Failed to connect to Opsgenie. Check the API key.');
     } finally { setLoading(false); }
   }
 
@@ -5035,14 +5035,18 @@ function ServiceNowConnectModal({
     if (!instanceUrl.trim()) { setError('Instance URL is required'); return; }
     setLoading(true); setError('');
     try {
-      const payload: any = { instanceUrl: instanceUrl.trim(), authMethod, label: label.trim() || undefined, slaHours: Number(slaHours) || 4 };
-      if (authMethod === 'token') payload.token = token;
-      else { payload.username = username; payload.password = password; }
+      const payload = {
+        instanceUrl: instanceUrl.trim(),
+        authMethod,
+        label: label.trim() || undefined,
+        slaHours: Number(slaHours) || 4,
+        ...(authMethod === 'token' ? { token } : { username, password }),
+      };
       const res = await servicenowIncidentService.connect(payload);
       onConnected(res.data);
       onClose();
-    } catch (err: any) {
-      setError(err?.message ?? 'Failed to connect to ServiceNow. Check credentials.');
+    } catch (err: unknown) {
+      setError((err as { message?: string })?.message ?? 'Failed to connect to ServiceNow. Check credentials.');
     } finally { setLoading(false); }
   }
 
@@ -5224,8 +5228,8 @@ function DatadogConnectModal({
       const res = await datadogIncidentsService.connect({ apiKey: apiKey.trim(), appKey: appKey.trim(), datadogSite, label: label.trim() || undefined, slaHours: Number(slaHours) || 4 });
       onConnected(res.data);
       onClose();
-    } catch (err: any) {
-      setError(err?.message ?? 'Failed to connect to Datadog. Check credentials.');
+    } catch (err: unknown) {
+      setError((err as { message?: string })?.message ?? 'Failed to connect to Datadog. Check credentials.');
     } finally { setLoading(false); }
   }
 
@@ -5393,8 +5397,8 @@ function GcpConnectModal({
       const res = await gcpService.connect({ keyJson: keyJson.trim(), label: label.trim() || undefined });
       onConnected(res.data);
       onClose();
-    } catch (err: any) {
-      setError(err?.message ?? 'Failed to connect to GCP. Check the service account key.');
+    } catch (err: unknown) {
+      setError((err as { message?: string })?.message ?? 'Failed to connect to GCP. Check the service account key.');
     } finally { setLoading(false); }
   }
 
@@ -7229,7 +7233,7 @@ function EngineerAIntegrationCard({
 
   useEffect(() => {
     load();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleConnect(e: React.FormEvent) {
     e.preventDefault();
@@ -7271,8 +7275,8 @@ function EngineerAIntegrationCard({
       setLabel('');
       await load();
       onToast('success', `${config.name} connected`);
-    } catch (error: any) {
-      onToast('error', error?.message ?? `Failed to connect ${config.name}`);
+    } catch (error: unknown) {
+      onToast('error', (error as { message?: string })?.message ?? `Failed to connect ${config.name}`);
     } finally {
       setSubmitting(false);
     }
@@ -7469,7 +7473,7 @@ function MdmCard({ onToast }: { onToast: (type: 'success' | 'error', msg: string
     finally { setLoading(false); }
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleCreate = async () => {
     setCreating(true);
@@ -7479,8 +7483,8 @@ function MdmCard({ onToast }: { onToast: (type: 'success' | 'error', msg: string
       setTokenLabel('');
       await loadData();
       onToast('success', 'Enrollment token created');
-    } catch (e: any) {
-      onToast('error', e?.message ?? 'Failed to create token');
+    } catch (e: unknown) {
+      onToast('error', (e as { message?: string })?.message ?? 'Failed to create token');
     } finally {
       setCreating(false);
     }
@@ -7641,8 +7645,8 @@ function OktaConnectModal({ onClose, onConnected }: {
     try {
       const res = await oktaService.connect({ domain: domain.trim(), apiToken: apiToken.trim(), label: label.trim() || undefined });
       if (res.success) { onConnected(res.data); onClose(); }
-    } catch (err: any) {
-      setError(err?.message ?? 'Failed to connect — check your domain and API token');
+    } catch (err: unknown) {
+      setError((err as { message?: string })?.message ?? 'Failed to connect — check your domain and API token');
     } finally { setLoading(false); }
   }
 
@@ -7810,8 +7814,8 @@ function AzureAdConnectModal({ onClose, onConnected }: {
     try {
       const res = await azureAdService.connect({ tenantId: tenantId.trim(), clientId: clientId.trim(), clientSecret: clientSecret.trim(), label: label.trim() || undefined });
       if (res.success) { onConnected(res.data); onClose(); }
-    } catch (err: any) {
-      setError(err?.message ?? 'Failed to connect — check your tenant ID, client ID, and secret');
+    } catch (err: unknown) {
+      setError((err as { message?: string })?.message ?? 'Failed to connect — check your tenant ID, client ID, and secret');
     } finally { setLoading(false); }
   }
 
@@ -7974,8 +7978,8 @@ function JumpCloudConnectModal({ onClose, onConnected }: {
     try {
       const res = await jumpCloudService.connect({ apiToken: apiToken.trim(), label: label.trim() || undefined });
       if (res.success) { onConnected(res.data); onClose(); }
-    } catch (err: any) {
-      setError(err?.message ?? 'Failed to connect — check your API token');
+    } catch (err: unknown) {
+      setError((err as { message?: string })?.message ?? 'Failed to connect — check your API token');
     } finally { setLoading(false); }
   }
 
@@ -8299,8 +8303,8 @@ export function IntegrationsPage() {
         newRelicService.getStatus().catch(() => ({ connected: false, data: null })),
         testsService.listWorkflowIntegrationConfigStatus().catch(() => ({ success: true, data: [] as WorkflowIntegrationConfigStatus[] })),
       ]);
-      const gh = intRes.integrations.find((i: any) => i.provider === 'GITHUB' && i.status === 'ACTIVE') ?? null;
-      const drive = intRes.integrations.find((i: any) => i.provider === 'GOOGLE_DRIVE' && i.status === 'ACTIVE') ?? null;
+      const gh = intRes.integrations.find((i) => i.provider === 'GITHUB' && i.status === 'ACTIVE') ?? null;
+      const drive = intRes.integrations.find((i) => i.provider === 'GOOGLE_DRIVE' && i.status === 'ACTIVE') ?? null;
       setGithubIntegration(gh);
       setDriveIntegration(drive);
       setSlackIntegration(slackRes.data);
