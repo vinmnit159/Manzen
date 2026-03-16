@@ -5,6 +5,8 @@ import { Badge } from '@/app/components/ui/badge';
 import { slackService, SlackIntegration, SlackChannel, SLACK_EVENT_TYPES } from '@/services/api/slack';
 import { testsService } from '@/services/api/tests';
 
+type SlackEventType = (typeof SLACK_EVENT_TYPES)[number]['value'];
+
 function SlackIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 54 54" xmlns="http://www.w3.org/2000/svg">
@@ -19,7 +21,7 @@ function SlackIcon({ className }: { className?: string }) {
 function SlackAddChannelModal({ onClose, onAdded }: { onClose: () => void; onAdded: () => void }) {
   const [channelId, setChannelId] = useState('');
   const [channelName, setChannelName] = useState('');
-  const [eventType, setEventType] = useState(SLACK_EVENT_TYPES[0].value);
+  const [eventType, setEventType] = useState<SlackEventType>(SLACK_EVENT_TYPES[0].value);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -55,7 +57,7 @@ function SlackAddChannelModal({ onClose, onAdded }: { onClose: () => void; onAdd
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Event Type</label>
-            <select value={eventType} onChange={e => setEventType(e.target.value)}
+            <select value={eventType} onChange={e => setEventType(e.target.value as SlackEventType)}
               className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#4A154B]">
               {SLACK_EVENT_TYPES.map(et => <option key={et.value} value={et.value}>{et.label}</option>)}
             </select>

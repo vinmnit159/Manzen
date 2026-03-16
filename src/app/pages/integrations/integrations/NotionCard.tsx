@@ -32,8 +32,7 @@ export function NotionCard({
 
   const handleConnect = async () => {
     try {
-      const res = await notionService.getConnectUrl();
-      window.location.href = res.url;
+      window.location.href = notionService.getConnectUrl();
     } catch {
       onToast('error', 'Failed to get Notion connect URL');
     }

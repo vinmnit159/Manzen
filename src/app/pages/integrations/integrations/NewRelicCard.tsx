@@ -32,8 +32,12 @@ function NewRelicConnectModal({ onClose, onConnected }: {
     setLoading(true);
     setError('');
     try {
-      const res = await newRelicService.connect({ apiKey, accountId });
-      onConnected(res.data);
+      await newRelicService.connect({ apiKey, accountId });
+      const status = await newRelicService.getStatus();
+      if (!status.connected || !status.data) {
+        throw new Error('Connected to New Relic, but failed to load status');
+      }
+      onConnected(status.data);
     } catch (err: unknown) {
       setError((err as { message?: string })?.message ?? 'Failed to connect to New Relic');
     } finally {
@@ -130,7 +134,7 @@ export function NewRelicCard({
 
         {connected && nrStatus && (
           <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2 mb-4">
-            Connected to account <strong>{nrStatus.accountName}</strong>.
+            Connected to account <strong>{nrStatus.accountId}</strong> in <strong>{nrStatus.region}</strong>.
           </p>
         )}
 

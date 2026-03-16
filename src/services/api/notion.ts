@@ -63,6 +63,12 @@ export interface NotionUserMapping {
 // ─── Service ──────────────────────────────────────────────────────────────────
 
 export const notionService = {
+  getConnectUrl(): string {
+    const backendUrl = (import.meta as any).env?.VITE_API_URL ?? 'https://api.cloudanzen.com';
+    const token = localStorage.getItem('isms_token') ?? '';
+    return `${backendUrl}/api/integrations/notion/connect?token=${encodeURIComponent(token)}`;
+  },
+
   async getStatus(): Promise<{ connected: boolean; data: NotionStatus | null }> {
     return apiClient.get('/api/integrations/notion/status');
   },

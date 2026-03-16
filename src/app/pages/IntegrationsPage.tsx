@@ -177,6 +177,66 @@ import {
   redactConfigKeyLabel,
 } from '@/app/pages/integrations/integrations';
 
+function workflowRuntimeConfigForEngineerACard(input: {
+  key: string;
+  apiKey: string;
+  accountId: string;
+  tenant: string;
+  baseUrl: string;
+}): WorkflowConfigResult | null {
+  const apiKey = input.apiKey.trim();
+  const accountId = input.accountId.trim();
+  const tenant = input.tenant.trim();
+  const baseUrl = input.baseUrl.trim();
+
+  const trimEmpty = (value: string) => (value ? value : undefined);
+
+  if (input.key === 'jira') {
+    return {
+      provider: 'jira',
+      values: {
+        apiToken: trimEmpty(apiKey),
+        projectKey: trimEmpty(accountId),
+        email: trimEmpty(tenant),
+        baseUrl: trimEmpty(baseUrl),
+      },
+    };
+  }
+
+  if (input.key === 'github-actions') {
+    return {
+      provider: 'github-actions',
+      values: {
+        token: trimEmpty(apiKey),
+        repo: trimEmpty(accountId),
+        owner: trimEmpty(tenant),
+        apiUrl: trimEmpty(baseUrl),
+      },
+    };
+  }
+
+  if (input.key === 'splunk') {
+    return {
+      provider: 'siem',
+      values: {
+        splunkHecToken: trimEmpty(apiKey),
+        splunkHecUrl: trimEmpty(baseUrl),
+      },
+    };
+  }
+
+  if (input.key === 'sumologic') {
+    return {
+      provider: 'siem',
+      values: {
+        webhookUrl: trimEmpty(baseUrl),
+      },
+    };
+  }
+
+  return null;
+}
+
 const ENGINEER_A_CARDS: EngineerACardConfig[] = [
   {
     key: 'workspace-directory',
