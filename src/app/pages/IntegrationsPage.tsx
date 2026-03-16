@@ -168,10 +168,13 @@ import {
   SlackCard,
   SnykCard,
   SonarQubeCard,
+  STATIC_INTEGRATIONS,
+  StaticIcon,
   VaultCard,
   VeracodeCard,
   WizCard,
   WorkspaceCard,
+  redactConfigKeyLabel,
 } from '@/app/pages/integrations/integrations';
 
 const ENGINEER_A_CARDS: EngineerACardConfig[] = [
