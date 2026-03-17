@@ -35,6 +35,11 @@ Thumbs.db
 # Vite build output
 dist
 
+# Test coverage reports
+coverage
+playwright-report
+test-results
+
 # nuxt.js build output
 .nuxt
 
