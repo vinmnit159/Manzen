@@ -124,15 +124,15 @@ export function InventoryPage() {
 
           <Card>
             <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b">
-                  <tr>
+              <table className="w-full" role="table" aria-label="Asset inventory">
+                <thead className="bg-gray-50 border-b" role="rowgroup">
+                  <tr role="row">
                     {['Asset Name', 'Type', 'Criticality', 'Risks', 'Description', 'Added'].map((h) => (
-                      <th key={h} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{h}</th>
+                      <th key={h} scope="col" role="columnheader" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{h}</th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-white divide-y divide-gray-200" role="rowgroup">
                   {filteredAssets.length === 0 ? (
                     <tr><td colSpan={6} className="px-6 py-10 text-center text-sm text-gray-400">No assets yet. Connect GitHub to auto-discover repositories.</td></tr>
                   ) : filteredAssets.map((asset) => {

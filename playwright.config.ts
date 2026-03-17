@@ -1,0 +1,50 @@
+import { defineConfig, devices } from '@playwright/test';
+
+/**
+ * Playwright E2E configuration.
+ *
+ * Prerequisites:
+ *   1. Start the backend: cd ../isms-backend && npm run dev
+ *   2. Start the frontend: npm run dev
+ *   3. Run tests: npx playwright test
+ *
+ * Or run both and tests together:
+ *   npx playwright test --headed
+ */
+export default defineConfig({
+  testDir: './e2e',
+  timeout: 30000,
+  expect: {
+    timeout: 5000,
+  },
+  fullyParallel: false,
+  forbidOnly: !!process.env.CI,
+  retries: process.env.CI ? 2 : 0,
+  workers: 1,
+  reporter: [['html', { open: 'never' }], ['list']],
+
+  use: {
+    // Base URL of the frontend dev server
+    baseURL: process.env.BASE_URL || 'http://localhost:5173',
+    trace: 'on-first-retry',
+    screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
+  },
+
+  projects: [
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'] },
+    },
+  ],
+
+  // Start the frontend dev server when running tests locally
+  webServer: process.env.CI
+    ? undefined
+    : {
+        command: 'npm run dev',
+        url: 'http://localhost:5173',
+        reuseExistingServer: true,
+        timeout: 60000,
+      },
+});

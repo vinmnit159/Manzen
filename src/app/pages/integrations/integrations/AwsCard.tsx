@@ -89,7 +89,7 @@ function AwsOnboardModal({ onClose, onConnected }: {
             <h2 className="text-lg font-semibold text-gray-900">Connect AWS Account</h2>
             <p className="text-sm text-gray-500">Step {step} of 2</p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+          <button onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
         </div>
 
         {step === 1 && (
