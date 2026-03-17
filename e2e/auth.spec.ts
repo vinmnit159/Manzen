@@ -87,6 +87,8 @@ test.describe('Protected routes', () => {
     // Clear any stored auth
     await page.goto('/');
     await page.evaluate(() => {
+      sessionStorage.removeItem('isms_token');
+      sessionStorage.removeItem('isms_user');
       localStorage.removeItem('isms_token');
       localStorage.removeItem('isms_user');
     });
@@ -98,6 +100,8 @@ test.describe('Protected routes', () => {
   test('visiting /risk/risks redirects unauthenticated user to login', async ({ page }) => {
     await page.goto('/');
     await page.evaluate(() => {
+      sessionStorage.removeItem('isms_token');
+      sessionStorage.removeItem('isms_user');
       localStorage.removeItem('isms_token');
       localStorage.removeItem('isms_user');
     });

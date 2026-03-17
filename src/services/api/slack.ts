@@ -1,4 +1,5 @@
 import { apiClient } from './client';
+import { getAuthToken } from '@/services/authStorage';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -46,7 +47,7 @@ export const SLACK_EVENT_TYPES = [
 export const slackService = {
   /** Get the OAuth install URL (redirects browser directly) */
   getInstallUrl(): string {
-    const token = localStorage.getItem('isms_token') ?? '';
+    const token = getAuthToken() ?? '';
     return `${apiClient.baseURL}/api/integrations/slack/install?token=${encodeURIComponent(token)}`;
   },
 

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { FrameworkFilter } from '@/app/components/compliance/FrameworkFilter';
 import { useNavigate } from 'react-router';
+import { clearAuthSession } from '@/services/authStorage';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { policiesService } from '@/services/api/policies';
 import { Policy } from '@/services/api/types';
@@ -46,7 +47,7 @@ export function PoliciesPage() {
       },
       staleTime: STALE.POLICIES,
       retry: (count, err: any) => {
-        if (err?.statusCode === 401) { localStorage.removeItem('isms_token'); navigate('/login'); return false; }
+        if (err?.statusCode === 401) { clearAuthSession(); navigate('/login'); return false; }
         return count < 1;
       },
     });

@@ -1,4 +1,5 @@
 import { apiClient } from './client';
+import { getAuthToken } from '@/services/authStorage';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -65,7 +66,7 @@ export interface NotionUserMapping {
 export const notionService = {
   getConnectUrl(): string {
     const backendUrl = (import.meta as any).env?.VITE_API_URL ?? 'https://api.cloudanzen.com';
-    const token = localStorage.getItem('isms_token') ?? '';
+    const token = getAuthToken() ?? '';
     return `${backendUrl}/api/integrations/notion/connect?token=${encodeURIComponent(token)}`;
   },
 

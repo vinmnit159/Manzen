@@ -1,4 +1,13 @@
 import { apiClient, ApiResponse } from './client';
+import {
+  clearAuthSession,
+  getAuthToken,
+  getCachedUser as getStoredUser,
+  hasAuthToken,
+  setAuthToken,
+  setCachedUser as storeCachedUser,
+  clearCachedUser as clearStoredUser,
+} from '@/services/authStorage';
 import { 
   LoginRequest, 
   RegisterRequest, 
@@ -26,37 +35,38 @@ export class AuthService {
   // Logout (client-side only - remove token)
   logout(): void {
     apiClient.removeToken();
+    clearAuthSession();
   }
 
   // Store auth token
   setToken(token: string): void {
+    setAuthToken(token);
     apiClient.setToken(token);
   }
 
   // Check if user is authenticated
   isAuthenticated(): boolean {
-    return !!localStorage.getItem('isms_token');
+    return hasAuthToken();
   }
 
   // Get stored token
   getToken(): string | null {
-    return localStorage.getItem('isms_token');
+    return getAuthToken();
   }
 
   // Get current user from localStorage (cached)
   getCachedUser(): User | null {
-    const userData = localStorage.getItem('isms_user');
-    return userData ? JSON.parse(userData) : null;
+    return getStoredUser<User>();
   }
 
   // Cache current user data
   cacheUser(user: User): void {
-    localStorage.setItem('isms_user', JSON.stringify(user));
+    storeCachedUser(user);
   }
 
   // Clear cached user data
   clearCachedUser(): void {
-    localStorage.removeItem('isms_user');
+    clearStoredUser();
   }
 }
 

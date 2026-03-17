@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router';
+import { clearAuthSession } from '@/services/authStorage';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { controlsService } from '@/services/api/controls';
 import { Control, ControlFilter, ColumnConfig, DEFAULT_COLUMNS } from './types';
@@ -42,7 +43,7 @@ export function ControlsPage() {
 
   const filterKey = { search: filter.search, status: filter.status, isoReference: filter.isoReference, frameworkSlugs: frameworkFilter };
 
-  const { data: rawControls, isLoading: loading, isError, error: queryError, isFetching, refetch } =
+  const { data: rawControls, isLoading: loading, isError, error: queryError, isFetching } =
     useQuery({
       queryKey: QK.controls(filterKey),
       queryFn: async () => {
@@ -58,7 +59,7 @@ export function ControlsPage() {
       staleTime: STALE.CONTROLS,
       retry: (count, err: any) => {
         if (err?.statusCode === 401) {
-          localStorage.removeItem('isms_token');
+          clearAuthSession();
           navigate('/login');
           return false;
         }

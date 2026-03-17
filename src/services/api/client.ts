@@ -1,5 +1,9 @@
+import { clearAuthSession, getAuthToken, setAuthToken } from '@/services/authStorage';
+
 // Base API configuration and types
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.cloudanzen.com';
+const API_BASE_URL =
+  (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env?.VITE_API_URL ||
+  'https://api.cloudanzen.com';
 
 export interface ApiResponse<T = unknown> {
   success: boolean;
@@ -18,7 +22,7 @@ export interface PaginatedResponse<T> extends ApiResponse<T[]> {
 }
 
 // Error types
-export interface ApiError {
+export interface ApiErrorShape {
   error: string;
   message: string;
   statusCode: number;
@@ -46,17 +50,80 @@ class ApiClient {
     //
     // This change requires backend coordination (CORS must allow credentials,
     // cookie domain must match) and is tracked in the security backlog.
-    this.token = localStorage.getItem('isms_token');
+    this.token = getAuthToken();
   }
 
   setToken(token: string) {
     this.token = token;
-    localStorage.setItem('isms_token', token);
+    setAuthToken(token);
   }
 
   removeToken() {
     this.token = null;
-    localStorage.removeItem('isms_token');
+    clearAuthSession();
+  }
+
+  private buildHeaders(options: RequestInit): Headers {
+    const headers = new Headers(options.headers);
+
+    if (!headers.has('Content-Type') && options.body && !(options.body instanceof FormData)) {
+      headers.set('Content-Type', 'application/json');
+    }
+
+    if (this.token) {
+      headers.set('Authorization', `Bearer ${this.token}`);
+    }
+
+    return headers;
+  }
+
+  private async parseResponse(response: Response): Promise<unknown> {
+    if (response.status === 204 || response.status === 205) {
+      return undefined;
+    }
+
+    const contentType = response.headers.get('content-type') ?? '';
+    const isJson = contentType.includes('application/json');
+
+    if (isJson) {
+      const text = await response.text();
+      return text ? JSON.parse(text) : undefined;
+    }
+
+    if (contentType.startsWith('text/')) {
+      return await response.text();
+    }
+
+    const text = await response.text();
+    return text || undefined;
+  }
+
+  private toApiError(response: Response, payload: unknown): ApiError {
+    if (response.status === 401) {
+      clearAuthSession();
+      this.token = null;
+    }
+
+    if (payload && typeof payload === 'object') {
+      const errorPayload = payload as Partial<ApiErrorShape>;
+      return new ApiError(
+        errorPayload.error || response.statusText || 'Request failed',
+        errorPayload.message || response.statusText || 'An error occurred',
+        response.status,
+        errorPayload.details ?? payload,
+      );
+    }
+
+    if (typeof payload === 'string' && payload.trim()) {
+      return new ApiError(response.statusText || 'Request failed', payload, response.status, payload);
+    }
+
+    return new ApiError(
+      response.statusText || 'Request failed',
+      response.statusText || 'An error occurred',
+      response.status,
+      payload,
+    );
   }
 
   private async request<T>(
@@ -64,42 +131,35 @@ class ApiClient {
     options: RequestInit = {}
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
-    
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    };
-
-    if (this.token) {
-      headers.Authorization = `Bearer ${this.token}`;
-    }
 
     try {
       const response = await fetch(url, {
         ...options,
-        headers,
+        credentials: 'include',
+        headers: this.buildHeaders(options),
       });
 
-      const data = await response.json();
+      const data = await this.parseResponse(response);
 
       if (!response.ok) {
-        throw new ApiError(
-          data.error || 'Request failed',
-          data.message || 'An error occurred',
-          response.status,
-          data.details
-        );
+        throw this.toApiError(response, data);
       }
 
-      return data;
+      return data as T;
     } catch (error) {
       if (error instanceof ApiError) {
         throw error;
       }
+
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        throw new ApiError('Request Aborted', 'The request was cancelled before it completed.', 0);
+      }
+
       throw new ApiError(
         'Network Error',
         'Failed to connect to the server',
-        0
+        0,
+        error,
       );
     }
   }
@@ -116,21 +176,21 @@ class ApiClient {
   async post<T>(endpoint: string, data?: unknown): Promise<T> {
     return this.request<T>(endpoint, {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: data === undefined ? undefined : JSON.stringify(data),
     });
   }
 
   async put<T>(endpoint: string, data?: unknown): Promise<T> {
     return this.request<T>(endpoint, {
       method: 'PUT',
-      body: JSON.stringify(data),
+      body: data === undefined ? undefined : JSON.stringify(data),
     });
   }
 
   async patch<T>(endpoint: string, data?: unknown): Promise<T> {
     return this.request<T>(endpoint, {
       method: 'PATCH',
-      body: JSON.stringify(data),
+      body: data === undefined ? undefined : JSON.stringify(data),
     });
   }
 
@@ -141,7 +201,7 @@ class ApiClient {
   }
 }
 
-class ApiError extends Error {
+export class ApiError extends Error {
   constructor(
     public error: string,
     public message: string,

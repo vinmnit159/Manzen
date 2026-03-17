@@ -1,7 +1,10 @@
 import { apiClient, ApiResponse } from './client';
+import { getAuthToken } from '@/services/authStorage';
 import { Policy } from './types';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.cloudanzen.com';
+const API_BASE_URL =
+  (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env?.VITE_API_URL ||
+  'https://api.cloudanzen.com';
 
 export interface PolicyTemplate {
   name: string;
@@ -68,7 +71,7 @@ export class PoliciesService {
     const formData = new FormData();
     formData.append('file', file);
 
-    const token = localStorage.getItem('isms_token');
+    const token = getAuthToken();
     const response = await fetch(`${API_BASE_URL}/api/policies/${policyId}/upload`, {
       method: 'POST',
       headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -102,7 +105,7 @@ export class PoliciesService {
   }
 
   async downloadPolicyDocument(policyId: string, fileName: string): Promise<void> {
-    const token = localStorage.getItem('isms_token');
+    const token = getAuthToken();
     const response = await fetch(`${API_BASE_URL}/api/policies/${policyId}/download`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });

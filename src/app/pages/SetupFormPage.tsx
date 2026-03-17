@@ -18,6 +18,8 @@ import { toast } from "sonner";
 import { setupService, SetupRequest } from "@/services/api/setup";
 import { testsService } from "@/services/api/tests";
 import { frameworksService } from "@/services/api/frameworks";
+import { authService } from '@/services/api/auth';
+import { Role } from '@/services/api/types';
 import { Eye, EyeOff, Settings, ShieldCheck, Users } from "lucide-react";
 import { Checkbox } from "@/app/components/ui/checkbox";
 import { FRAMEWORK_SUITE_OPTIONS } from "@/app/features/tests/frameworkSuites";
@@ -81,13 +83,21 @@ export function SetupFormPage() {
     try {
       const response = await setupService.setup(data as SetupRequest);
       
-      if (response.success) {
-        toast.success("System setup completed successfully!");
-        
-        // Store the token for future use
-        if (response.data?.token) {
-          localStorage.setItem('isms_token', response.data.token);
-        }
+        if (response.success) {
+          toast.success("System setup completed successfully!");
+          
+          // Store the token for future use
+          if (response.data?.token) {
+            authService.setToken(response.data.token);
+          }
+          authService.cacheUser({
+            id: response.data?.superAdmin.id ?? '',
+            email: response.data?.superAdmin.email ?? data.adminEmail,
+            name: response.data?.superAdmin.name ?? data.adminName,
+            role: Role.SUPER_ADMIN,
+            organizationId: response.data?.organization.id ?? '',
+            createdAt: response.data?.organization.createdAt ?? new Date().toISOString(),
+          });
         if (data.selectedFrameworks.length > 0) {
           // Create test suites from templates
           const suiteResults = await Promise.allSettled(

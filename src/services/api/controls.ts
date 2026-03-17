@@ -1,4 +1,5 @@
-import { apiClient, ApiResponse, PaginatedResponse } from './client';
+import { apiClient, ApiResponse } from './client';
+import { getAuthToken } from '@/services/authStorage';
 import {
   Control,
   CreateControlRequest,
@@ -78,7 +79,7 @@ export class ControlsService {
 
   // Export controls
   async exportControls(format: 'csv' | 'xlsx' | 'pdf' = 'csv'): Promise<Blob> {
-    const token = localStorage.getItem('isms_token');
+    const token = getAuthToken();
     const baseURL = (apiClient as any).baseURL || 'https://isms-backend-production.up.railway.app';
     const response = await fetch(`${baseURL}/api/controls/export?format=${format}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},

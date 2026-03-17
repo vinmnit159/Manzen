@@ -2,6 +2,7 @@ import { createBrowserRouter, redirect } from "react-router";
 import { lazy, Suspense } from "react";
 import { Layout } from "@/app/components/Layout";
 import { SettingsLayout } from "@/app/components/settings/SettingsLayout";
+import { requireAuth } from '@/app/authGuard';
 
 // ── Eager imports (needed immediately on load) ────────────────────────────────
 import { LoginPage } from "@/app/pages/auth/LoginPage";
@@ -82,14 +83,6 @@ const AccessRolesPage     = lazy(() => import("@/app/pages/access/AccessRolesPag
 const AccessRequestsPage  = lazy(() => import("@/app/pages/access/AccessRequestsPage").then(m => ({ default: m.AccessRequestsPage })));
 
 // ── Auth guard ────────────────────────────────────────────────────────────────
-function requireAuth() {
-  const token = localStorage.getItem("isms_token");
-  if (!token) {
-    return redirect("/login");
-  }
-  return null;
-}
-
 // ── Router ────────────────────────────────────────────────────────────────────
 export const router = createBrowserRouter([
   // Public auth routes (no layout)

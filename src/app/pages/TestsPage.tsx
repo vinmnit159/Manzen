@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { RefreshCw, X, CheckCircle, AlertTriangle, Clock, Database, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -13,6 +13,7 @@ import { usersService } from '@/services/api/users';
 import type { TestRecord, TestStatus, TestCategory, TestType, ListTestsParams } from '@/services/api/tests';
 import type { Control } from '@/services/api/types';
 import { authService } from '@/services/api/auth';
+import { clearAuthSession } from '@/services/authStorage';
 
 import { STATUS_CONFIG, CATEGORY_OPTIONS, STATUS_OPTIONS, TYPE_OPTIONS, CATEGORY_COLOR, DEFAULT_COLUMNS, fmtDate } from './testsPage/config';
 import type { ColumnConfig } from './testsPage/config';
@@ -94,10 +95,10 @@ export function TestsPage() {
       throw new Error('Failed to load tests');
     },
     staleTime: STALE.TESTS,
-    retry: (count, err: any) => {
-      if (err?.statusCode === 401) { localStorage.removeItem('isms_token'); navigate('/login'); return false; }
-      return count < 1;
-    },
+      retry: (count: number, err: any) => {
+        if (err?.statusCode === 401) { clearAuthSession(); navigate('/login'); return false; }
+        return count < 1;
+      },
   } as any);
 
   // ── Summary query ──
@@ -111,7 +112,7 @@ export function TestsPage() {
     staleTime: STALE.TESTS,
   });
 
-  const { data: dashboard } = useQuery({
+  useQuery({
     queryKey: ['tests', 'dashboard'],
     queryFn: async () => {
       const res = await testsService.getDashboard();
@@ -120,7 +121,7 @@ export function TestsPage() {
     staleTime: STALE.TESTS,
   });
 
-  const { data: gaps } = useQuery({
+  useQuery({
     queryKey: ['tests', 'gaps'],
     queryFn: async () => {
       const res = await testsService.getGapAnalysis();
@@ -129,7 +130,7 @@ export function TestsPage() {
     staleTime: STALE.TESTS,
   });
 
-  const { data: escalations = [] } = useQuery({
+  useQuery({
     queryKey: ['tests', 'escalations'],
     queryFn: async () => {
       const res = await testsService.listEscalations();

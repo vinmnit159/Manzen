@@ -51,7 +51,7 @@ VITE_API_URL=http://localhost:3000
 Notes:
 
 - The API client reads `VITE_API_URL` (not `VITE_API_BASE_URL`).
-- If unset, client defaults to `http://localhost:3000`.
+- If unset, client defaults to `https://api.cloudanzen.com`.
 
 Notification and worker-related environment variables:
 
@@ -76,6 +76,9 @@ WORKER_ROLE=api
 
 ```bash
 npm install
+npm run lint
+npm run typecheck
+npm test
 npm run dev
 ```
 
@@ -98,15 +101,18 @@ npm run worker:digests
 
 ## Auth model
 
-- JWT token is stored in `localStorage` (`isms_token`).
+- JWT token is stored in `sessionStorage` by default, with one-time migration from legacy `localStorage` values.
 - `requireAuth()` in router redirects to `/login` if token is missing.
-- API client automatically attaches `Authorization: Bearer <token>`.
+- API client automatically attaches `Authorization: Bearer <token>`, sends `credentials: 'include'`, and clears the session on `401` responses.
+- Long-term target: replace browser-readable tokens with `HttpOnly` secure cookies once backend auth is updated.
 
 ## Build and deploy
 
 ```bash
 npm run build
 ```
+
+Pull requests should pass `lint`, `typecheck`, `test`, and `build` in CI.
 
 Generated static assets are deployed via Railway for production.
 
