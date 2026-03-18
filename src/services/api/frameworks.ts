@@ -326,4 +326,69 @@ class FrameworksService {
   }
 }
 
+// ── Phase 7.2 — Evidence freshness types ──────────────────────────────────────
+
+export interface ControlFreshnessResult {
+  controlId: string;
+  isoReference: string;
+  title: string;
+  lastRunAt: string | null;
+  lastResult: string | null;
+  daysSinceLastRun: number | null;
+  slaDays: number;
+  isStale: boolean;
+  slaBreached: boolean;
+}
+
+export interface FrameworkFreshnessReport {
+  frameworkSlug: string;
+  slaDays: number;
+  totalControls: number;
+  staleControls: number;
+  freshnessScore: number;
+  controls: ControlFreshnessResult[];
+}
+
+// Extend FrameworksService with freshness methods
+declare module './frameworks' {
+  interface FrameworksService {
+    getEvidenceFreshness(
+      frameworkSlug: string,
+    ): Promise<{ success: boolean; data: FrameworkFreshnessReport }>;
+    getOrgEvidenceFreshness(): Promise<{
+      success: boolean;
+      data: FrameworkFreshnessReport[];
+    }>;
+    setEvidenceSla(
+      frameworkSlug: string,
+      slaDays: number,
+    ): Promise<{
+      success: boolean;
+      data: { frameworkSlug: string; slaDays: number };
+    }>;
+  }
+}
+
+// Add methods to prototype at module load time
+Object.assign(FrameworksService.prototype, {
+  getEvidenceFreshness(this: FrameworksService, frameworkSlug: string) {
+    return apiClient.get(
+      `/api/org/frameworks/${frameworkSlug}/evidence-freshness`,
+    );
+  },
+  getOrgEvidenceFreshness(this: FrameworksService) {
+    return apiClient.get('/api/org/frameworks/evidence-freshness');
+  },
+  setEvidenceSla(
+    this: FrameworksService,
+    frameworkSlug: string,
+    slaDays: number,
+  ) {
+    return apiClient.put(
+      `/api/org/frameworks/${frameworkSlug}/evidence-freshness/sla`,
+      { slaDays },
+    );
+  },
+});
+
 export const frameworksService = new FrameworksService();
