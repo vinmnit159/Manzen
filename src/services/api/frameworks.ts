@@ -102,8 +102,14 @@ export interface ActivateFrameworkRequest {
 
 export interface ActivationSummaryDto {
   requirementsLoaded: number;
-  mappingsSuggested: number;
-  mappingsSkipped: number;
+  /** null when mappings are still processing asynchronously */
+  mappingsSuggested: number | null;
+  /** null when mappings are still processing asynchronously */
+  mappingsSkipped: number | null;
+  /** null when test delta reconciliation is still processing asynchronously */
+  testsLinkedOrCreated: number | null;
+  /** true while the background workers are still running */
+  mappingsProcessing: boolean;
   requirementsNeedingReview: number;
   initialCoverageScore: number;
   isReactivation: boolean;
