@@ -29,6 +29,14 @@ export interface SetupResponse {
     name: string;
     role: string;
   };
+  activatedFrameworks?: Array<{
+    frameworkSlug: string;
+    status: number;
+  }>;
+  createdSuites?: Array<{
+    templateId: string;
+    created: number;
+  }>;
   token: string;
   setupComplete: boolean;
 }
