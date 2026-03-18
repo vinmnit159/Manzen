@@ -1,112 +1,120 @@
 import { apiClient } from './client';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+export type FindingSeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+export type FindingStatus =
+  | 'OPEN'
+  | 'IN_REMEDIATION'
+  | 'READY_FOR_REVIEW'
+  | 'CLOSED';
 
-export type FindingSeverity = 'MINOR' | 'MAJOR' | 'OBSERVATION' | 'OFI';
-export type FindingStatus   = 'OPEN' | 'IN_REMEDIATION' | 'READY_FOR_REVIEW' | 'CLOSED';
+export interface FindingRemediationRecord {
+  id: string;
+  findingId: string;
+  organizationId: string;
+  note: string;
+  status: string;
+  createdBy: string | null;
+  createdAt: string;
+}
 
 export interface FindingRecord {
-  id:              string;
-  auditId:         string;
-  controlId:       string;
-  organizationId:  string;
-  severity:        FindingSeverity;
-  status:          FindingStatus;
-  description:     string;
-  remediationPlan: string | null;
-  dueDate:         string | null;
-  assignedTo:      string | null;
-  evidenceUrl:     string | null;
-  createdAt:       string;
-  closedAt:        string | null;
-  control?:  { id: string; isoReference: string; title: string };
-  audit?:    { id: string; name: string; type: string };
-  assignee?: { id: string; name: string | null; email: string } | null;
-}
-
-export interface CreateFindingRequest {
-  auditId:         string;
-  controlId:       string;
-  severity:        FindingSeverity;
-  description:     string;
-  remediationPlan?: string;
-  dueDate?:        string;
-  assignedTo?:     string;
-}
-
-export interface UpdateFindingRequest {
-  remediationPlan?: string | null;
-  dueDate?:         string | null;
-  assignedTo?:      string | null;
-  severity?:        FindingSeverity;
-  description?:     string;
+  id: string;
+  organizationId: string;
+  title: string;
+  description: string | null;
+  severity: FindingSeverity;
+  status: FindingStatus;
+  controlId: string | null;
+  testRunId: string | null;
+  assetId: string | null;
+  riskId: string | null;
+  remediationOwner: string | null;
+  dueAt: string | null;
+  sourceType: 'TEST_RUN' | 'AUDIT' | 'MANUAL';
+  createdAt: string;
+  updatedAt: string;
+  ageInDays?: number;
+  slaBreached?: boolean;
+  control?: { id: string; isoReference: string; title: string } | null;
+  asset?: { id: string; name: string; type: string } | null;
+  risk?: { id: string; title: string; status: string } | null;
+  testRun?: {
+    id: string;
+    status: 'Pass' | 'Fail' | 'Warning' | 'Not_Run';
+    executedAt: string;
+    summary: string;
+    executionSource?: string | null;
+    executedBy?: string | null;
+    assetId?: string | null;
+    correlationId?: string | null;
+    startedAt?: string | null;
+    durationMs?: number | null;
+  } | null;
+  remediations?: FindingRemediationRecord[];
 }
 
 export interface ListFindingsParams {
-  severity?:  FindingSeverity;
-  status?:    FindingStatus;
-  overdue?:   boolean;
+  severity?: FindingSeverity;
+  status?: FindingStatus;
   controlId?: string;
-  auditId?:   string;
+  assetId?: string;
+  remediationOwner?: string;
+  sourceType?: 'TEST_RUN' | 'AUDIT' | 'MANUAL';
 }
 
-// ── Service ───────────────────────────────────────────────────────────────────
+export interface UpdateFindingRequest {
+  status?: FindingStatus;
+  dueAt?: string | null;
+  remediationOwner?: string | null;
+}
 
 export const findingsService = {
-  /** List findings for the org with optional filters */
   list(params?: ListFindingsParams): Promise<FindingRecord[]> {
     const qs = new URLSearchParams();
-    if (params?.severity)  qs.set('severity',  params.severity);
-    if (params?.status)    qs.set('status',    params.status);
-    if (params?.overdue)   qs.set('overdue',   'true');
+    if (params?.severity) qs.set('severity', params.severity);
+    if (params?.status) qs.set('status', params.status);
     if (params?.controlId) qs.set('controlId', params.controlId);
-    if (params?.auditId)   qs.set('auditId',   params.auditId);
+    if (params?.assetId) qs.set('assetId', params.assetId);
+    if (params?.remediationOwner)
+      qs.set('remediationOwner', params.remediationOwner);
+    if (params?.sourceType) qs.set('sourceType', params.sourceType);
     const query = qs.toString() ? `?${qs.toString()}` : '';
     return apiClient.get(`/api/findings${query}`);
   },
 
-  /** Findings assigned to the current user (for My Security Tasks) */
   myTasks(): Promise<FindingRecord[]> {
     return apiClient.get('/api/findings/my-tasks');
   },
 
-  /** Single finding by id */
   get(id: string): Promise<FindingRecord> {
     return apiClient.get(`/api/findings/${id}`);
   },
 
-  /** Create a new finding */
-  create(data: CreateFindingRequest): Promise<FindingRecord> {
-    return apiClient.post('/api/findings', data);
-  },
-
-  /** Update plan / dueDate / assignedTo */
   update(id: string, data: UpdateFindingRequest): Promise<FindingRecord> {
-    return apiClient.patch(`/api/findings/${id}`, data);
+    return apiClient.patch(`/api/findings/${id}/status`, data);
   },
 
-  /** OPEN → IN_REMEDIATION */
+  addRemediation(id: string, note: string): Promise<FindingRecord> {
+    return apiClient.post(`/api/findings/${id}/remediation`, { note });
+  },
+
   startRemediation(id: string): Promise<FindingRecord> {
-    return apiClient.post(`/api/findings/${id}/start-remediation`, {});
+    return apiClient.patch(`/api/findings/${id}/status`, {
+      status: 'IN_REMEDIATION',
+    });
   },
 
-  /** IN_REMEDIATION → READY_FOR_REVIEW */
   submitForReview(id: string): Promise<FindingRecord> {
-    return apiClient.post(`/api/findings/${id}/submit-review`, {});
+    return apiClient.patch(`/api/findings/${id}/status`, {
+      status: 'READY_FOR_REVIEW',
+    });
   },
 
-  /** READY_FOR_REVIEW → CLOSED (auditor/admin only) */
   accept(id: string): Promise<FindingRecord> {
-    return apiClient.post(`/api/findings/${id}/accept`, {});
+    return apiClient.patch(`/api/findings/${id}/status`, { status: 'CLOSED' });
   },
 
-  /** READY_FOR_REVIEW → OPEN (auditor/admin only) */
   reject(id: string): Promise<FindingRecord> {
-    return apiClient.post(`/api/findings/${id}/reject`, {});
-  },
-
-  /** Attach evidence URL */
-  attachEvidence(id: string, evidenceUrl: string): Promise<FindingRecord> {
-    return apiClient.post(`/api/findings/${id}/evidence`, { evidenceUrl });
+    return apiClient.patch(`/api/findings/${id}/status`, { status: 'OPEN' });
   },
 };

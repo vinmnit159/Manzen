@@ -42,7 +42,9 @@ export function createFrameworkHandlers(deps: FrameworkHandlerDeps = {}) {
       const slug = request?.params?.slug ?? '';
       const data = await service.getFrameworkBySlug(slug);
       if (!data) {
-        throw Object.assign(new Error(`Framework not found: ${slug}`), { statusCode: 404 });
+        throw Object.assign(new Error(`Framework not found: ${slug}`), {
+          statusCode: 404,
+        });
       }
       return frameworkContracts.getFramework.response.parse(ok(data));
     },
@@ -66,10 +68,14 @@ export function createFrameworkHandlers(deps: FrameworkHandlerDeps = {}) {
     /** POST /api/org/frameworks */
     async activateFramework(request?: HandlerRequest) {
       const service = deps.service ?? getService(request);
-      const body = frameworkContracts.activateFramework.body.parse(request?.body ?? {});
+      const body = frameworkContracts.activateFramework.body.parse(
+        request?.body ?? {},
+      );
       const user = request?.user;
       if (!user?.organizationId) {
-        throw Object.assign(new Error('Authentication required'), { statusCode: 401 });
+        throw Object.assign(new Error('Authentication required'), {
+          statusCode: 401,
+        });
       }
       const data = await service.activateFramework({
         organizationId: user.organizationId,
@@ -83,10 +89,14 @@ export function createFrameworkHandlers(deps: FrameworkHandlerDeps = {}) {
     /** PATCH /api/org/frameworks/:frameworkSlug/remove */
     async removeFramework(request?: HandlerRequest) {
       const service = deps.service ?? getService(request);
-      const body = frameworkContracts.removeFramework.body.parse(request?.body ?? {});
+      const body = frameworkContracts.removeFramework.body.parse(
+        request?.body ?? {},
+      );
       const user = request?.user;
       if (!user?.organizationId) {
-        throw Object.assign(new Error('Authentication required'), { statusCode: 401 });
+        throw Object.assign(new Error('Authentication required'), {
+          statusCode: 401,
+        });
       }
       const frameworkSlug = request?.params?.frameworkSlug ?? '';
       const data = await service.removeFramework({
@@ -103,10 +113,15 @@ export function createFrameworkHandlers(deps: FrameworkHandlerDeps = {}) {
       const service = deps.service ?? getService(request);
       const user = request?.user;
       if (!user?.organizationId) {
-        throw Object.assign(new Error('Authentication required'), { statusCode: 401 });
+        throw Object.assign(new Error('Authentication required'), {
+          statusCode: 401,
+        });
       }
       const frameworkSlug = request?.params?.frameworkSlug ?? '';
-      const data = await service.checkEntitlement(user.organizationId, frameworkSlug);
+      const data = await service.checkEntitlement(
+        user.organizationId,
+        frameworkSlug,
+      );
       return frameworkContracts.checkEntitlement.response.parse(ok(data));
     },
 
@@ -115,10 +130,15 @@ export function createFrameworkHandlers(deps: FrameworkHandlerDeps = {}) {
       const service = deps.service ?? getService(request);
       const user = request?.user;
       if (!user?.organizationId) {
-        throw Object.assign(new Error('Authentication required'), { statusCode: 401 });
+        throw Object.assign(new Error('Authentication required'), {
+          statusCode: 401,
+        });
       }
       const frameworkSlug = request?.params?.frameworkSlug ?? '';
-      const data = await service.listOrgRequirements(user.organizationId, frameworkSlug);
+      const data = await service.listOrgRequirements(
+        user.organizationId,
+        frameworkSlug,
+      );
       return frameworkContracts.listOrgRequirements.response.parse(ok(data));
     },
 
@@ -127,10 +147,15 @@ export function createFrameworkHandlers(deps: FrameworkHandlerDeps = {}) {
       const service = deps.service ?? getService(request);
       const user = request?.user;
       if (!user?.organizationId) {
-        throw Object.assign(new Error('Authentication required'), { statusCode: 401 });
+        throw Object.assign(new Error('Authentication required'), {
+          statusCode: 401,
+        });
       }
       const frameworkSlug = request?.params?.frameworkSlug ?? '';
-      const data = await service.getCoverage(user.organizationId, frameworkSlug);
+      const data = await service.getCoverage(
+        user.organizationId,
+        frameworkSlug,
+      );
       return frameworkContracts.getCoverage.response.parse(ok(data));
     },
 
@@ -139,9 +164,13 @@ export function createFrameworkHandlers(deps: FrameworkHandlerDeps = {}) {
       const service = deps.service ?? getService(request);
       const user = request?.user;
       if (!user?.organizationId) {
-        throw Object.assign(new Error('Authentication required'), { statusCode: 401 });
+        throw Object.assign(new Error('Authentication required'), {
+          statusCode: 401,
+        });
       }
-      const body = frameworkContracts.updateRequirementOwner.body.parse(request?.body ?? {});
+      const body = frameworkContracts.updateRequirementOwner.body.parse(
+        request?.body ?? {},
+      );
       const requirementId = request?.params?.requirementId ?? '';
       const data = await service.updateRequirementOwner({
         requirementId,
@@ -157,9 +186,13 @@ export function createFrameworkHandlers(deps: FrameworkHandlerDeps = {}) {
       const service = deps.service ?? getService(request);
       const user = request?.user;
       if (!user?.organizationId) {
-        throw Object.assign(new Error('Authentication required'), { statusCode: 401 });
+        throw Object.assign(new Error('Authentication required'), {
+          statusCode: 401,
+        });
       }
-      const body = frameworkContracts.updateApplicability.body.parse(request?.body ?? {});
+      const body = frameworkContracts.updateApplicability.body.parse(
+        request?.body ?? {},
+      );
       const requirementId = request?.params?.requirementId ?? '';
       const data = await service.updateApplicability({
         requirementId,
@@ -175,11 +208,18 @@ export function createFrameworkHandlers(deps: FrameworkHandlerDeps = {}) {
       const service = deps.service ?? getService(request);
       const user = request?.user;
       if (!user?.role || !['SUPER_ADMIN'].includes(user.role)) {
-        throw Object.assign(new Error('Insufficient permissions — SUPER_ADMIN required'), { statusCode: 403 });
+        throw Object.assign(
+          new Error('Insufficient permissions — SUPER_ADMIN required'),
+          { statusCode: 403 },
+        );
       }
-      const body = frameworkContracts.syncEntitlement.body.parse(request?.body ?? {});
+      const body = frameworkContracts.syncEntitlement.body.parse(
+        request?.body ?? {},
+      );
       await service.syncEntitlement(body);
-      return frameworkContracts.syncEntitlement.response.parse(ok({ synced: true as const }));
+      return frameworkContracts.syncEntitlement.response.parse(
+        ok({ synced: true as const }),
+      );
     },
 
     /** GET /api/billing/entitlements */
@@ -187,7 +227,9 @@ export function createFrameworkHandlers(deps: FrameworkHandlerDeps = {}) {
       const service = deps.service ?? getService(request);
       const user = request?.user;
       if (!user?.organizationId) {
-        throw Object.assign(new Error('Authentication required'), { statusCode: 401 });
+        throw Object.assign(new Error('Authentication required'), {
+          statusCode: 401,
+        });
       }
       const data = await service.listEntitlements(user.organizationId);
       return frameworkContracts.listEntitlements.response.parse(ok(data));
@@ -198,7 +240,9 @@ export function createFrameworkHandlers(deps: FrameworkHandlerDeps = {}) {
       const service = deps.service ?? getService(request);
       const user = request?.user;
       if (!user?.organizationId) {
-        throw Object.assign(new Error('Authentication required'), { statusCode: 401 });
+        throw Object.assign(new Error('Authentication required'), {
+          statusCode: 401,
+        });
       }
       const data = await service.getReadinessSummary(user.organizationId);
       return frameworkContracts.getReadinessSummary.response.parse(ok(data));
@@ -209,12 +253,19 @@ export function createFrameworkHandlers(deps: FrameworkHandlerDeps = {}) {
       const service = deps.service ?? getService(request);
       const user = request?.user;
       if (!user?.organizationId) {
-        throw Object.assign(new Error('Authentication required'), { statusCode: 401 });
+        throw Object.assign(new Error('Authentication required'), {
+          statusCode: 401,
+        });
       }
       const frameworkSlug = request?.params?.frameworkSlug ?? '';
-      const rawLimit = (request?.query as Record<string, string> | undefined)?.limit;
-      const limit = rawLimit ? Math.min(parseInt(rawLimit, 10) || 24, 100) : 24;
-      const data = await service.getCoverageHistory(user.organizationId, frameworkSlug, limit);
+      const rawDays = (request?.query as Record<string, string> | undefined)
+        ?.days;
+      const days = rawDays ? Math.min(parseInt(rawDays, 10) || 90, 365) : 90;
+      const data = await service.getCoverageHistory(
+        user.organizationId,
+        frameworkSlug,
+        days,
+      );
       return frameworkContracts.getCoverageHistory.response.parse(ok(data));
     },
 
@@ -223,10 +274,15 @@ export function createFrameworkHandlers(deps: FrameworkHandlerDeps = {}) {
       const service = deps.service ?? getService(request);
       const user = request?.user;
       if (!user?.organizationId) {
-        throw Object.assign(new Error('Authentication required'), { statusCode: 401 });
+        throw Object.assign(new Error('Authentication required'), {
+          statusCode: 401,
+        });
       }
       const frameworkSlug = request?.params?.frameworkSlug ?? '';
-      const data = await service.getFrameworkMappings(user.organizationId, frameworkSlug);
+      const data = await service.getFrameworkMappings(
+        user.organizationId,
+        frameworkSlug,
+      );
       return frameworkContracts.getFrameworkMappings.response.parse(ok(data));
     },
 
@@ -235,17 +291,23 @@ export function createFrameworkHandlers(deps: FrameworkHandlerDeps = {}) {
       const service = deps.service ?? getService(request);
       const user = request?.user;
       if (!user?.organizationId) {
-        throw Object.assign(new Error('Authentication required'), { statusCode: 401 });
+        throw Object.assign(new Error('Authentication required'), {
+          statusCode: 401,
+        });
       }
       const frameworkSlug = request?.params?.frameworkSlug ?? '';
-      const body = frameworkContracts.confirmMapping.body.parse(request?.body ?? {});
+      const body = frameworkContracts.confirmMapping.body.parse(
+        request?.body ?? {},
+      );
       await service.confirmMapping({
         organizationId: user.organizationId,
         frameworkSlug,
         mappingType: body.mappingType,
         mappingId: body.mappingId,
       });
-      return frameworkContracts.confirmMapping.response.parse(ok({ confirmed: true as const }));
+      return frameworkContracts.confirmMapping.response.parse(
+        ok({ confirmed: true as const }),
+      );
     },
   } satisfies Record<string, (...args: any[]) => MaybePromise<unknown>>;
 }

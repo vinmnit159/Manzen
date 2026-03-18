@@ -1,13 +1,38 @@
 import { z } from 'zod';
 
-const testCategorySchema = z.enum(['Custom', 'Engineering', 'HR', 'IT', 'Policy', 'Risks']);
+const testCategorySchema = z.enum([
+  'Custom',
+  'Engineering',
+  'HR',
+  'IT',
+  'Policy',
+  'Risks',
+]);
 const testTypeSchema = z.enum(['Document', 'Automated', 'Pipeline']);
-const testStatusSchema = z.enum(['Due_soon', 'Needs_remediation', 'OK', 'Overdue']);
-const recurrenceRuleSchema = z.enum(['weekly', 'monthly', 'quarterly', 'annual']);
+const testStatusSchema = z.enum([
+  'Due_soon',
+  'Needs_remediation',
+  'OK',
+  'Overdue',
+]);
+const recurrenceRuleSchema = z.enum([
+  'weekly',
+  'monthly',
+  'quarterly',
+  'annual',
+]);
 const testRunStatusSchema = z.enum(['Pass', 'Fail', 'Warning', 'Not_Run']);
-const attestationStatusSchema = z.enum(['Not_requested', 'Pending_review', 'Attested']);
+const attestationStatusSchema = z.enum([
+  'Not_requested',
+  'Pending_review',
+  'Attested',
+]);
 
-const ownerSchema = z.object({ id: z.string(), name: z.string(), email: z.string() });
+const ownerSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  email: z.string(),
+});
 
 const testControlLinkSchema = z.object({
   id: z.string(),
@@ -49,12 +74,14 @@ const testEvidenceLinkSchema = z.object({
   }),
 });
 
-const testIntegrationSchema = z.object({
-  id: z.string(),
-  provider: z.string(),
-  status: z.string(),
-  metadata: z.record(z.string(), z.string()).optional(),
-}).nullable();
+const testIntegrationSchema = z
+  .object({
+    id: z.string(),
+    provider: z.string(),
+    status: z.string(),
+    metadata: z.record(z.string(), z.string()).optional(),
+  })
+  .nullable();
 
 export const testRecordSchema = z.object({
   id: z.string(),
@@ -114,9 +141,14 @@ export const testRunRecordSchema = z.object({
   id: z.string(),
   integrationId: z.string(),
   testId: z.string(),
+  assetId: z.string().nullable().optional(),
   status: testRunStatusSchema,
   summary: z.string(),
   rawPayload: z.record(z.string(), z.unknown()).nullable(),
+  executionSource: z.string().nullable().optional(),
+  executedBy: z.string().nullable().optional(),
+  correlationId: z.string().nullable().optional(),
+  startedAt: z.string().nullable().optional(),
   executedAt: z.string(),
   durationMs: z.number().nullable(),
 });
@@ -154,18 +186,43 @@ export const updateTestRequestSchema = z.object({
   riskEngineTestId: z.string().nullable().optional(),
 });
 
-export const attachEvidenceRequestSchema = z.object({ evidenceId: z.string().min(1) });
-export const attachControlRequestSchema = z.object({ controlId: z.string().min(1) });
-export const attachAuditRequestSchema = z.object({ auditId: z.string().min(1) });
-export const attachFrameworkRequestSchema = z.object({ frameworkName: z.string().min(1) });
+export const attachEvidenceRequestSchema = z.object({
+  evidenceId: z.string().min(1),
+});
+export const attachControlRequestSchema = z.object({
+  controlId: z.string().min(1),
+});
+export const attachAuditRequestSchema = z.object({
+  auditId: z.string().min(1),
+});
+export const attachFrameworkRequestSchema = z.object({
+  frameworkName: z.string().min(1),
+});
 
-export const bulkCompleteRequestSchema = z.object({ testIds: z.array(z.string().min(1)).min(1) });
-export const bulkAssignRequestSchema = z.object({ testIds: z.array(z.string().min(1)).min(1), ownerId: z.string().min(1) });
-export const bulkLinkControlRequestSchema = z.object({ testIds: z.array(z.string().min(1)).min(1), controlId: z.string().min(1) });
-export const exportTestsQuerySchema = z.object({ format: z.enum(['csv', 'pdf']).default('csv'), framework: z.string().optional() });
-export const createSuiteFromTemplateParamsSchema = z.object({ templateId: z.string().min(1) });
-export const requestAttestationSchema = z.object({ reviewerId: z.string().min(1) });
-export const signAttestationSchema = z.object({ reviewerId: z.string().min(1) });
+export const bulkCompleteRequestSchema = z.object({
+  testIds: z.array(z.string().min(1)).min(1),
+});
+export const bulkAssignRequestSchema = z.object({
+  testIds: z.array(z.string().min(1)).min(1),
+  ownerId: z.string().min(1),
+});
+export const bulkLinkControlRequestSchema = z.object({
+  testIds: z.array(z.string().min(1)).min(1),
+  controlId: z.string().min(1),
+});
+export const exportTestsQuerySchema = z.object({
+  format: z.enum(['csv', 'pdf']).default('csv'),
+  framework: z.string().optional(),
+});
+export const createSuiteFromTemplateParamsSchema = z.object({
+  templateId: z.string().min(1),
+});
+export const requestAttestationSchema = z.object({
+  reviewerId: z.string().min(1),
+});
+export const signAttestationSchema = z.object({
+  reviewerId: z.string().min(1),
+});
 export const pipelineRunRequestSchema = z.object({
   pipelineName: z.string().min(1),
   provider: z.string().min(1),
@@ -174,7 +231,12 @@ export const pipelineRunRequestSchema = z.object({
   branch: z.string().optional(),
 });
 
-const workflowIntegrationProviderSchema = z.enum(['slack', 'jira', 'github-actions', 'siem']);
+const workflowIntegrationProviderSchema = z.enum([
+  'slack',
+  'jira',
+  'github-actions',
+  'siem',
+]);
 
 const workflowIntegrationConfigUpsertSchema = z.object({
   organizationId: z.string().optional(),
@@ -191,11 +253,15 @@ const workflowIntegrationConfigStatusSchema = z.object({
 
 const dashboardSchema = z.object({
   controlCoverage: z.number().int().nonnegative(),
-  frameworkCoverage: z.array(z.object({ framework: z.string(), count: z.number().int().nonnegative() })),
+  frameworkCoverage: z.array(
+    z.object({ framework: z.string(), count: z.number().int().nonnegative() }),
+  ),
   automationCoverage: z.number().int().nonnegative(),
   evidenceFreshness: z.number().int().nonnegative(),
   slaCompliance: z.number().int().nonnegative(),
-  statusBreakdown: z.array(z.object({ label: z.string(), count: z.number().int().nonnegative() })),
+  statusBreakdown: z.array(
+    z.object({ label: z.string(), count: z.number().int().nonnegative() }),
+  ),
 });
 
 const gapAnalysisSchema = z.object({
@@ -216,25 +282,32 @@ const testTemplateSchema = z.object({
 });
 
 const riskContextSchema = z.object({
-  linkedTest: z.object({ id: z.string(), riskEngineTestId: z.string().nullable() }),
-  results: z.array(z.object({
+  linkedTest: z.object({
     id: z.string(),
-    status: z.string(),
-    severity: z.string(),
-    reason: z.string(),
-    executedAt: z.string(),
-    resourceName: z.string(),
-    resourceId: z.string(),
-    signalType: z.string(),
-  })),
-  risks: z.array(z.object({
-    id: z.string(),
-    title: z.string(),
-    severity: z.string(),
-    score: z.number(),
-    status: z.string(),
-    resourceName: z.string(),
-  })),
+    riskEngineTestId: z.string().nullable(),
+  }),
+  results: z.array(
+    z.object({
+      id: z.string(),
+      status: z.string(),
+      severity: z.string(),
+      reason: z.string(),
+      executedAt: z.string(),
+      resourceName: z.string(),
+      resourceId: z.string(),
+      signalType: z.string(),
+    }),
+  ),
+  risks: z.array(
+    z.object({
+      id: z.string(),
+      title: z.string(),
+      severity: z.string(),
+      score: z.number(),
+      status: z.string(),
+      resourceName: z.string(),
+    }),
+  ),
 });
 
 const securityEventSchema = z.object({
@@ -267,9 +340,14 @@ const escalationSchema = z.object({
   status: z.enum(['PENDING', 'TRIGGERED']),
 });
 
-const exportBundleSchema = z.object({ format: z.enum(['csv', 'pdf']), fileName: z.string(), content: z.string() });
+const exportBundleSchema = z.object({
+  format: z.enum(['csv', 'pdf']),
+  fileName: z.string(),
+  content: z.string(),
+});
 
-const okEnvelope = <T extends z.ZodTypeAny>(schema: T) => z.object({ success: z.literal(true), data: schema });
+const okEnvelope = <T extends z.ZodTypeAny>(schema: T) =>
+  z.object({ success: z.literal(true), data: schema });
 
 export const testsContracts = {
   listTests: {
@@ -382,7 +460,12 @@ export const testsContracts = {
   seedTests: {
     method: 'POST',
     path: '/api/tests/seed',
-    response: okEnvelope(z.object({ created: z.number().int().nonnegative(), skipped: z.number().int().nonnegative() })),
+    response: okEnvelope(
+      z.object({
+        created: z.number().int().nonnegative(),
+        skipped: z.number().int().nonnegative(),
+      }),
+    ),
   },
   getRuns: {
     method: 'GET',
@@ -478,4 +561,6 @@ export type CreateTestRequestDto = z.infer<typeof createTestRequestSchema>;
 export type UpdateTestRequestDto = z.infer<typeof updateTestRequestSchema>;
 export type BulkCompleteRequestDto = z.infer<typeof bulkCompleteRequestSchema>;
 export type BulkAssignRequestDto = z.infer<typeof bulkAssignRequestSchema>;
-export type BulkLinkControlRequestDto = z.infer<typeof bulkLinkControlRequestSchema>;
+export type BulkLinkControlRequestDto = z.infer<
+  typeof bulkLinkControlRequestSchema
+>;

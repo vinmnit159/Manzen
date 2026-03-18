@@ -182,7 +182,9 @@ function toRequirementDto(row: RequirementRow): FrameworkRequirementDto {
   };
 }
 
-function toRequirementStatusDto(row: RequirementStatusRow): RequirementStatusDto {
+function toRequirementStatusDto(
+  row: RequirementStatusRow,
+): RequirementStatusDto {
   return {
     id: row.id,
     organizationId: row.organization_id,
@@ -190,7 +192,8 @@ function toRequirementStatusDto(row: RequirementStatusRow): RequirementStatusDto
     code: row.code,
     title: row.title,
     domain: row.domain,
-    applicabilityStatus: row.applicability_status as RequirementStatusDto['applicabilityStatus'],
+    applicabilityStatus:
+      row.applicability_status as RequirementStatusDto['applicabilityStatus'],
     justification: row.justification,
     reviewStatus: row.review_status as RequirementStatusDto['reviewStatus'],
     ownerId: row.owner_id,
@@ -239,7 +242,9 @@ function toOrgFrameworkDto(row: OrgFrameworkRow): OrgFrameworkDto {
   };
 }
 
-function toBillingEntitlementDto(row: BillingEntitlementRow): BillingEntitlementDto {
+function toBillingEntitlementDto(
+  row: BillingEntitlementRow,
+): BillingEntitlementDto {
   return {
     frameworkSlug: row.framework_slug,
     planName: row.plan_name,
@@ -384,7 +389,10 @@ export class FrameworkService {
   }): Promise<ActivateFrameworkResponseDto> {
     const fw = await this.getFrameworkBySlug(opts.frameworkSlug);
     if (!fw) {
-      throw Object.assign(new Error(`Framework not found: ${opts.frameworkSlug}`), { code: 'FRAMEWORK_NOT_FOUND', statusCode: 404 });
+      throw Object.assign(
+        new Error(`Framework not found: ${opts.frameworkSlug}`),
+        { code: 'FRAMEWORK_NOT_FOUND', statusCode: 404 },
+      );
     }
 
     // Check entitlement when enforcement is enabled
@@ -413,7 +421,14 @@ export class FrameworkService {
              archived_at  = null,
              archived_by  = null,
              updated_at   = excluded.updated_at`,
-      [orgFwId, opts.organizationId, fw.id, now, opts.activatedBy, opts.scopeNote ?? null],
+      [
+        orgFwId,
+        opts.organizationId,
+        fw.id,
+        now,
+        opts.activatedBy,
+        opts.scopeNote ?? null,
+      ],
     );
 
     let requirementsLoaded = 0;
@@ -499,18 +514,30 @@ export class FrameworkService {
           and s.review_status = 'not_started'`,
       [opts.organizationId, fw.id],
     );
-    const requirementsNeedingReview = Number(needingReviewResult.rows[0]?.count ?? 0);
+    const requirementsNeedingReview = Number(
+      needingReviewResult.rows[0]?.count ?? 0,
+    );
 
     const orgFw = await this.getOrgFramework(opts.organizationId, fw.id);
 
     // Phase 4: compute initial coverage snapshot (append-only INSERT)
     let initialCoverageScore = 0;
     try {
-      await computeAndInsertCoverageSnapshot(this.db, opts.organizationId, fw.id);
-      const snap = await this.getCoverage(opts.organizationId, opts.frameworkSlug);
+      await computeAndInsertCoverageSnapshot(
+        this.db,
+        opts.organizationId,
+        fw.id,
+      );
+      const snap = await this.getCoverage(
+        opts.organizationId,
+        opts.frameworkSlug,
+      );
       initialCoverageScore = snap?.controlCoveragePct ?? 0;
     } catch (err) {
-      console.error('[FrameworkService] Coverage snapshot failed after activation:', err);
+      console.error(
+        '[FrameworkService] Coverage snapshot failed after activation:',
+        err,
+      );
       // Non-fatal — return org framework record regardless
     }
 
@@ -526,21 +553,28 @@ export class FrameworkService {
 
     const notificationService = getNotificationServiceOrNull();
     if (notificationService) {
-      notificationService.emit({
-        organizationId: opts.organizationId,
-      recipientUserIds: [opts.activatedBy],
-      eventType: NotificationEventType.FRAMEWORK_ACTIVATED,
-      title: `${fw.name} activated`,
-        body: `${fw.name} is now active for your organization and ready for coverage review.`,
-      severity: 'info',
-      resourceType: 'framework',
-      resourceId: fw.id,
-      metadata: { frameworkSlug: fw.slug },
-      recipientEmails: { [opts.activatedBy]: guessUserEmail(opts.activatedBy) },
-      resourceUrl: '/compliance/frameworks',
-    }).catch((error) => {
-        console.error('[NotificationService] framework activation emit failed:', error);
-      });
+      notificationService
+        .emit({
+          organizationId: opts.organizationId,
+          recipientUserIds: [opts.activatedBy],
+          eventType: NotificationEventType.FRAMEWORK_ACTIVATED,
+          title: `${fw.name} activated`,
+          body: `${fw.name} is now active for your organization and ready for coverage review.`,
+          severity: 'info',
+          resourceType: 'framework',
+          resourceId: fw.id,
+          metadata: { frameworkSlug: fw.slug },
+          recipientEmails: {
+            [opts.activatedBy]: guessUserEmail(opts.activatedBy),
+          },
+          resourceUrl: '/compliance/frameworks',
+        })
+        .catch((error) => {
+          console.error(
+            '[NotificationService] framework activation emit failed:',
+            error,
+          );
+        });
     }
 
     return { orgFramework: orgFw!, summary };
@@ -558,7 +592,10 @@ export class FrameworkService {
   }): Promise<OrgFrameworkDto> {
     const fw = await this.getFrameworkBySlug(opts.frameworkSlug);
     if (!fw) {
-      throw Object.assign(new Error(`Framework not found: ${opts.frameworkSlug}`), { code: 'FRAMEWORK_NOT_FOUND', statusCode: 404 });
+      throw Object.assign(
+        new Error(`Framework not found: ${opts.frameworkSlug}`),
+        { code: 'FRAMEWORK_NOT_FOUND', statusCode: 404 },
+      );
     }
 
     const now = new Date().toISOString();
@@ -576,15 +613,26 @@ export class FrameworkService {
 
     const orgFw = await this.getOrgFramework(opts.organizationId, fw.id);
     if (!orgFw) {
-      throw Object.assign(new Error('Framework activation record not found'), { code: 'FRAMEWORK_NOT_FOUND', statusCode: 404 });
+      throw Object.assign(new Error('Framework activation record not found'), {
+        code: 'FRAMEWORK_NOT_FOUND',
+        statusCode: 404,
+      });
     }
     return orgFw;
   }
 
   /** Returns entitlement info for a framework + org pair. */
-  async checkEntitlement(organizationId: string, frameworkSlug: string): Promise<FrameworkEntitlementDto> {
+  async checkEntitlement(
+    organizationId: string,
+    frameworkSlug: string,
+  ): Promise<FrameworkEntitlementDto> {
     if (process.env.FRAMEWORK_ENTITLEMENTS_ENFORCED !== 'true') {
-      return { frameworkSlug, entitled: true, planName: null, validUntil: null };
+      return {
+        frameworkSlug,
+        entitled: true,
+        planName: null,
+        validUntil: null,
+      };
     }
 
     const result = await this.db.query<EntitlementRow>(
@@ -599,7 +647,12 @@ export class FrameworkService {
     );
 
     if (result.rows.length === 0) {
-      return { frameworkSlug, entitled: false, planName: null, validUntil: null };
+      return {
+        frameworkSlug,
+        entitled: false,
+        planName: null,
+        validUntil: null,
+      };
     }
 
     const row = result.rows[0];
@@ -614,7 +667,10 @@ export class FrameworkService {
   // ── Phase 3: Requirement status ────────────────────────────────────────────
 
   /** Returns per-org applicability and review state for all requirements of a framework. */
-  async listOrgRequirements(organizationId: string, frameworkSlug: string): Promise<RequirementStatusDto[]> {
+  async listOrgRequirements(
+    organizationId: string,
+    frameworkSlug: string,
+  ): Promise<RequirementStatusDto[]> {
     const result = await this.db.query<RequirementStatusRow>(
       `select
          s.id,
@@ -643,7 +699,10 @@ export class FrameworkService {
   // ── Phase 4: Coverage snapshots (append-only) ───────────────────────────────
 
   /** Returns the latest coverage snapshot for this org + framework. */
-  async getCoverage(organizationId: string, frameworkSlug: string): Promise<CoverageSnapshotDto | null> {
+  async getCoverage(
+    organizationId: string,
+    frameworkSlug: string,
+  ): Promise<CoverageSnapshotDto | null> {
     const result = await this.db.query<CoverageSnapshotRow>(
       `select
          cs.id, cs.organization_id, cs.framework_id,
@@ -681,26 +740,40 @@ export class FrameworkService {
               updated_at = $5
         where id = $1
           and organization_id = $2`,
-      [opts.requirementId, opts.organizationId, opts.ownerId ?? null, opts.dueDate ?? null, now],
+      [
+        opts.requirementId,
+        opts.organizationId,
+        opts.ownerId ?? null,
+        opts.dueDate ?? null,
+        now,
+      ],
     );
-    const updated = await this.getRequirementStatus(opts.requirementId, opts.organizationId);
+    const updated = await this.getRequirementStatus(
+      opts.requirementId,
+      opts.organizationId,
+    );
     if (opts.ownerId) {
       const notificationService = getNotificationServiceOrNull();
       if (notificationService) {
-        notificationService.emit({
-          organizationId: opts.organizationId,
-          recipientUserIds: [opts.ownerId],
-          eventType: NotificationEventType.GAP_OWNER_ASSIGNED,
-          title: `Framework gap assigned: ${updated.code}`,
-          body: `You are now the owner for requirement ${updated.code} — ${updated.title}.`,
-          severity: 'warning',
-          resourceType: 'framework',
-          resourceId: updated.frameworkRequirementId,
-          recipientEmails: { [opts.ownerId]: guessUserEmail(opts.ownerId) },
-          resourceUrl: '/compliance/frameworks',
-        }).catch((error) => {
-          console.error('[NotificationService] framework owner assignment emit failed:', error);
-        });
+        notificationService
+          .emit({
+            organizationId: opts.organizationId,
+            recipientUserIds: [opts.ownerId],
+            eventType: NotificationEventType.GAP_OWNER_ASSIGNED,
+            title: `Framework gap assigned: ${updated.code}`,
+            body: `You are now the owner for requirement ${updated.code} — ${updated.title}.`,
+            severity: 'warning',
+            resourceType: 'framework',
+            resourceId: updated.frameworkRequirementId,
+            recipientEmails: { [opts.ownerId]: guessUserEmail(opts.ownerId) },
+            resourceUrl: '/compliance/frameworks',
+          })
+          .catch((error) => {
+            console.error(
+              '[NotificationService] framework owner assignment emit failed:',
+              error,
+            );
+          });
       }
     }
     return updated;
@@ -721,22 +794,42 @@ export class FrameworkService {
               updated_at           = $5
         where id = $1
           and organization_id = $2`,
-      [opts.requirementId, opts.organizationId, opts.applicabilityStatus, opts.justification ?? null, now],
+      [
+        opts.requirementId,
+        opts.organizationId,
+        opts.applicabilityStatus,
+        opts.justification ?? null,
+        now,
+      ],
     );
-    const updated = await this.getRequirementStatus(opts.requirementId, opts.organizationId);
+    const updated = await this.getRequirementStatus(
+      opts.requirementId,
+      opts.organizationId,
+    );
 
     // Trigger a fresh coverage snapshot (applicability change affects coverage formula)
-    this.db.query<{ framework_id: string }>(
-      `select r.framework_id from framework_requirements r
+    this.db
+      .query<{ framework_id: string }>(
+        `select r.framework_id from framework_requirements r
          join organization_framework_requirement_status s on s.framework_requirement_id = r.id
         where s.id = $1 limit 1`,
-      [opts.requirementId],
-    ).then(res => {
-      if (res.rows[0]) {
-        computeAndInsertCoverageSnapshot(this.db, opts.organizationId, res.rows[0].framework_id)
-          .catch(err => console.error('[FrameworkService] Coverage snapshot after applicability change failed:', err));
-      }
-    }).catch(() => {});
+        [opts.requirementId],
+      )
+      .then((res) => {
+        if (res.rows[0]) {
+          computeAndInsertCoverageSnapshot(
+            this.db,
+            opts.organizationId,
+            res.rows[0].framework_id,
+          ).catch((err) =>
+            console.error(
+              '[FrameworkService] Coverage snapshot after applicability change failed:',
+              err,
+            ),
+          );
+        }
+      })
+      .catch(() => {});
 
     return updated;
   }
@@ -744,7 +837,11 @@ export class FrameworkService {
   // ── Phase 4: Coverage history ───────────────────────────────────────────────
 
   /** Returns recent coverage snapshots for this org + framework (ordered newest-first). */
-  async getCoverageHistory(organizationId: string, frameworkSlug: string, limit = 24): Promise<CoverageSnapshotDto[]> {
+  async getCoverageHistory(
+    organizationId: string,
+    frameworkSlug: string,
+    days = 90,
+  ): Promise<CoverageSnapshotDto[]> {
     const result = await this.db.query<CoverageSnapshotRow>(
       `select
          cs.id, cs.organization_id, cs.framework_id,
@@ -754,13 +851,14 @@ export class FrameworkService {
          cs.control_coverage_pct, cs.test_pass_rate_pct,
          cs.mapped_test_count, cs.passing_test_count,
          cs.open_gaps, cs.calculated_at
-       from framework_coverage_snapshots cs
-       join frameworks f on f.id = cs.framework_id
-       where cs.organization_id = $1
-         and f.slug = $2
-       order by cs.calculated_at asc
-       limit $3`,
-      [organizationId, frameworkSlug, limit],
+        from framework_coverage_snapshots cs
+        join frameworks f on f.id = cs.framework_id
+        where cs.organization_id = $1
+          and f.slug = $2
+          and cs.calculated_at >= now() - ($3::int * interval '1 day')
+        order by cs.calculated_at asc
+      `,
+      [organizationId, frameworkSlug, days],
     );
     return result.rows.map(toCoverageSnapshotDto);
   }
@@ -768,7 +866,9 @@ export class FrameworkService {
   // ── Phase 4: Readiness summary ──────────────────────────────────────────────
 
   /** Returns a readiness summary for all active frameworks for the org. */
-  async getReadinessSummary(organizationId: string): Promise<FrameworkReadinessDto[]> {
+  async getReadinessSummary(
+    organizationId: string,
+  ): Promise<FrameworkReadinessDto[]> {
     // Get all active frameworks for the org
     const activeFrameworks = await this.listOrgFrameworks(organizationId);
     if (activeFrameworks.length === 0) return [];
@@ -796,10 +896,16 @@ export class FrameworkService {
   // ── Phase 3: Mappings ───────────────────────────────────────────────────────
 
   /** Returns all control, test, and policy mappings for a framework + org. */
-  async getFrameworkMappings(organizationId: string, frameworkSlug: string): Promise<FrameworkMappingsDto> {
+  async getFrameworkMappings(
+    organizationId: string,
+    frameworkSlug: string,
+  ): Promise<FrameworkMappingsDto> {
     const fw = await this.getFrameworkBySlug(frameworkSlug);
     if (!fw) {
-      throw Object.assign(new Error(`Framework not found: ${frameworkSlug}`), { code: 'FRAMEWORK_NOT_FOUND', statusCode: 404 });
+      throw Object.assign(new Error(`Framework not found: ${frameworkSlug}`), {
+        code: 'FRAMEWORK_NOT_FOUND',
+        statusCode: 404,
+      });
     }
 
     const [controlsResult, testsResult, policiesResult] = await Promise.all([
@@ -889,7 +995,9 @@ export class FrameworkService {
   // ── Phase 5: Billing entitlements ──────────────────────────────────────────
 
   /** Lists all subscription entitlements for the organization. */
-  async listEntitlements(organizationId: string): Promise<BillingEntitlementDto[]> {
+  async listEntitlements(
+    organizationId: string,
+  ): Promise<BillingEntitlementDto[]> {
     const result = await this.db.query<BillingEntitlementRow>(
       `select framework_slug, plan_name, is_active, valid_from, valid_until, created_at
          from subscription_entitlements
@@ -913,13 +1021,25 @@ export class FrameworkService {
              valid_from  = excluded.valid_from,
              valid_until = excluded.valid_until,
              updated_at  = excluded.updated_at`,
-      [id, data.organizationId, data.frameworkSlug, data.planName, data.isActive, data.validFrom, data.validUntil ?? null, now],
+      [
+        id,
+        data.organizationId,
+        data.frameworkSlug,
+        data.planName,
+        data.isActive,
+        data.validFrom,
+        data.validUntil ?? null,
+        now,
+      ],
     );
   }
 
   // ── Private helpers ─────────────────────────────────────────────────────────
 
-  private async getOrgFramework(organizationId: string, frameworkId: string): Promise<OrgFrameworkDto | null> {
+  private async getOrgFramework(
+    organizationId: string,
+    frameworkId: string,
+  ): Promise<OrgFrameworkDto | null> {
     const result = await this.db.query<OrgFrameworkRow>(
       `select
          of.id,
@@ -946,7 +1066,10 @@ export class FrameworkService {
     return result.rows[0] ? toOrgFrameworkDto(result.rows[0]) : null;
   }
 
-  private async getRequirementStatus(requirementId: string, organizationId: string): Promise<RequirementStatusDto> {
+  private async getRequirementStatus(
+    requirementId: string,
+    organizationId: string,
+  ): Promise<RequirementStatusDto> {
     const result = await this.db.query<RequirementStatusRow>(
       `select
          s.id, s.organization_id, s.framework_requirement_id,
@@ -961,17 +1084,28 @@ export class FrameworkService {
       [requirementId, organizationId],
     );
     if (!result.rows[0]) {
-      throw Object.assign(new Error('Requirement status not found'), { code: 'NOT_FOUND', statusCode: 404 });
+      throw Object.assign(new Error('Requirement status not found'), {
+        code: 'NOT_FOUND',
+        statusCode: 404,
+      });
     }
     return toRequirementStatusDto(result.rows[0]);
   }
 
-  private async assertEntitled(organizationId: string, frameworkSlug: string): Promise<void> {
+  private async assertEntitled(
+    organizationId: string,
+    frameworkSlug: string,
+  ): Promise<void> {
     if (process.env.FRAMEWORK_ENTITLEMENTS_ENFORCED !== 'true') return;
-    const entitlement = await this.checkEntitlement(organizationId, frameworkSlug);
+    const entitlement = await this.checkEntitlement(
+      organizationId,
+      frameworkSlug,
+    );
     if (!entitlement.entitled) {
       throw Object.assign(
-        new Error(`Organization is not entitled to framework: ${frameworkSlug}`),
+        new Error(
+          `Organization is not entitled to framework: ${frameworkSlug}`,
+        ),
         { code: 'FRAMEWORK_NOT_ENTITLED', statusCode: 403 },
       );
     }

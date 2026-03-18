@@ -1,11 +1,20 @@
 import { apiClient, ApiResponse, PaginatedResponse } from './client';
 
 // ─── Enums ────────────────────────────────────────────────────────────────────
-export type TestCategory = 'Custom' | 'Engineering' | 'HR' | 'IT' | 'Policy' | 'Risks';
+export type TestCategory =
+  | 'Custom'
+  | 'Engineering'
+  | 'HR'
+  | 'IT'
+  | 'Policy'
+  | 'Risks';
 export type TestType = 'Document' | 'Automated' | 'Pipeline';
 export type TestStatus = 'Due_soon' | 'Needs_remediation' | 'OK' | 'Overdue';
 export type TestRecurrenceRule = 'weekly' | 'monthly' | 'quarterly' | 'annual';
-export type TestAttestationStatus = 'Not_requested' | 'Pending_review' | 'Attested';
+export type TestAttestationStatus =
+  | 'Not_requested'
+  | 'Pending_review'
+  | 'Attested';
 
 // ─── Related record shapes ────────────────────────────────────────────────────
 export interface TestControlLink {
@@ -18,6 +27,7 @@ export interface TestFrameworkLink {
   id: string;
   testId: string;
   frameworkName: string;
+  frameworkId?: string | null;
 }
 
 export interface TestAuditLink {
@@ -43,9 +53,14 @@ export interface TestRunRecord {
   id: string;
   integrationId: string;
   testId: string;
+  assetId?: string | null;
   status: 'Pass' | 'Fail' | 'Warning' | 'Not_Run';
   summary: string;
   rawPayload: any | null;
+  executionSource?: string | null;
+  executedBy?: string | null;
+  correlationId?: string | null;
+  startedAt?: string | null;
   executedAt: string;
   durationMs: number | null;
 }
@@ -85,7 +100,12 @@ export interface TestRecord {
   lastResult?: 'Pass' | 'Fail' | 'Warning' | 'Not_Run';
   lastResultDetails?: any;
   autoRemediationSupported?: boolean;
-  integration?: { id: string; provider: string; status: string; metadata?: Record<string, string> } | null;
+  integration?: {
+    id: string;
+    provider: string;
+    status: string;
+    metadata?: Record<string, string>;
+  } | null;
 }
 
 // ─── Summary ──────────────────────────────────────────────────────────────────
@@ -186,8 +206,24 @@ export interface TestTemplate {
 
 export interface TestRiskContext {
   linkedTest: { id: string; riskEngineTestId: string | null };
-  results: Array<{ id: string; status: string; severity: string; reason: string; executedAt: string; resourceName: string; resourceId: string; signalType: string }>;
-  risks: Array<{ id: string; title: string; severity: string; score: number; status: string; resourceName: string }>;
+  results: Array<{
+    id: string;
+    status: string;
+    severity: string;
+    reason: string;
+    executedAt: string;
+    resourceName: string;
+    resourceId: string;
+    signalType: string;
+  }>;
+  risks: Array<{
+    id: string;
+    title: string;
+    severity: string;
+    score: number;
+    status: string;
+    resourceName: string;
+  }>;
 }
 
 export interface TestSecurityEvent {
@@ -234,7 +270,11 @@ export interface PipelineRunRequest {
   branch?: string;
 }
 
-export type WorkflowIntegrationProvider = 'slack' | 'jira' | 'github-actions' | 'siem';
+export type WorkflowIntegrationProvider =
+  | 'slack'
+  | 'jira'
+  | 'github-actions'
+  | 'siem';
 
 export interface WorkflowIntegrationConfigStatus {
   provider: WorkflowIntegrationProvider;
@@ -246,27 +286,39 @@ export interface WorkflowIntegrationConfigStatus {
 
 // ─── Service ─────────────────────────────────────────────────────────────────
 export class TestsService {
-  async listTests(params?: ListTestsParams): Promise<ApiResponse<TestRecord[]>> {
+  async listTests(
+    params?: ListTestsParams,
+  ): Promise<ApiResponse<TestRecord[]>> {
     const clean: Record<string, string> = {};
     if (params) {
-      if (params.search)   clean.search   = params.search;
+      if (params.search) clean.search = params.search;
       if (params.category) clean.category = params.category;
-      if (params.status)   clean.status   = params.status;
-      if (params.type)     clean.type     = params.type;
-      if (params.ownerId)  clean.ownerId  = params.ownerId;
-      if (params.dueFrom)  clean.dueFrom  = params.dueFrom;
-      if (params.dueTo)    clean.dueTo    = params.dueTo;
-      if (params.frameworkSlugs?.length) clean.frameworkSlugs = params.frameworkSlugs.join(',');
-      if (params.page   !== undefined) clean.page  = String(params.page);
-      if (params.limit  !== undefined) clean.limit = String(params.limit);
+      if (params.status) clean.status = params.status;
+      if (params.type) clean.type = params.type;
+      if (params.ownerId) clean.ownerId = params.ownerId;
+      if (params.dueFrom) clean.dueFrom = params.dueFrom;
+      if (params.dueTo) clean.dueTo = params.dueTo;
+      if (params.frameworkSlugs?.length)
+        clean.frameworkSlugs = params.frameworkSlugs.join(',');
+      if (params.page !== undefined) clean.page = String(params.page);
+      if (params.limit !== undefined) clean.limit = String(params.limit);
     }
-    return apiClient.get('/api/tests', Object.keys(clean).length ? clean : undefined);
+    return apiClient.get(
+      '/api/tests',
+      Object.keys(clean).length ? clean : undefined,
+    );
   }
 
-  async getTestSummary(params?: { frameworkSlugs?: string[] }): Promise<ApiResponse<TestSummary>> {
+  async getTestSummary(params?: {
+    frameworkSlugs?: string[];
+  }): Promise<ApiResponse<TestSummary>> {
     const clean: Record<string, string> = {};
-    if (params?.frameworkSlugs?.length) clean.frameworkSlugs = params.frameworkSlugs.join(',');
-    return apiClient.get('/api/tests/summary', Object.keys(clean).length ? clean : undefined);
+    if (params?.frameworkSlugs?.length)
+      clean.frameworkSlugs = params.frameworkSlugs.join(',');
+    return apiClient.get(
+      '/api/tests/summary',
+      Object.keys(clean).length ? clean : undefined,
+    );
   }
 
   async getDashboard(): Promise<ApiResponse<TestDashboard>> {
@@ -312,7 +364,9 @@ export class TestsService {
     return apiClient.get('/api/tests/library');
   }
 
-  async createSuiteFromTemplate(templateId: string): Promise<ApiResponse<TestRecord[]>> {
+  async createSuiteFromTemplate(
+    templateId: string,
+  ): Promise<ApiResponse<TestRecord[]>> {
     return apiClient.post(`/api/tests/library/${templateId}/create-suite`, {});
   }
 
@@ -324,7 +378,10 @@ export class TestsService {
     return apiClient.post('/api/tests', data);
   }
 
-  async updateTest(id: string, data: UpdateTestRequest): Promise<ApiResponse<TestRecord>> {
+  async updateTest(
+    id: string,
+    data: UpdateTestRequest,
+  ): Promise<ApiResponse<TestRecord>> {
     return apiClient.put(`/api/tests/${id}`, data);
   }
 
@@ -336,15 +393,21 @@ export class TestsService {
     return apiClient.post(`/api/tests/${id}/complete`, {});
   }
 
-  async bulkComplete(data: BulkCompleteRequest): Promise<ApiResponse<TestRecord[]>> {
+  async bulkComplete(
+    data: BulkCompleteRequest,
+  ): Promise<ApiResponse<TestRecord[]>> {
     return apiClient.post('/api/tests/bulk/complete', data);
   }
 
-  async bulkAssign(data: BulkAssignRequest): Promise<ApiResponse<TestRecord[]>> {
+  async bulkAssign(
+    data: BulkAssignRequest,
+  ): Promise<ApiResponse<TestRecord[]>> {
     return apiClient.post('/api/tests/bulk/assign', data);
   }
 
-  async bulkLinkControl(data: BulkLinkControlRequest): Promise<ApiResponse<TestControlLink[]>> {
+  async bulkLinkControl(
+    data: BulkLinkControlRequest,
+  ): Promise<ApiResponse<TestControlLink[]>> {
     return apiClient.post('/api/tests/bulk/link-control', data);
   }
 
@@ -352,11 +415,19 @@ export class TestsService {
     return apiClient.get(`/api/tests/${testId}/risk-context`);
   }
 
-  async requestAttestation(testId: string, reviewerId: string): Promise<ApiResponse<TestRecord>> {
-    return apiClient.post(`/api/tests/${testId}/attest/request`, { reviewerId });
+  async requestAttestation(
+    testId: string,
+    reviewerId: string,
+  ): Promise<ApiResponse<TestRecord>> {
+    return apiClient.post(`/api/tests/${testId}/attest/request`, {
+      reviewerId,
+    });
   }
 
-  async signAttestation(testId: string, reviewerId: string): Promise<ApiResponse<TestRecord>> {
+  async signAttestation(
+    testId: string,
+    reviewerId: string,
+  ): Promise<ApiResponse<TestRecord>> {
     return apiClient.post(`/api/tests/${testId}/attest/sign`, { reviewerId });
   }
 
@@ -364,13 +435,18 @@ export class TestsService {
     return apiClient.post(`/api/tests/${testId}/auto-remediate`, {});
   }
 
-  async exportTests(format: 'csv' | 'pdf' = 'csv', framework?: string): Promise<ApiResponse<TestExportBundle>> {
+  async exportTests(
+    format: 'csv' | 'pdf' = 'csv',
+    framework?: string,
+  ): Promise<ApiResponse<TestExportBundle>> {
     const params: Record<string, string> = { format };
     if (framework) params.framework = framework;
     return apiClient.get('/api/tests/export', params);
   }
 
-  async ingestPipelineRun(data: PipelineRunRequest): Promise<ApiResponse<TestRecord>> {
+  async ingestPipelineRun(
+    data: PipelineRunRequest,
+  ): Promise<ApiResponse<TestRecord>> {
     return apiClient.post('/api/tests/pipeline/runs', data);
   }
 
@@ -407,62 +483,105 @@ export class TestsService {
     }
   }
 
-  async listWorkflowIntegrationConfigStatus(): Promise<ApiResponse<WorkflowIntegrationConfigStatus[]>> {
+  async listWorkflowIntegrationConfigStatus(): Promise<
+    ApiResponse<WorkflowIntegrationConfigStatus[]>
+  > {
     return apiClient.get('/api/tests/workflow-integrations/config');
   }
 
-  async upsertWorkflowIntegrationConfig(provider: WorkflowIntegrationProvider, values: Record<string, unknown>, organizationId?: string): Promise<ApiResponse<WorkflowIntegrationConfigStatus>> {
-    return apiClient.put(`/api/tests/workflow-integrations/${provider}/config`, { values, organizationId });
+  async upsertWorkflowIntegrationConfig(
+    provider: WorkflowIntegrationProvider,
+    values: Record<string, unknown>,
+    organizationId?: string,
+  ): Promise<ApiResponse<WorkflowIntegrationConfigStatus>> {
+    return apiClient.put(
+      `/api/tests/workflow-integrations/${provider}/config`,
+      { values, organizationId },
+    );
   }
 
   // Evidence
-  async attachEvidence(testId: string, evidenceId: string): Promise<ApiResponse<TestEvidenceLink>> {
+  async attachEvidence(
+    testId: string,
+    evidenceId: string,
+  ): Promise<ApiResponse<TestEvidenceLink>> {
     return apiClient.post(`/api/tests/${testId}/evidence`, { evidenceId });
   }
 
-  async detachEvidence(testId: string, evidenceId: string): Promise<ApiResponse<void>> {
+  async detachEvidence(
+    testId: string,
+    evidenceId: string,
+  ): Promise<ApiResponse<void>> {
     return apiClient.delete(`/api/tests/${testId}/evidence/${evidenceId}`);
   }
 
   // Controls
-  async attachControl(testId: string, controlId: string): Promise<ApiResponse<TestControlLink>> {
+  async attachControl(
+    testId: string,
+    controlId: string,
+  ): Promise<ApiResponse<TestControlLink>> {
     return apiClient.post(`/api/tests/${testId}/controls`, { controlId });
   }
 
-  async detachControl(testId: string, controlId: string): Promise<ApiResponse<void>> {
+  async detachControl(
+    testId: string,
+    controlId: string,
+  ): Promise<ApiResponse<void>> {
     return apiClient.delete(`/api/tests/${testId}/controls/${controlId}`);
   }
 
   // Audits
-  async attachAudit(testId: string, auditId: string): Promise<ApiResponse<TestAuditLink>> {
+  async attachAudit(
+    testId: string,
+    auditId: string,
+  ): Promise<ApiResponse<TestAuditLink>> {
     return apiClient.post(`/api/tests/${testId}/audits`, { auditId });
   }
 
-  async detachAudit(testId: string, auditId: string): Promise<ApiResponse<void>> {
+  async detachAudit(
+    testId: string,
+    auditId: string,
+  ): Promise<ApiResponse<void>> {
     return apiClient.delete(`/api/tests/${testId}/audits/${auditId}`);
   }
 
   // Frameworks
-  async attachFramework(testId: string, frameworkName: string): Promise<ApiResponse<TestFrameworkLink>> {
+  async attachFramework(
+    testId: string,
+    frameworkName: string,
+  ): Promise<ApiResponse<TestFrameworkLink>> {
     return apiClient.post(`/api/tests/${testId}/frameworks`, { frameworkName });
   }
 
-  async detachFramework(testId: string, frameworkId: string): Promise<ApiResponse<void>> {
+  async detachFramework(
+    testId: string,
+    frameworkId: string,
+  ): Promise<ApiResponse<void>> {
     return apiClient.delete(`/api/tests/${testId}/frameworks/${frameworkId}`);
   }
 
   // History
-  async getHistory(testId: string, page = 1): Promise<ApiResponse<TestHistoryEntry[]>> {
-    return apiClient.get(`/api/tests/${testId}/history`, { page: String(page) });
+  async getHistory(
+    testId: string,
+    page = 1,
+  ): Promise<ApiResponse<TestHistoryEntry[]>> {
+    return apiClient.get(`/api/tests/${testId}/history`, {
+      page: String(page),
+    });
   }
 
   // Seed predefined Policy tests
-  async seedTests(): Promise<ApiResponse<{ created: number; skipped: number }>> {
+  async seedTests(): Promise<
+    ApiResponse<{ created: number; skipped: number }>
+  > {
     return apiClient.post('/api/tests/seed', {});
   }
 
   // Get integration test run history for an automated test
-  async getTestRuns(testId: string, page = 1): Promise<ApiResponse<TestRunRecord[]>> {
+  async getTestRuns(
+    testId: string,
+    page = 1,
+  ): Promise<ApiResponse<TestRunRecord[]>> {
     return apiClient.get(`/api/tests/${testId}/runs`, { page: String(page) });
   }
 }

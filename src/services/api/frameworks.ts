@@ -193,17 +193,24 @@ class FrameworksService {
   }
 
   /** GET /api/frameworks/:slug — single framework */
-  async getFramework(slug: string): Promise<{ success: boolean; data: FrameworkDto }> {
+  async getFramework(
+    slug: string,
+  ): Promise<{ success: boolean; data: FrameworkDto }> {
     return apiClient.get(`/api/frameworks/${slug}`);
   }
 
   /** GET /api/frameworks/:slug/requirements */
-  async listRequirements(slug: string): Promise<{ success: boolean; data: FrameworkRequirementDto[] }> {
+  async listRequirements(
+    slug: string,
+  ): Promise<{ success: boolean; data: FrameworkRequirementDto[] }> {
     return apiClient.get(`/api/frameworks/${slug}/requirements`);
   }
 
   /** GET /api/org/frameworks — org's active frameworks */
-  async listOrgFrameworks(): Promise<{ success: boolean; data: OrgFrameworkDto[] }> {
+  async listOrgFrameworks(): Promise<{
+    success: boolean;
+    data: OrgFrameworkDto[];
+  }> {
     return apiClient.get('/api/org/frameworks');
   }
 
@@ -216,62 +223,105 @@ class FrameworksService {
   }
 
   /** PATCH /api/org/frameworks/:slug/remove — remove from active scope */
-  async removeFramework(frameworkSlug: string, body: RemoveFrameworkRequest = {}): Promise<{ success: boolean; data: OrgFrameworkDto }> {
+  async removeFramework(
+    frameworkSlug: string,
+    body: RemoveFrameworkRequest = {},
+  ): Promise<{ success: boolean; data: OrgFrameworkDto }> {
     return apiClient.patch(`/api/org/frameworks/${frameworkSlug}/remove`, body);
   }
 
   /** GET /api/org/frameworks/:slug/entitlement */
-  async checkEntitlement(frameworkSlug: string): Promise<{ success: boolean; data: FrameworkEntitlementDto }> {
+  async checkEntitlement(
+    frameworkSlug: string,
+  ): Promise<{ success: boolean; data: FrameworkEntitlementDto }> {
     return apiClient.get(`/api/org/frameworks/${frameworkSlug}/entitlement`);
   }
 
   /** GET /api/org/frameworks/:slug/requirements — requirement status per org */
-  async listOrgRequirements(frameworkSlug: string): Promise<{ success: boolean; data: RequirementStatusDto[] }> {
+  async listOrgRequirements(
+    frameworkSlug: string,
+  ): Promise<{ success: boolean; data: RequirementStatusDto[] }> {
     return apiClient.get(`/api/org/frameworks/${frameworkSlug}/requirements`);
   }
 
   /** GET /api/org/frameworks/:slug/coverage — latest coverage snapshot */
-  async getCoverage(frameworkSlug: string): Promise<{ success: boolean; data: CoverageSnapshotDto | null }> {
+  async getCoverage(
+    frameworkSlug: string,
+  ): Promise<{ success: boolean; data: CoverageSnapshotDto | null }> {
     return apiClient.get(`/api/org/frameworks/${frameworkSlug}/coverage`);
   }
 
   /** GET /api/org/frameworks/:slug/coverage/history — recent coverage snapshots */
-  async getCoverageHistory(frameworkSlug: string, limit = 24): Promise<{ success: boolean; data: CoverageSnapshotDto[] }> {
-    return apiClient.get(`/api/org/frameworks/${frameworkSlug}/coverage/history`, { limit: String(limit) });
+  async getCoverageHistory(
+    frameworkSlug: string,
+    days = 90,
+  ): Promise<{ success: boolean; data: CoverageSnapshotDto[] }> {
+    return apiClient.get(
+      `/api/org/frameworks/${frameworkSlug}/coverage/history`,
+      { days: String(days) },
+    );
   }
 
   /** GET /api/org/frameworks/:slug/mappings — all control/test/policy mappings */
-  async getFrameworkMappings(frameworkSlug: string): Promise<{ success: boolean; data: FrameworkMappingsDto }> {
+  async getFrameworkMappings(
+    frameworkSlug: string,
+  ): Promise<{ success: boolean; data: FrameworkMappingsDto }> {
     return apiClient.get(`/api/org/frameworks/${frameworkSlug}/mappings`);
   }
 
   /** POST /api/org/frameworks/:slug/mappings/confirm — confirm a suggested mapping */
-  async confirmMapping(frameworkSlug: string, body: { mappingType: 'control' | 'test' | 'policy'; mappingId: string }): Promise<{ success: boolean; data: any }> {
-    return apiClient.post(`/api/org/frameworks/${frameworkSlug}/mappings/confirm`, body);
+  async confirmMapping(
+    frameworkSlug: string,
+    body: { mappingType: 'control' | 'test' | 'policy'; mappingId: string },
+  ): Promise<{ success: boolean; data: any }> {
+    return apiClient.post(
+      `/api/org/frameworks/${frameworkSlug}/mappings/confirm`,
+      body,
+    );
   }
 
   /** PATCH /api/org/requirements/:requirementId/owner */
-  async updateRequirementOwner(requirementId: string, body: UpdateRequirementOwnerRequest): Promise<{ success: boolean; data: RequirementStatusDto }> {
-    return apiClient.patch(`/api/org/requirements/${requirementId}/owner`, body);
+  async updateRequirementOwner(
+    requirementId: string,
+    body: UpdateRequirementOwnerRequest,
+  ): Promise<{ success: boolean; data: RequirementStatusDto }> {
+    return apiClient.patch(
+      `/api/org/requirements/${requirementId}/owner`,
+      body,
+    );
   }
 
   /** PATCH /api/org/requirements/:requirementId/applicability */
-  async updateApplicability(requirementId: string, body: UpdateApplicabilityRequest): Promise<{ success: boolean; data: RequirementStatusDto }> {
-    return apiClient.patch(`/api/org/requirements/${requirementId}/applicability`, body);
+  async updateApplicability(
+    requirementId: string,
+    body: UpdateApplicabilityRequest,
+  ): Promise<{ success: boolean; data: RequirementStatusDto }> {
+    return apiClient.patch(
+      `/api/org/requirements/${requirementId}/applicability`,
+      body,
+    );
   }
 
   /** GET /api/org/frameworks/readiness — readiness summary for all active frameworks */
-  async getReadinessSummary(): Promise<{ success: boolean; data: FrameworkReadinessDto[] }> {
+  async getReadinessSummary(): Promise<{
+    success: boolean;
+    data: FrameworkReadinessDto[];
+  }> {
     return apiClient.get('/api/org/frameworks/readiness');
   }
 
   /** GET /api/billing/entitlements — current org entitlements */
-  async listEntitlements(): Promise<{ success: boolean; data: BillingEntitlementDto[] }> {
+  async listEntitlements(): Promise<{
+    success: boolean;
+    data: BillingEntitlementDto[];
+  }> {
     return apiClient.get('/api/billing/entitlements');
   }
 
   /** POST /api/billing/entitlements/sync (SUPER_ADMIN only) */
-  async syncEntitlement(body: SyncEntitlementRequest): Promise<{ success: boolean; data: { synced: boolean } }> {
+  async syncEntitlement(
+    body: SyncEntitlementRequest,
+  ): Promise<{ success: boolean; data: { synced: boolean } }> {
     return apiClient.post('/api/billing/entitlements/sync', body);
   }
 }

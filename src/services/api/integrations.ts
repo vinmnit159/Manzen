@@ -2,8 +2,14 @@ import { apiClient } from './client';
 import { getAuthToken } from '@/services/authStorage';
 
 export interface GitHubRepo {
-  id: string; name: string; fullName: string; private: boolean;
-  defaultBranch: string; visibility: string; lastScannedAt: string | null; rawData: any;
+  id: string;
+  name: string;
+  fullName: string;
+  private: boolean;
+  defaultBranch: string;
+  visibility: string;
+  lastScannedAt: string | null;
+  rawData: any;
 }
 
 export interface TriggerGitHubScanRequest {
@@ -13,8 +19,12 @@ export interface TriggerGitHubScanRequest {
 }
 
 export interface Integration {
-  id: string; provider: string; status: 'ACTIVE' | 'DISCONNECTED';
-  createdAt: string; updatedAt: string; repos: GitHubRepo[];
+  id: string;
+  provider: string;
+  status: 'ACTIVE' | 'DISCONNECTED';
+  createdAt: string;
+  updatedAt: string;
+  repos: GitHubRepo[];
 }
 
 export interface AutomatedTestResult {
@@ -44,31 +54,39 @@ export const integrationsService = {
   async getGitHubRepos(): Promise<{ repos: GitHubRepo[] }> {
     return apiClient.get('/api/integrations/github/repos');
   },
-  async triggerScan(payload?: TriggerGitHubScanRequest): Promise<{ success: boolean; message: string; data?: { signals: number; testResults: number; risks: number } }> {
+  async triggerScan(
+    payload?: TriggerGitHubScanRequest,
+  ): Promise<{
+    success: boolean;
+    message: string;
+    data?: { signals: number; testResults: number; risks: number };
+  }> {
     return apiClient.post('/api/integrations/github/scan', payload ?? {});
   },
   async disconnect(): Promise<{ success: boolean }> {
     return apiClient.delete('/api/integrations/github');
-  },
-  /** Seed the 13 predefined GitHub automated Engineering tests */
-  async seedAutomatedTests(): Promise<{ success: boolean; data: { created: number; skipped: number } }> {
-    return apiClient.post('/api/integrations/github/seed-tests', {});
   },
   /** Trigger an automated test run (background — returns immediately) */
   async runAutomatedTests(): Promise<{ success: boolean; message: string }> {
     return apiClient.post('/api/integrations/github/run-tests', {});
   },
   /** List automated tests seeded for this org's GitHub integration */
-  async getAutomatedTests(): Promise<{ success: boolean; data: AutomatedTestResult[]; seeded: boolean }> {
+  async getAutomatedTests(): Promise<{
+    success: boolean;
+    data: AutomatedTestResult[];
+    seeded: boolean;
+  }> {
     return apiClient.get('/api/integrations/github/tests');
   },
   getConnectUrl(): string {
-    const backendUrl = (import.meta as any).env?.VITE_API_URL ?? 'https://api.cloudanzen.com';
+    const backendUrl =
+      (import.meta as any).env?.VITE_API_URL ?? 'https://api.cloudanzen.com';
     const token = getAuthToken() ?? '';
     return `${backendUrl}/api/integrations/github/connect?token=${encodeURIComponent(token)}`;
   },
   getDriveConnectUrl(): string {
-    const backendUrl = (import.meta as any).env?.VITE_API_URL ?? 'https://api.cloudanzen.com';
+    const backendUrl =
+      (import.meta as any).env?.VITE_API_URL ?? 'https://api.cloudanzen.com';
     const token = getAuthToken() ?? '';
     return `${backendUrl}/api/integrations/google/connect?token=${encodeURIComponent(token)}`;
   },
