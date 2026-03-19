@@ -2,32 +2,41 @@ import { apiClient } from './client';
 
 // ── Enums / unions ────────────────────────────────────────────────────────────
 
-export type TrustDocumentCategory = 'POLICY' | 'REPORT' | 'CERTIFICATE' | 'WHITEPAPER' | 'OTHER';
-export type TrustAccessStatus     = 'PENDING' | 'APPROVED' | 'REJECTED';
-export type TrustAnnouncementType = 'SECURITY_UPDATE' | 'INCIDENT' | 'CERTIFICATION' | 'GENERAL';
+export type TrustDocumentCategory =
+  | 'POLICY'
+  | 'REPORT'
+  | 'CERTIFICATE'
+  | 'WHITEPAPER'
+  | 'OTHER';
+export type TrustAccessStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+export type TrustAnnouncementType =
+  | 'SECURITY_UPDATE'
+  | 'INCIDENT'
+  | 'CERTIFICATION'
+  | 'GENERAL';
 
 // ── Interface shapes ──────────────────────────────────────────────────────────
 
 export interface TrustCenterSettings {
-  id:            string;
-  organizationId:string;
-  enabled:       boolean;
-  orgSlug:       string;
-  logoUrl:       string | null;
-  primaryColor:  string;
-  description:   string | null;
+  id: string;
+  organizationId: string;
+  enabled: boolean;
+  orgSlug: string;
+  logoUrl: string | null;
+  primaryColor: string;
+  description: string | null;
   securityEmail: string | null;
-  updatedAt:     string;
-  createdAt:     string;
+  updatedAt: string;
+  createdAt: string;
 }
 
 export interface TrustComplianceSnapshot {
-  total:       number;
+  total: number;
   implemented: number;
-  partial:     number;
-  pct:         number;
-  openRisks:   number;
-  lastAudit:   { name: string; closedAt: string } | null;
+  partial: number;
+  pct: number;
+  openRisks: number;
+  lastAudit: { name: string; closedAt: string } | null;
 }
 
 export interface TrustSettingsResponse {
@@ -36,128 +45,155 @@ export interface TrustSettingsResponse {
 }
 
 export interface TrustDocument {
-  id:            string;
-  organizationId:string;
-  name:          string;
-  category:      TrustDocumentCategory;
-  fileUrl:       string;
-  requiresNda:   boolean;
+  id: string;
+  organizationId: string;
+  name: string;
+  category: TrustDocumentCategory;
+  fileUrl: string;
+  requiresNda: boolean;
   publicVisible: boolean;
-  version:       string | null;
-  uploadedBy:    string;
-  createdAt:     string;
-  updatedAt:     string;
+  version: string | null;
+  uploadedBy: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface TrustAccessRequest {
-  id:             string;
+  id: string;
   organizationId: string;
-  requesterName:  string;
+  requesterName: string;
   requesterEmail: string;
-  company:        string | null;
-  purpose:        string | null;
-  documentId:     string | null;
-  status:         TrustAccessStatus;
-  ndaSigned:      boolean;
-  approvalToken:  string | null;
-  approvedBy:     string | null;
-  createdAt:      string;
-  approvedAt:     string | null;
-  expiresAt:      string | null;
-  document:       { id: string; name: string; category: TrustDocumentCategory } | null;
+  company: string | null;
+  purpose: string | null;
+  documentId: string | null;
+  status: TrustAccessStatus;
+  ndaSigned: boolean;
+  approvalToken: string | null;
+  approvedBy: string | null;
+  createdAt: string;
+  approvedAt: string | null;
+  expiresAt: string | null;
+  document: {
+    id: string;
+    name: string;
+    category: TrustDocumentCategory;
+  } | null;
 }
 
 export interface TrustAnnouncement {
-  id:             string;
+  id: string;
   organizationId: string;
-  title:          string;
-  content:        string;
-  type:           TrustAnnouncementType;
-  published:      boolean;
-  createdAt:      string;
-  updatedAt:      string;
+  title: string;
+  content: string;
+  type: TrustAnnouncementType;
+  published: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface TrustMetricsSnapshot {
-  id:                   string;
-  organizationId:       string;
-  frameworkName:        string;
+  id: string;
+  organizationId: string;
+  frameworkName: string;
   compliancePercentage: number;
-  controlCount:         number;
-  completedControls:    number;
-  snapshotDate:         string;
+  controlCount: number;
+  completedControls: number;
+  snapshotDate: string;
 }
 
 export interface TrustQuestionnaireRequest {
-  id:                string;
-  organizationId:    string;
-  requesterEmail:    string;
+  id: string;
+  organizationId: string;
+  requesterEmail: string;
   questionnaireType: string;
-  status:            string;
-  responseFileUrl:   string | null;
-  notes:             string | null;
-  createdAt:         string;
-  respondedAt:       string | null;
+  status: string;
+  responseFileUrl: string | null;
+  notes: string | null;
+  createdAt: string;
+  respondedAt: string | null;
+}
+
+// AI response generation for trust center questionnaire requests
+export interface TrustQuestionnaireDraftResponse {
+  question: string;
+  generationId: string;
+  draftAnswer: string;
+  confidence: string;
+  citations: unknown[];
+}
+
+export interface TrustQuestionnaireAiResult {
+  requestId: string;
+  requesterEmail: string;
+  questionnaireType: string;
+  draftResponses: TrustQuestionnaireDraftResponse[];
+  note: string;
 }
 
 // Public portal shapes
 export interface PublicTrustDocument {
-  id:          string;
-  name:        string;
-  category:    TrustDocumentCategory;
+  id: string;
+  name: string;
+  category: TrustDocumentCategory;
   requiresNda: boolean;
-  version:     string | null;
-  fileUrl:     string;
+  version: string | null;
+  fileUrl: string;
 }
 
 export interface PublicTrustData {
   settings: {
-    orgSlug:       string;
-    logoUrl:       string | null;
-    primaryColor:  string;
-    description:   string | null;
+    orgSlug: string;
+    logoUrl: string | null;
+    primaryColor: string;
+    description: string | null;
     securityEmail: string | null;
-    orgName:       string;
+    orgName: string;
   };
-  documents:       PublicTrustDocument[];
-  announcements:   { id: string; title: string; content: string; type: TrustAnnouncementType; createdAt: string }[];
+  documents: PublicTrustDocument[];
+  announcements: {
+    id: string;
+    title: string;
+    content: string;
+    type: TrustAnnouncementType;
+    createdAt: string;
+  }[];
   metricsSnapshot: TrustMetricsSnapshot | null;
-  lastAudit:       { name: string; type: string; closedAt: string } | null;
+  lastAudit: { name: string; type: string; closedAt: string } | null;
 }
 
 // Create/update payloads
 export interface UpdateSettingsPayload {
-  enabled?:       boolean;
-  orgSlug?:       string;
-  logoUrl?:       string | null;
-  primaryColor?:  string;
-  description?:   string | null;
+  enabled?: boolean;
+  orgSlug?: string;
+  logoUrl?: string | null;
+  primaryColor?: string;
+  description?: string | null;
   securityEmail?: string | null;
 }
 
 export interface CreateDocumentPayload {
-  name:          string;
-  category:      TrustDocumentCategory;
-  fileUrl:       string;
-  requiresNda?:  boolean;
-  publicVisible?:boolean;
-  version?:      string | null;
+  name: string;
+  category: TrustDocumentCategory;
+  fileUrl: string;
+  requiresNda?: boolean;
+  publicVisible?: boolean;
+  version?: string | null;
 }
 
 export interface CreateAnnouncementPayload {
-  title:      string;
-  content:    string;
-  type?:      TrustAnnouncementType;
+  title: string;
+  content: string;
+  type?: TrustAnnouncementType;
   published?: boolean;
 }
 
 export interface PublicAccessRequestPayload {
-  requesterName:  string;
+  requesterName: string;
   requesterEmail: string;
-  company?:       string;
-  purpose?:       string;
-  documentId?:    string;
-  ndaSigned?:     boolean;
+  company?: string;
+  purpose?: string;
+  documentId?: string;
+  ndaSigned?: boolean;
 }
 
 // ── Service ───────────────────────────────────────────────────────────────────
@@ -167,7 +203,9 @@ export const trustCenterService = {
   getSettings(): Promise<{ success: boolean; data: TrustSettingsResponse }> {
     return apiClient.get('/api/trust/settings');
   },
-  updateSettings(payload: UpdateSettingsPayload): Promise<{ success: boolean; data: TrustCenterSettings }> {
+  updateSettings(
+    payload: UpdateSettingsPayload,
+  ): Promise<{ success: boolean; data: TrustCenterSettings }> {
     return apiClient.put('/api/trust/settings', payload);
   },
 
@@ -175,10 +213,15 @@ export const trustCenterService = {
   listDocuments(): Promise<{ success: boolean; data: TrustDocument[] }> {
     return apiClient.get('/api/trust/documents');
   },
-  createDocument(payload: CreateDocumentPayload): Promise<{ success: boolean; data: TrustDocument }> {
+  createDocument(
+    payload: CreateDocumentPayload,
+  ): Promise<{ success: boolean; data: TrustDocument }> {
     return apiClient.post('/api/trust/documents', payload);
   },
-  updateDocument(id: string, payload: Partial<CreateDocumentPayload>): Promise<{ success: boolean; data: TrustDocument }> {
+  updateDocument(
+    id: string,
+    payload: Partial<CreateDocumentPayload>,
+  ): Promise<{ success: boolean; data: TrustDocument }> {
     return apiClient.patch(`/api/trust/documents/${id}`, payload);
   },
   deleteDocument(id: string): Promise<{ success: boolean }> {
@@ -186,21 +229,35 @@ export const trustCenterService = {
   },
 
   // Access Requests
-  listAccessRequests(): Promise<{ success: boolean; data: TrustAccessRequest[] }> {
+  listAccessRequests(): Promise<{
+    success: boolean;
+    data: TrustAccessRequest[];
+  }> {
     return apiClient.get('/api/trust/access-requests');
   },
-  decideAccessRequest(id: string, status: 'APPROVED' | 'REJECTED'): Promise<{ success: boolean; data: TrustAccessRequest }> {
+  decideAccessRequest(
+    id: string,
+    status: 'APPROVED' | 'REJECTED',
+  ): Promise<{ success: boolean; data: TrustAccessRequest }> {
     return apiClient.patch(`/api/trust/access-requests/${id}`, { status });
   },
 
   // Announcements
-  listAnnouncements(): Promise<{ success: boolean; data: TrustAnnouncement[] }> {
+  listAnnouncements(): Promise<{
+    success: boolean;
+    data: TrustAnnouncement[];
+  }> {
     return apiClient.get('/api/trust/announcements');
   },
-  createAnnouncement(payload: CreateAnnouncementPayload): Promise<{ success: boolean; data: TrustAnnouncement }> {
+  createAnnouncement(
+    payload: CreateAnnouncementPayload,
+  ): Promise<{ success: boolean; data: TrustAnnouncement }> {
     return apiClient.post('/api/trust/announcements', payload);
   },
-  updateAnnouncement(id: string, payload: Partial<CreateAnnouncementPayload>): Promise<{ success: boolean; data: TrustAnnouncement }> {
+  updateAnnouncement(
+    id: string,
+    payload: Partial<CreateAnnouncementPayload>,
+  ): Promise<{ success: boolean; data: TrustAnnouncement }> {
     return apiClient.patch(`/api/trust/announcements/${id}`, payload);
   },
   deleteAnnouncement(id: string): Promise<{ success: boolean }> {
@@ -208,11 +265,35 @@ export const trustCenterService = {
   },
 
   // Questionnaire Requests
-  listQuestionnaireRequests(): Promise<{ success: boolean; data: TrustQuestionnaireRequest[] }> {
+  listQuestionnaireRequests(): Promise<{
+    success: boolean;
+    data: TrustQuestionnaireRequest[];
+  }> {
     return apiClient.get('/api/trust/questionnaire-requests');
   },
-  updateQuestionnaireRequest(id: string, payload: { status?: string; responseFileUrl?: string | null; notes?: string | null }): Promise<{ success: boolean; data: TrustQuestionnaireRequest }> {
+  updateQuestionnaireRequest(
+    id: string,
+    payload: {
+      status?: string;
+      responseFileUrl?: string | null;
+      notes?: string | null;
+    },
+  ): Promise<{ success: boolean; data: TrustQuestionnaireRequest }> {
     return apiClient.patch(`/api/trust/questionnaire-requests/${id}`, payload);
+  },
+  /**
+   * AI-4: Generate draft responses for a trust center questionnaire request.
+   * Sends the questions through the questionnaire assistant (RAG pipeline).
+   * Results are PENDING_REVIEW — must be reviewed and approved before sending.
+   */
+  generateAiResponse(
+    id: string,
+    questions: string[],
+  ): Promise<{ success: boolean; data?: never } & TrustQuestionnaireAiResult> {
+    return apiClient.post(
+      `/api/trust/questionnaire-requests/${id}/generate-response`,
+      { questions },
+    );
   },
 
   // Metrics Snapshot
@@ -221,13 +302,27 @@ export const trustCenterService = {
   },
 
   // Public (no auth)
-  getPublicPortal(orgSlug: string): Promise<{ success: boolean; data: PublicTrustData }> {
+  getPublicPortal(
+    orgSlug: string,
+  ): Promise<{ success: boolean; data: PublicTrustData }> {
     return apiClient.get(`/api/trust/public/${orgSlug}`);
   },
-  submitAccessRequest(orgSlug: string, payload: PublicAccessRequestPayload): Promise<{ success: boolean; data: { id: string } }> {
-    return apiClient.post(`/api/trust/public/${orgSlug}/request-access`, payload);
+  submitAccessRequest(
+    orgSlug: string,
+    payload: PublicAccessRequestPayload,
+  ): Promise<{ success: boolean; data: { id: string } }> {
+    return apiClient.post(
+      `/api/trust/public/${orgSlug}/request-access`,
+      payload,
+    );
   },
-  submitQuestionnaireRequest(orgSlug: string, payload: { requesterEmail: string; questionnaireType?: string }): Promise<{ success: boolean; data: { id: string } }> {
-    return apiClient.post(`/api/trust/public/${orgSlug}/request-questionnaire`, payload);
+  submitQuestionnaireRequest(
+    orgSlug: string,
+    payload: { requesterEmail: string; questionnaireType?: string },
+  ): Promise<{ success: boolean; data: { id: string } }> {
+    return apiClient.post(
+      `/api/trust/public/${orgSlug}/request-questionnaire`,
+      payload,
+    );
   },
 };
