@@ -60,6 +60,18 @@ export interface RequirementStatusDto {
   updatedAt: string;
 }
 
+/** F5: lightweight framework record returned by GET /api/org/frameworks?view=card */
+export interface OrgFrameworkCardDto {
+  id: string;
+  frameworkSlug: string;
+  frameworkName: string;
+  frameworkVersion: string;
+  status: 'setup_in_progress' | 'active' | 'archived';
+  activatedAt: string | null;
+  controlCoveragePct: number | null;
+  openGaps: number | null;
+}
+
 export interface CoverageSnapshotDto {
   id: string;
   organizationId: string;
@@ -212,12 +224,22 @@ class FrameworksService {
     return apiClient.get(`/api/frameworks/${slug}/requirements`);
   }
 
-  /** GET /api/org/frameworks — org's active frameworks */
+  /** GET /api/org/frameworks — org's active frameworks.
+   * Pass view='card' for a lightweight projection (F5: name, status, coverage, gaps only). */
   async listOrgFrameworks(): Promise<{
     success: boolean;
     data: OrgFrameworkDto[];
+    view: 'full';
+  }>;
+  async listOrgFrameworks(
+    view: 'card',
+  ): Promise<{ success: boolean; data: OrgFrameworkCardDto[]; view: 'card' }>;
+  async listOrgFrameworks(view?: 'card'): Promise<{
+    success: boolean;
+    data: OrgFrameworkDto[] | OrgFrameworkCardDto[];
+    view?: string;
   }> {
-    return apiClient.get('/api/org/frameworks');
+    return apiClient.get('/api/org/frameworks', view ? { view } : undefined);
   }
 
   /** POST /api/org/frameworks — activate a framework */

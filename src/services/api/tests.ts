@@ -140,6 +140,22 @@ export interface ListTestsParams {
   dueFrom?: string;
   dueTo?: string;
   frameworkSlugs?: string[];
+  /** F5: pass 'card' to request a lightweight projection (name, status, dueDate, counts only).
+   * Use for list-card views where full relational detail is not needed. */
+  view?: 'card';
+}
+
+/** F5: lightweight test record returned by GET /api/tests?view=card */
+export interface TestCardRecord {
+  id: string;
+  name: string;
+  status: TestStatus;
+  category: TestCategory;
+  type: TestType;
+  dueDate: string;
+  completedAt: string | null;
+  owner: { id: string; name: string } | null;
+  _count: { controls: number; evidences: number; audits: number };
 }
 
 // ─── Create / update payloads ─────────────────────────────────────────────────
@@ -286,9 +302,13 @@ export interface WorkflowIntegrationConfigStatus {
 
 // ─── Service ─────────────────────────────────────────────────────────────────
 export class TestsService {
+  async listTests(params?: ListTestsParams): Promise<ApiResponse<TestRecord[]>>;
+  async listTests(
+    params: ListTestsParams & { view: 'card' },
+  ): Promise<ApiResponse<TestCardRecord[]> & { view: 'card' }>;
   async listTests(
     params?: ListTestsParams,
-  ): Promise<ApiResponse<TestRecord[]>> {
+  ): Promise<ApiResponse<TestRecord[] | TestCardRecord[]>> {
     const clean: Record<string, string> = {};
     if (params) {
       if (params.search) clean.search = params.search;
@@ -302,6 +322,8 @@ export class TestsService {
         clean.frameworkSlugs = params.frameworkSlugs.join(',');
       if (params.page !== undefined) clean.page = String(params.page);
       if (params.limit !== undefined) clean.limit = String(params.limit);
+      // F5: pass view=card for lightweight projections on list-card pages
+      if (params.view) clean.view = params.view;
     }
     return apiClient.get(
       '/api/tests',
