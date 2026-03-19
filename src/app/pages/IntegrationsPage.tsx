@@ -138,6 +138,7 @@ export function IntegrationsPage() {
     mdmOverview,
     loading,
     loadStatus,
+    hasLoadedDeferred,
   } = useIntegrationsData();
 
   const [activeTab, setActiveTab] = useState<'connected' | 'available'>(
@@ -157,11 +158,19 @@ export function IntegrationsPage() {
   const PAGE_SIZE = 24;
   const [visibleEngineerACount, setVisibleEngineerACount] = useState(PAGE_SIZE);
 
-  // Reset pagination when switching tabs
-  const handleTabChange = useCallback((v: string) => {
-    setActiveTab(v as 'connected' | 'available');
-    setVisibleEngineerACount(PAGE_SIZE);
-  }, []);
+  // F3: When switching to the Available tab for the first time, trigger
+  // a full data load if it hasn't happened yet. This defers the ~25 extra
+  // HTTP requests from mount time to when the user actually wants the list.
+  const handleTabChange = useCallback(
+    (v: string) => {
+      setActiveTab(v as 'connected' | 'available');
+      setVisibleEngineerACount(PAGE_SIZE);
+      if (v === 'available' && !hasLoadedDeferred) {
+        loadStatus();
+      }
+    },
+    [hasLoadedDeferred, loadStatus],
+  );
 
   const showToast = useCallback(
     (type: 'success' | 'error', message: string) => {
