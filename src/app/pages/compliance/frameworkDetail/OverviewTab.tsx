@@ -1,3 +1,12 @@
+/**
+ * OverviewTab.tsx
+ *
+ * F2: Recharts is loaded lazily via React.lazy so the vendor-charts chunk
+ * is only fetched when the coverage history chart is actually rendered.
+ * Pages without coverage history (< 2 snapshots) never trigger a Recharts download.
+ */
+
+import { lazy, Suspense } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Card,
@@ -10,16 +19,13 @@ import {
   type CoverageSnapshotDto,
 } from '@/services/api/frameworks';
 import { Gauge } from 'lucide-react';
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
 import { CoverageRing, TabPlaceholder } from './shared';
+
+// F2: Recharts imports are isolated in CoverageChart.tsx and loaded lazily.
+// The vendor-charts chunk is only fetched when history data is present.
+const CoverageChart = lazy(() =>
+  import('./CoverageChart').then((m) => ({ default: m.CoverageChart })),
+);
 
 export function OverviewTab({ slug }: { slug: string }) {
   const { data: covRes, isLoading } = useQuery({
@@ -169,6 +175,7 @@ export function OverviewTab({ slug }: { slug: string }) {
         </CardContent>
       </Card>
 
+      {/* F2: Recharts chart — only fetches vendor-charts chunk when history exists */}
       {history.length > 1 && (
         <Card>
           <CardHeader className="pb-2">
@@ -180,50 +187,15 @@ export function OverviewTab({ slug }: { slug: string }) {
             </p>
           </CardHeader>
           <CardContent>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart
-                  data={history.map((item) => ({
-                    time: new Date(item.calculatedAt).toLocaleDateString(
-                      undefined,
-                      { month: 'short', day: 'numeric' },
-                    ),
-                    controlCoveragePct: item.controlCoveragePct,
-                    testPassRatePct: item.testPassRatePct,
-                    openGaps: item.openGaps,
-                  }))}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis
-                    dataKey="time"
-                    tick={{ fontSize: 12, fill: '#6b7280' }}
-                  />
-                  <YAxis
-                    domain={[0, 100]}
-                    tick={{ fontSize: 12, fill: '#6b7280' }}
-                  />
-                  <Tooltip />
-                  <Area
-                    type="monotone"
-                    dataKey="controlCoveragePct"
-                    stroke="#2563eb"
-                    fill="#bfdbfe"
-                    name="Control coverage"
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="testPassRatePct"
-                    stroke="#16a34a"
-                    fill="#bbf7d0"
-                    name="Test pass rate"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="mt-3 text-xs text-gray-500">
-              Open gaps now:{' '}
-              <span className="font-medium text-gray-800">{snap.openGaps}</span>
-            </div>
+            <Suspense
+              fallback={
+                <div className="h-64 flex items-center justify-center text-xs text-gray-400">
+                  Loading chart…
+                </div>
+              }
+            >
+              <CoverageChart history={history} openGaps={snap.openGaps} />
+            </Suspense>
           </CardContent>
         </Card>
       )}

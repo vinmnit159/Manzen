@@ -7,7 +7,9 @@ import {
   Clock,
   RefreshCw,
   Shield,
+  Wand2,
   X,
+  ZapOff,
 } from 'lucide-react';
 import { PageTemplate } from '@/app/components/PageTemplate';
 import { Card } from '@/app/components/ui/card';
@@ -18,6 +20,11 @@ import {
   FindingSeverity,
   FindingStatus,
 } from '@/services/api/findings';
+import {
+  remediationService,
+  RemediationAction,
+  RemediationActionStatus,
+} from '@/services/api/remediation';
 import { useCanAudit, useCurrentUser } from '@/hooks/useCurrentUser';
 
 function fmt(iso: string | null | undefined) {
@@ -74,6 +81,286 @@ function StatusBadge({ status }: { status: FindingStatus }) {
     >
       {meta.label}
     </span>
+  );
+}
+
+// ── Remediation status helpers ────────────────────────────────────────────────
+
+const REMEDIATION_STATUS_META: Record<
+  RemediationActionStatus,
+  { label: string; color: string }
+> = {
+  PENDING: { label: 'Pending', color: 'bg-gray-100 text-gray-600' },
+  DRY_RUN_READY: { label: 'Dry Run Ready', color: 'bg-blue-100 text-blue-700' },
+  AWAITING_APPROVAL: {
+    label: 'Awaiting Approval',
+    color: 'bg-amber-100 text-amber-700',
+  },
+  APPROVED: { label: 'Approved', color: 'bg-green-100 text-green-700' },
+  EXECUTING: { label: 'Executing', color: 'bg-purple-100 text-purple-700' },
+  SUCCEEDED: { label: 'Succeeded', color: 'bg-green-100 text-green-800' },
+  FAILED: { label: 'Failed', color: 'bg-red-100 text-red-700' },
+  ROLLED_BACK: { label: 'Rolled Back', color: 'bg-gray-100 text-gray-700' },
+  CANCELLED: { label: 'Cancelled', color: 'bg-gray-100 text-gray-500' },
+};
+
+function RemediationPanel({
+  finding,
+  canApprove,
+}: {
+  finding: FindingRecord;
+  canApprove: boolean;
+}) {
+  const qc = useQueryClient();
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const {
+    data: actions = [],
+    isLoading,
+    refetch,
+  } = useQuery({
+    queryKey: ['remediation-actions', finding.id],
+    queryFn: () => remediationService.listActions(finding.id),
+    refetchInterval: (query) => {
+      // Poll while any action is in a transitioning state
+      const transitioning = (query.state.data ?? []).some(
+        (a: RemediationAction) => ['PENDING', 'EXECUTING'].includes(a.status),
+      );
+      return transitioning ? 3000 : false;
+    },
+  });
+
+  async function doAction(fn: () => Promise<void>, successMessage?: string) {
+    setActionError(null);
+    try {
+      await fn();
+      await refetch();
+      qc.invalidateQueries({ queryKey: ['findings'] });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Action failed';
+      setActionError(msg);
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="rounded-lg border border-gray-200 p-4">
+        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+          Automated Remediation
+        </p>
+        <p className="mt-2 text-sm text-gray-400">Loading...</p>
+      </div>
+    );
+  }
+
+  if (actions.length === 0) {
+    return null; // No automated remediator for this finding — don't show the section
+  }
+
+  return (
+    <div className="space-y-3 rounded-lg border border-indigo-200 bg-indigo-50 p-4">
+      <div className="flex items-center gap-2">
+        <Wand2 className="h-4 w-4 text-indigo-600" />
+        <p className="text-xs font-semibold uppercase tracking-wide text-indigo-700">
+          Automated Remediation
+        </p>
+      </div>
+
+      {actions.map((action: RemediationAction) => {
+        const statusMeta =
+          REMEDIATION_STATUS_META[action.status] ??
+          REMEDIATION_STATUS_META.PENDING;
+
+        return (
+          <div
+            key={action.id}
+            className="rounded-lg border border-indigo-100 bg-white p-3 shadow-sm"
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <p className="text-sm font-medium text-gray-800 capitalize">
+                  {action.provider} · {action.actionType.replace(/_/g, ' ')}
+                </p>
+                <p className="text-xs text-gray-500">
+                  Resource: {action.resourceId}
+                </p>
+              </div>
+              <span
+                className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${statusMeta.color}`}
+              >
+                {statusMeta.label}
+              </span>
+            </div>
+
+            {/* Dry run diff */}
+            {action.latestExecution?.diffJson && (
+              <details className="mt-2 text-xs">
+                <summary className="cursor-pointer text-gray-500 hover:text-gray-700">
+                  View change diff
+                </summary>
+                <div className="mt-1 grid grid-cols-2 gap-2 rounded bg-gray-50 p-2 font-mono">
+                  <div>
+                    <p className="font-semibold text-red-600 mb-1">Before</p>
+                    <pre className="whitespace-pre-wrap text-gray-600 text-[11px]">
+                      {JSON.stringify(
+                        action.latestExecution.diffJson.before,
+                        null,
+                        2,
+                      )}
+                    </pre>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-green-600 mb-1">After</p>
+                    <pre className="whitespace-pre-wrap text-gray-600 text-[11px]">
+                      {JSON.stringify(
+                        action.latestExecution.diffJson.after,
+                        null,
+                        2,
+                      )}
+                    </pre>
+                  </div>
+                </div>
+              </details>
+            )}
+
+            {/* Risk summary and warnings */}
+            {action.latestExecution?.riskSummary && (
+              <p className="mt-2 text-xs text-amber-700">
+                Risk: {action.latestExecution.riskSummary}
+              </p>
+            )}
+
+            {/* Last error */}
+            {action.lastError && (
+              <p className="mt-2 text-xs text-red-600">
+                Error: {action.lastError}
+              </p>
+            )}
+
+            {/* Approval pending indicator */}
+            {action.latestApproval?.status === 'PENDING' && (
+              <p className="mt-2 text-xs text-amber-700 flex items-center gap-1">
+                <Clock className="h-3 w-3" /> Waiting for approval
+              </p>
+            )}
+
+            {/* Action buttons — shown based on current status */}
+            {canApprove && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {action.status === 'PENDING' && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-xs"
+                    onClick={() =>
+                      doAction(() =>
+                        remediationService.requestDryRun(finding.id, action.id),
+                      )
+                    }
+                  >
+                    Run Dry Run
+                  </Button>
+                )}
+
+                {action.status === 'DRY_RUN_READY' &&
+                  action.requiresApproval && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-xs"
+                      onClick={() =>
+                        doAction(() =>
+                          remediationService.requestApproval(
+                            finding.id,
+                            action.id,
+                          ),
+                        )
+                      }
+                    >
+                      Request Approval
+                    </Button>
+                  )}
+
+                {action.status === 'DRY_RUN_READY' &&
+                  !action.requiresApproval && (
+                    <Button
+                      size="sm"
+                      className="bg-indigo-600 text-xs hover:bg-indigo-700 text-white"
+                      onClick={() =>
+                        doAction(() =>
+                          remediationService.execute(finding.id, action.id),
+                        )
+                      }
+                    >
+                      Fix Now
+                    </Button>
+                  )}
+
+                {action.status === 'AWAITING_APPROVAL' && (
+                  <>
+                    <Button
+                      size="sm"
+                      className="bg-green-600 text-xs hover:bg-green-700 text-white"
+                      onClick={() =>
+                        doAction(() =>
+                          remediationService.approve(finding.id, action.id),
+                        )
+                      }
+                    >
+                      Approve &amp; Fix
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-xs text-red-600"
+                      onClick={() =>
+                        doAction(() =>
+                          remediationService.reject(finding.id, action.id),
+                        )
+                      }
+                    >
+                      Reject
+                    </Button>
+                  </>
+                )}
+
+                {action.status === 'APPROVED' && (
+                  <Button
+                    size="sm"
+                    className="bg-indigo-600 text-xs hover:bg-indigo-700 text-white"
+                    onClick={() =>
+                      doAction(() =>
+                        remediationService.execute(finding.id, action.id),
+                      )
+                    }
+                  >
+                    Execute
+                  </Button>
+                )}
+
+                {action.status === 'SUCCEEDED' && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-xs text-gray-600"
+                    onClick={() =>
+                      doAction(() =>
+                        remediationService.rollback(finding.id, action.id),
+                      )
+                    }
+                  >
+                    <ZapOff className="mr-1 h-3 w-3" />
+                    Rollback
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {actionError && <p className="text-xs text-red-600">{actionError}</p>}
+    </div>
   );
 }
 
@@ -324,6 +611,9 @@ function FindingDetailPanel({
               Add Remediation Note
             </Button>
           </div>
+
+          {/* RE-1/RE-2: Automated Remediation Panel */}
+          <RemediationPanel finding={finding} canApprove={canEdit} />
 
           {error && (
             <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
