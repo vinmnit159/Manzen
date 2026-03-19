@@ -69,6 +69,20 @@ export interface UpdateFindingRequest {
 }
 
 export const findingsService = {
+  /**
+   * Fetch active (non-CLOSED) automated findings linked to a specific test.
+   * Used by RemediationGuide when autoRemediationSupported=true to show
+   * real remediation engine status instead of static guidance.
+   */
+  listByTestId(testId: string): Promise<FindingRecord[]> {
+    return apiClient
+      .get<{
+        success: boolean;
+        data: FindingRecord[];
+      }>(`/api/tests/${testId}/findings`)
+      .then((res) => res.data);
+  },
+
   list(params?: ListFindingsParams): Promise<FindingRecord[]> {
     const qs = new URLSearchParams();
     if (params?.severity) qs.set('severity', params.severity);
