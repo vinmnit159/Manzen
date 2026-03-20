@@ -35,7 +35,9 @@ export function SecurityAlertsPage() {
           }));
         setAlerts(highSeverity);
       })
-      .catch(() => {})
+      .catch((err: unknown) => {
+        console.error('Failed to load security alerts:', err);
+      })
       .finally(() => setLoading(false));
   }, []);
 

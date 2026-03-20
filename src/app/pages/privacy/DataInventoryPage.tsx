@@ -30,8 +30,8 @@ export function DataInventoryPage() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {data.map((item, idx) => (
-                <tr key={idx} className="hover:bg-gray-50">
+              {data.map((item) => (
+                <tr key={item.type} className="hover:bg-gray-50">
                   <td className="px-6 py-4 text-sm font-medium text-gray-900">{item.type}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{item.location}</td>
                   <td className="px-6 py-4 whitespace-nowrap">

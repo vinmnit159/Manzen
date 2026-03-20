@@ -1,4 +1,4 @@
-import { apiClient, ApiResponse } from './client';
+import { apiClient, ApiResponse, ApiError } from './client';
 
 // ─── Enums ────────────────────────────────────────────────────────────────────
 export type TestCategory =
@@ -346,8 +346,8 @@ export class TestsService {
   async getDashboard(): Promise<ApiResponse<TestDashboard>> {
     try {
       return await apiClient.get('/api/tests/dashboard');
-    } catch (error: any) {
-      if (error?.statusCode === 404) {
+    } catch (error: unknown) {
+      if (error instanceof ApiError && error.statusCode === 404) {
         return {
           success: true,
           data: {
@@ -367,8 +367,8 @@ export class TestsService {
   async getGapAnalysis(): Promise<ApiResponse<TestGapAnalysis>> {
     try {
       return await apiClient.get('/api/tests/gaps');
-    } catch (error: any) {
-      if (error?.statusCode === 404) {
+    } catch (error: unknown) {
+      if (error instanceof ApiError && error.statusCode === 404) {
         return {
           success: true,
           data: {
@@ -475,8 +475,8 @@ export class TestsService {
   async listSecurityEvents(): Promise<ApiResponse<TestSecurityEvent[]>> {
     try {
       return await apiClient.get('/api/tests/security-events');
-    } catch (error: any) {
-      if (error?.statusCode === 404) {
+    } catch (error: unknown) {
+      if (error instanceof ApiError && error.statusCode === 404) {
         return { success: true, data: [] };
       }
       throw error;
@@ -486,8 +486,8 @@ export class TestsService {
   async listUnifiedEvidence(): Promise<ApiResponse<UnifiedTestEvidence[]>> {
     try {
       return await apiClient.get('/api/tests/unified-evidence');
-    } catch (error: any) {
-      if (error?.statusCode === 404) {
+    } catch (error: unknown) {
+      if (error instanceof ApiError && error.statusCode === 404) {
         return { success: true, data: [] };
       }
       throw error;
@@ -497,8 +497,8 @@ export class TestsService {
   async listEscalations(): Promise<ApiResponse<TestEscalation[]>> {
     try {
       return await apiClient.get('/api/tests/escalations');
-    } catch (error: any) {
-      if (error?.statusCode === 404) {
+    } catch (error: unknown) {
+      if (error instanceof ApiError && error.statusCode === 404) {
         return { success: true, data: [] };
       }
       throw error;

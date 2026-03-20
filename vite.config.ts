@@ -17,6 +17,9 @@ export default defineConfig({
     },
   },
   build: {
+    // Hidden sourcemaps are excluded from deployed chunks but uploaded to
+    // an error-tracking service so production stack traces are readable.
+    sourcemap: 'hidden',
     rollupOptions: {
       output: {
         // F1: Split stable vendor libraries into separately-cached chunks.

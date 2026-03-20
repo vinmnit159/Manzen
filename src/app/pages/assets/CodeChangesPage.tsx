@@ -26,7 +26,9 @@ export function CodeChangesPage() {
           setRepos(gh.repos ?? []);
         }
       })
-      .catch(() => {})
+      .catch((err: unknown) => {
+        console.error('Failed to load integration status:', err);
+      })
       .finally(() => setLoading(false));
   }, []);
 

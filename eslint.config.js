@@ -32,11 +32,15 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
-      '@typescript-eslint/no-explicit-any': 'off',
+      // Surface any usage as warnings — too many to fix at once but must be visible
+      '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-unused-vars': [
         'error',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
       ],
+      // Upgrade exhaustive-deps from the plugin default (warn) to error
+      // so missing hook dependencies are caught before they reach review
+      'react-hooks/exhaustive-deps': 'error',
       'no-case-declarations': 'off',
       'no-undef': 'off',
     },

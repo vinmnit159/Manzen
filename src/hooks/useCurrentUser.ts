@@ -25,7 +25,13 @@ export interface CurrentUser {
 export function useCurrentUser(): CurrentUser | null {
   const raw = authService.getCachedUser();
   if (!raw) return null;
-  return raw as unknown as CurrentUser;
+  return {
+    id: raw.id,
+    email: raw.email,
+    name: raw.name ?? null,
+    role: raw.role as AppRole,
+    organizationId: raw.organizationId,
+  };
 }
 
 // ── Role helpers ───────────────────────────────────────────────────────────────
