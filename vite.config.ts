@@ -67,6 +67,10 @@ export default defineConfig({
         'src/app/components/rbac/**',
         'src/app/features/notifications/notificationHelpers.ts',
         'src/server/frameworks/coverageEngine.ts',
+        'src/server/middleware/**',
+        'src/server/tests/**',
+        'src/server/integrations/**',
+        'src/services/api/**',
       ],
       thresholds: {
         lines: 70,

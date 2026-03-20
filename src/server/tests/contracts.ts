@@ -552,6 +552,10 @@ export const testsContracts = {
   },
 } as const;
 
+export type TestControlLinkDto = z.infer<typeof testControlLinkSchema>;
+export type TestFrameworkLinkDto = z.infer<typeof testFrameworkLinkSchema>;
+export type TestAuditLinkDto = z.infer<typeof testAuditLinkSchema>;
+export type TestEvidenceLinkDto = z.infer<typeof testEvidenceLinkSchema>;
 export type TestRecordDto = z.infer<typeof testRecordSchema>;
 export type TestSummaryDto = z.infer<typeof testSummarySchema>;
 export type TestHistoryEntryDto = z.infer<typeof testHistoryEntrySchema>;
