@@ -12,7 +12,12 @@ export function registerGenericIntegrationModules(registrar: {
   route(definition: {
     method: 'POST';
     url: string;
-    handler: (request?: { body?: unknown; params?: Record<string, string> }) => Promise<unknown>;
+    // user is injected by the global authenticate preHandler and passed by server/app.ts
+    handler: (request?: {
+      body?: unknown;
+      params?: Record<string, string>;
+      user?: { id: string; organizationId: string; role: string };
+    }) => Promise<unknown>;
   }): void;
 }) {
   for (const routeKey of SUPPORTED_ROUTE_KEYS) {
@@ -20,9 +25,16 @@ export function registerGenericIntegrationModules(registrar: {
       method: 'POST',
       url: `/api/integrations/${routeKey}/:integrationId/scan`,
       handler: async (request) => {
+        // Derive organization from the authenticated user — never from the request body.
+        // Accepting organizationId from the body would allow any authenticated user to
+        // inject signals into a different tenant's risk engine state.
+        const organizationId = request?.user?.organizationId;
+        if (!organizationId) {
+          return { success: false, error: 'Unauthorized: missing organization context' };
+        }
+
         const integrationId = request?.params?.integrationId ?? `int_${routeKey}_core`;
         const body = (request?.body ?? {}) as IntegrationScanPayload;
-        const organizationId = body.organizationId ?? 'org_1';
         const adapter = getIntegrationProviderAdapter(routeKey);
         if (!adapter) {
           return { success: false, error: `No adapter configured for ${routeKey}` };

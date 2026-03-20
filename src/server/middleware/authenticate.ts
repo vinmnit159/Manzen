@@ -5,13 +5,20 @@
  *   preHandler: [authenticate]
  *
  * Attaches `request.user` with { id, email, role, organizationId } if valid.
- * Responds with 401 if the token is missing or invalid.
+ * Responds with 401 if the token is missing, invalid, or (when BACKEND_JWT_SECRET
+ * is configured) fails signature verification.
  *
- * NOTE: We do not use jsonwebtoken (no dep) — we decode the payload manually
- * since the JWT was issued by the external backend. For production, replace
- * with proper verification using the backend's public key / secret.
+ * ## Signature verification
+ * Set BACKEND_JWT_SECRET to the same HS256 secret used by the isms-backend to sign
+ * JWTs.  When set, this middleware verifies the HMAC-SHA256 signature and rejects
+ * any token whose signature does not match — preventing forged claims for role or
+ * organizationId.
+ *
+ * Without BACKEND_JWT_SECRET (development only) the middleware falls back to
+ * decode-only mode and logs a warning on startup.
  */
 
+import crypto from 'crypto';
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import { getNotificationServiceOrNull } from '@/server/notifications/module';
 
@@ -28,11 +35,69 @@ declare module 'fastify' {
   }
 }
 
+// ── JWT secret (optional — falls back to decode-only in dev) ──────────────────
+
+const JWT_SECRET = process.env.BACKEND_JWT_SECRET ?? '';
+
+if (!JWT_SECRET && process.env.NODE_ENV === 'production') {
+  // Hard-fail at startup rather than silently allowing forged tokens in prod.
+  throw new Error(
+    'BACKEND_JWT_SECRET must be set in production to verify JWT signatures.',
+  );
+}
+
+if (!JWT_SECRET) {
+  console.warn(
+    '[authenticate] BACKEND_JWT_SECRET not set — running in DECODE-ONLY mode. ' +
+    'Set BACKEND_JWT_SECRET to the isms-backend JWT signing secret for production use.',
+  );
+}
+
+// ── Signature verification ────────────────────────────────────────────────────
+
+/**
+ * Verify an HS256 JWT signature using the configured secret.
+ * Returns true if the signature is valid, false otherwise.
+ * Uses timing-safe comparison to prevent timing attacks.
+ */
+function verifyHs256Signature(token: string, secret: string): boolean {
+  const parts = token.split('.');
+  if (parts.length !== 3) return false;
+  const signingInput = `${parts[0]}.${parts[1]}`;
+  const expected = crypto
+    .createHmac('sha256', secret)
+    .update(signingInput)
+    .digest('base64url');
+  try {
+    const actual = Buffer.from(parts[2]!);
+    const exp = Buffer.from(expected);
+    // Buffers must be the same length for timingSafeEqual — if not, the sig is wrong.
+    if (actual.length !== exp.length) return false;
+    return crypto.timingSafeEqual(actual, exp);
+  } catch {
+    return false;
+  }
+}
+
+// ── Payload decoding ──────────────────────────────────────────────────────────
+
 function decodeJwtPayload(token: string): AuthUser | null {
   try {
     const parts = token.split('.');
     if (parts.length !== 3) return null;
+
+    // Verify signature when secret is configured.
+    if (JWT_SECRET && !verifyHs256Signature(token, JWT_SECRET)) {
+      return null;
+    }
+
     const payload = JSON.parse(Buffer.from(parts[1]!, 'base64url').toString('utf8'));
+
+    // Validate expiry if present.
+    if (typeof payload.exp === 'number' && payload.exp * 1000 < Date.now()) {
+      return null;
+    }
+
     return {
       id:             payload.sub ?? payload.id ?? '',
       email:          payload.email ?? '',
@@ -44,9 +109,11 @@ function decodeJwtPayload(token: string): AuthUser | null {
   }
 }
 
+// ── Middleware ────────────────────────────────────────────────────────────────
+
 /**
  * Fastify preHandler: verifies Bearer JWT and attaches request.user.
- * Returns 401 if the token is missing or malformed.
+ * Returns 401 if the token is missing, malformed, expired, or has an invalid signature.
  */
 export async function authenticate(request: FastifyRequest, reply: FastifyReply): Promise<void> {
   // Let CORS preflight requests pass through without authentication.

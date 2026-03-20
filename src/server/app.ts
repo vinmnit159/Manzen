@@ -90,6 +90,7 @@ export async function createServerApp() {
         handler: async (request) => definition.handler({
           body: (request as { body?: unknown }).body,
           params: (request as { params?: Record<string, string> }).params,
+          user: (request as { user?: { id: string; organizationId: string; role: string } }).user,
         }),
       });
     },
