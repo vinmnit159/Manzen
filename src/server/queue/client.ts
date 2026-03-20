@@ -1,7 +1,5 @@
 import { Queue } from 'bullmq';
-import IORedis from 'ioredis';
-
-let connection: IORedis | null = null;
+import type { ConnectionOptions } from 'bullmq';
 
 export const QUEUES = {
   NOTIFICATION_DELIVERY: 'notification-delivery',
@@ -13,15 +11,16 @@ export function getRedisConnection() {
     throw new Error('REDIS_URL is not configured');
   }
 
-  if (!connection) {
-    connection = new IORedis(process.env.REDIS_URL, { maxRetriesPerRequest: null });
-  }
-
-  return connection;
+  return {
+    url: process.env.REDIS_URL,
+    maxRetriesPerRequest: null,
+  } satisfies ConnectionOptions;
 }
 
 export function getNotificationQueue() {
-  return new Queue(QUEUES.NOTIFICATION_DELIVERY, { connection: getRedisConnection() });
+  return new Queue(QUEUES.NOTIFICATION_DELIVERY, {
+    connection: getRedisConnection(),
+  });
 }
 
 export function getDigestQueue() {
