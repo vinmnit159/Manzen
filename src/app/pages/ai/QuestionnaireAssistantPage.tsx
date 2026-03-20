@@ -21,19 +21,31 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronUp,
-  Clock,
+  Clock3,
   Copy,
+  FileText,
   Loader2,
   MessageSquare,
   Search,
+  ShieldCheck,
   Sparkles,
   ThumbsDown,
   ThumbsUp,
+  WandSparkles,
   X,
 } from 'lucide-react';
 import { PageTemplate } from '@/app/components/PageTemplate';
-import { Card } from '@/app/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
+import { Badge } from '@/app/components/ui/badge';
+import { Input } from '@/app/components/ui/input';
+import { Textarea } from '@/app/components/ui/textarea';
 import {
   aiService,
   QuestionnaireAnswerResult,
@@ -41,30 +53,67 @@ import {
 } from '@/services/api/ai';
 import { CitationViewer } from '@/app/components/CitationViewer';
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
 const CONFIDENCE_META: Record<
   'HIGH' | 'MEDIUM' | 'LOW',
-  { label: string; color: string; bg: string }
+  {
+    label: string;
+    tone: string;
+    chip: string;
+    panel: string;
+    hint: string;
+  }
 > = {
   HIGH: {
     label: 'High confidence',
-    color: 'text-green-700',
-    bg: 'bg-green-50',
+    tone: 'text-emerald-800',
+    chip: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+    panel: 'border-emerald-200 bg-emerald-50/80',
+    hint: 'Grounded in strong source coverage and ready for a final human pass.',
   },
   MEDIUM: {
     label: 'Medium confidence',
-    color: 'text-amber-700',
-    bg: 'bg-amber-50',
+    tone: 'text-amber-800',
+    chip: 'border-amber-200 bg-amber-50 text-amber-700',
+    panel: 'border-amber-200 bg-amber-50/80',
+    hint: 'Useful draft, but reviewers should tighten wording and verify scope.',
   },
   LOW: {
-    label: 'Low confidence — verify sources carefully',
-    color: 'text-red-700',
-    bg: 'bg-red-50',
+    label: 'Low confidence',
+    tone: 'text-rose-800',
+    chip: 'border-rose-200 bg-rose-50 text-rose-700',
+    panel: 'border-rose-200 bg-rose-50/80',
+    hint: 'Limited evidence found. Treat this as a starting point only.',
   },
 };
 
-// ── Generation result panel ───────────────────────────────────────────────────
+function StatCard({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: string;
+  hint: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-200/80 bg-white/80 p-4 shadow-sm backdrop-blur">
+      <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">
+        {label}
+      </p>
+      <p className="mt-2 text-2xl font-semibold text-slate-950">{value}</p>
+      <p className="mt-1 text-sm text-slate-600">{hint}</p>
+    </div>
+  );
+}
+
+function WorkflowHint({ title, body }: { title: string; body: string }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white/70 p-4">
+      <p className="text-sm font-semibold text-slate-900">{title}</p>
+      <p className="mt-1 text-sm leading-6 text-slate-600">{body}</p>
+    </div>
+  );
+}
 
 function GenerationPanel({
   result,
@@ -90,85 +139,141 @@ function GenerationPanel({
   }
 
   return (
-    <div className="space-y-4">
-      {/* Confidence indicator */}
+    <div className="space-y-5">
       <div
-        className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${confidenceMeta.bg}`}
+        className={`rounded-2xl border px-4 py-4 shadow-sm ${confidenceMeta.panel}`}
       >
-        <Sparkles className={`h-4 w-4 ${confidenceMeta.color}`} />
-        <span className={`font-medium ${confidenceMeta.color}`}>
-          {confidenceMeta.label}
-        </span>
-        <span className="text-gray-500 ml-auto text-xs">
-          Review before sending to customers
-        </span>
-      </div>
-
-      {/* Editable draft */}
-      <div>
-        <div className="flex items-center justify-between mb-1.5">
-          <label className="text-sm font-medium text-gray-700">
-            Draft answer
-          </label>
-          <button
-            onClick={handleCopy}
-            className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700"
-          >
-            <Copy className="h-3.5 w-3.5" />
-            {copied ? 'Copied' : 'Copy'}
-          </button>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="rounded-xl bg-white/80 p-2.5 shadow-sm">
+              <Sparkles className={`h-4 w-4 ${confidenceMeta.tone}`} />
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-sm font-semibold text-slate-900">
+                  AI draft ready for review
+                </p>
+                <Badge className={confidenceMeta.chip} variant="outline">
+                  {confidenceMeta.label}
+                </Badge>
+              </div>
+              <p className="mt-1 text-sm leading-6 text-slate-600">
+                {confidenceMeta.hint}
+              </p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2 text-sm sm:min-w-56">
+            <div className="rounded-xl border border-white/70 bg-white/80 px-3 py-2">
+              <p className="text-xs uppercase tracking-[0.16em] text-slate-500">
+                Sources
+              </p>
+              <p className="mt-1 font-semibold text-slate-900">
+                {result.citations.length}
+              </p>
+            </div>
+            <div className="rounded-xl border border-white/70 bg-white/80 px-3 py-2">
+              <p className="text-xs uppercase tracking-[0.16em] text-slate-500">
+                Status
+              </p>
+              <p className="mt-1 font-semibold text-slate-900">
+                Pending review
+              </p>
+            </div>
+          </div>
         </div>
-        <textarea
-          className="w-full min-h-[160px] rounded-lg border border-gray-200 bg-white p-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
-          value={editedText}
-          onChange={(e) => setEditedText(e.target.value)}
-          placeholder="Edit the draft answer before approving..."
-        />
-        <p className="mt-1 text-xs text-gray-400">
-          You can edit this draft before approving. Approved text is stored for
-          reuse.
-        </p>
       </div>
 
-      {/* Citations */}
-      <CitationViewer
-        citations={result.citations}
-        label="Sources used"
-        className="pt-1"
-      />
+      <div className="rounded-3xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex flex-col gap-3 border-b border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-slate-900">Draft answer</p>
+            <p className="mt-1 text-sm text-slate-500">
+              Edit tone, scope, and specificity before approving for reuse.
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleCopy}
+            className="border-slate-200 text-slate-700"
+          >
+            <Copy className="h-4 w-4" />
+            {copied ? 'Copied' : 'Copy draft'}
+          </Button>
+        </div>
+        <div className="px-5 py-5">
+          <Textarea
+            className="min-h-[240px] resize-y rounded-2xl border-slate-200 bg-slate-50/60 px-4 py-3 text-sm leading-7 text-slate-700"
+            value={editedText}
+            onChange={(e) => setEditedText(e.target.value)}
+            placeholder="Edit the draft answer before approving..."
+          />
+          <div className="mt-3 flex flex-col gap-2 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+            <p>
+              Approved answers are saved for future questionnaires and response
+              reuse.
+            </p>
+            <p>{editedText.trim().length} characters</p>
+          </div>
+        </div>
+      </div>
 
-      {/* Actions */}
-      <div className="flex gap-2 pt-2">
-        <Button
-          onClick={() => onApprove(editedText)}
-          disabled={isApproving || isDismissing || !editedText.trim()}
-          className="bg-green-600 hover:bg-green-700 text-white"
-        >
-          {isApproving ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <ThumbsUp className="mr-2 h-4 w-4" />
-          )}
-          Approve and save for reuse
-        </Button>
-        <Button
-          variant="outline"
-          onClick={onDismiss}
-          disabled={isApproving || isDismissing}
-        >
-          {isDismissing ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <ThumbsDown className="mr-2 h-4 w-4" />
-          )}
-          Dismiss
-        </Button>
+      <div className="rounded-3xl border border-slate-200 bg-slate-50/60 p-5 shadow-sm">
+        <div className="mb-3 flex items-center gap-2">
+          <div className="rounded-full bg-white p-2 shadow-sm">
+            <BookOpen className="h-4 w-4 text-slate-600" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-slate-900">
+              Evidence trace
+            </p>
+            <p className="text-sm text-slate-500">
+              Open the cited excerpts and confirm they support the response.
+            </p>
+          </div>
+        </div>
+        <CitationViewer
+          citations={result.citations}
+          label="Sources used"
+          className="pt-1"
+        />
+      </div>
+
+      <div className="flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-slate-500">
+          Only approved answers become part of your reusable response library.
+        </p>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Button
+            variant="outline"
+            onClick={onDismiss}
+            disabled={isApproving || isDismissing}
+            className="border-slate-200 text-slate-700"
+          >
+            {isDismissing ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <ThumbsDown className="h-4 w-4" />
+            )}
+            Dismiss draft
+          </Button>
+          <Button
+            onClick={() => onApprove(editedText)}
+            disabled={isApproving || isDismissing || !editedText.trim()}
+            className="bg-slate-950 text-white hover:bg-slate-800"
+          >
+            {isApproving ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <ThumbsUp className="h-4 w-4" />
+            )}
+            Approve and save
+          </Button>
+        </div>
       </div>
     </div>
   );
 }
-
-// ── Approved answers list ─────────────────────────────────────────────────────
 
 function ApprovedAnswerItem({
   answer,
@@ -185,49 +290,63 @@ function ApprovedAnswerItem({
   }
 
   return (
-    <div className="rounded-xl border border-gray-100 bg-white p-4">
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-colors hover:border-slate-300">
       <div className="flex items-start justify-between gap-3">
         <button
-          className="text-left flex-1"
+          className="min-w-0 flex-1 text-left"
           onClick={() => setExpanded((prev) => !prev)}
+          type="button"
         >
-          <p className="text-sm font-medium text-gray-900 line-clamp-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge
+              variant="outline"
+              className="border-emerald-200 bg-emerald-50 text-emerald-700"
+            >
+              Approved answer
+            </Badge>
+            <span className="inline-flex items-center gap-1 text-xs text-slate-500">
+              <Clock3 className="h-3 w-3" />
+              {new Date(answer.approvedAt).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+              })}
+            </span>
+          </div>
+          <p className="mt-3 line-clamp-2 text-sm font-semibold leading-6 text-slate-900">
             {answer.question}
           </p>
-          <p className="mt-1 text-xs text-gray-400 flex items-center gap-1">
-            <Clock className="h-3 w-3" />
-            Approved{' '}
-            {new Date(answer.approvedAt).toLocaleDateString('en-US', {
-              month: 'short',
-              day: 'numeric',
-              year: 'numeric',
-            })}
-          </p>
         </button>
-        <div className="flex items-center gap-1.5 flex-shrink-0">
-          <button
+
+        <div className="flex items-center gap-1.5">
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={handleCopy}
-            className="p-1.5 rounded-md hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+            className="size-8 text-slate-500 hover:text-slate-900"
             title="Copy answer"
           >
             <Copy className="h-4 w-4" />
             {copied && <span className="sr-only">Copied</span>}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => setExpanded((prev) => !prev)}
-            className="p-1.5 rounded-md hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+            className="size-8 text-slate-500 hover:text-slate-900"
           >
             {expanded ? (
               <ChevronUp className="h-4 w-4" />
             ) : (
               <ChevronDown className="h-4 w-4" />
             )}
-          </button>
+          </Button>
         </div>
       </div>
+
       {expanded && (
-        <div className="mt-3 pt-3 border-t border-gray-100">
-          <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+        <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+          <p className="whitespace-pre-wrap text-sm leading-7 text-slate-700">
             {answer.approvedAnswer}
           </p>
         </div>
@@ -236,30 +355,22 @@ function ApprovedAnswerItem({
   );
 }
 
-// ── Main page ─────────────────────────────────────────────────────────────────
-
 export function QuestionnaireAssistantPage() {
   const queryClient = useQueryClient();
-
-  // Form state
   const [question, setQuestion] = useState('');
   const [context, setContext] = useState('');
   const [showContextInput, setShowContextInput] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-
-  // Current generation (reset between questions)
   const [currentGeneration, setCurrentGeneration] =
     useState<QuestionnaireAnswerResult | null>(null);
   const [generationDismissed, setGenerationDismissed] = useState(false);
   const [generationApproved, setGenerationApproved] = useState(false);
 
-  // Approved answers list
   const approvedQuery = useQuery({
     queryKey: ['ai-approved-answers'],
     queryFn: () => aiService.listApprovedAnswers(),
   });
 
-  // Generate mutation
   const generateMutation = useMutation({
     mutationFn: ({ q, ctx }: { q: string; ctx?: string }) =>
       aiService.generateQuestionnaireAnswer(q, ctx),
@@ -270,7 +381,6 @@ export function QuestionnaireAssistantPage() {
     },
   });
 
-  // Approve mutation
   const approveMutation = useMutation({
     mutationFn: ({ id, approvedText }: { id: string; approvedText: string }) =>
       aiService.approveQuestionnaireAnswer(id, approvedText),
@@ -280,7 +390,6 @@ export function QuestionnaireAssistantPage() {
     },
   });
 
-  // Dismiss mutation
   const dismissMutation = useMutation({
     mutationFn: (id: string) => aiService.dismissQuestionnaireAnswer(id),
     onSuccess: () => {
@@ -310,7 +419,6 @@ export function QuestionnaireAssistantPage() {
     dismissMutation.mutate(currentGeneration.generationId);
   }
 
-  // Filter approved answers by search
   const approvedAnswers = approvedQuery.data?.data ?? [];
   const filteredAnswers = searchQuery.trim()
     ? approvedAnswers.filter(
@@ -323,203 +431,475 @@ export function QuestionnaireAssistantPage() {
   return (
     <PageTemplate
       title="Questionnaire Assistant"
-      description="Generate AI-assisted answers to security questionnaires using your organization's policies and documentation."
+      description="Produce polished, evidence-backed customer responses with review controls your security team can trust."
     >
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 max-w-7xl">
-        {/* ── Left: Question input + generation result ─────────────────────── */}
-        <div className="space-y-5">
-          <Card className="p-6">
-            <h2 className="text-base font-semibold text-gray-900 mb-1">
-              Ask a question
-            </h2>
-            <p className="text-sm text-gray-500 mb-4">
-              Enter a security questionnaire question and get a draft answer
-              grounded in your organization's policies and documentation.
-            </p>
+      <div className="space-y-6">
+        <Card className="overflow-hidden border-slate-200 bg-[linear-gradient(135deg,#f8fafc_0%,#ffffff_42%,#eef4ff_100%)] shadow-sm">
+          <CardContent className="p-0">
+            <div className="grid gap-0 lg:grid-cols-[1.5fr_0.9fr]">
+              <div className="border-b border-slate-200/80 p-6 sm:p-8 lg:border-b-0 lg:border-r">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge className="bg-slate-950 text-white">
+                    AI Workspace
+                  </Badge>
+                  <Badge
+                    variant="outline"
+                    className="border-sky-200 bg-sky-50 text-sky-700"
+                  >
+                    Evidence-backed drafts
+                  </Badge>
+                  <Badge
+                    variant="outline"
+                    className="border-amber-200 bg-amber-50 text-amber-700"
+                  >
+                    Human approval required
+                  </Badge>
+                </div>
 
-            <div className="space-y-3">
-              <textarea
-                className="w-full min-h-[100px] rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
-                placeholder="e.g. Does your company have a formal information security policy? What controls do you have in place for access management?"
-                value={question}
-                onChange={(e) => setQuestion(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-                    e.preventDefault();
-                    handleGenerate();
-                  }
-                }}
-              />
+                <div className="mt-6 max-w-3xl">
+                  <p className="text-sm font-medium uppercase tracking-[0.2em] text-slate-500">
+                    Customer due diligence
+                  </p>
+                  <h2 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
+                    Turn security questionnaires into a fast, reviewable
+                    workflow.
+                  </h2>
+                  <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600">
+                    Draft consistent answers from your policies and documents,
+                    inspect the cited evidence, then save the approved response
+                    for future reuse.
+                  </p>
+                </div>
 
-              {/* Optional context toggle */}
-              <button
-                className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
-                onClick={() => setShowContextInput((prev) => !prev)}
-              >
-                {showContextInput ? (
-                  <X className="h-3 w-3" />
-                ) : (
-                  <MessageSquare className="h-3 w-3" />
-                )}
-                {showContextInput ? 'Hide context' : 'Add context (optional)'}
-              </button>
+                <div className="mt-8 grid gap-3 sm:grid-cols-3">
+                  <StatCard
+                    label="Approved answers"
+                    value={String(approvedAnswers.length)}
+                    hint="Reusable responses already curated by your team"
+                  />
+                  <StatCard
+                    label="Current citations"
+                    value={String(currentGeneration?.citations.length ?? 0)}
+                    hint="Evidence surfaced for the active draft"
+                  />
+                  <StatCard
+                    label="Review model"
+                    value="Manual"
+                    hint="Nothing is published until a reviewer approves it"
+                  />
+                </div>
+              </div>
 
-              {showContextInput && (
-                <textarea
-                  className="w-full min-h-[60px] rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
-                  placeholder="Optional: add context about the questionnaire or who is asking (e.g. 'This is for a SOC 2 customer audit')"
-                  value={context}
-                  onChange={(e) => setContext(e.target.value)}
-                />
+              <div className="bg-slate-950 px-6 py-7 text-slate-50 sm:px-8">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-2xl bg-white/10 p-3">
+                    <ShieldCheck className="h-5 w-5 text-sky-200" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold">Response standards</p>
+                    <p className="mt-1 text-sm leading-6 text-slate-300">
+                      Keep answers concise, factual, and scoped to verified
+                      controls.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-6 space-y-3">
+                  <WorkflowHint
+                    title="Ground every answer"
+                    body="Use the draft as a starting point, then confirm every claim against the cited evidence before approval."
+                  />
+                  <WorkflowHint
+                    title="Capture buyer context"
+                    body="Add renewal stage, framework references, or product boundaries to improve relevance and reviewer speed."
+                  />
+                  <WorkflowHint
+                    title="Build institutional memory"
+                    body="Approved answers become your response library, reducing repetitive work across future questionnaires."
+                  />
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(360px,0.95fr)]">
+          <div className="space-y-6">
+            <Card className="overflow-hidden border-slate-200 shadow-sm">
+              <CardHeader className="border-b border-slate-200 bg-slate-50/70">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <div className="rounded-xl bg-slate-950 p-2 text-white">
+                        <WandSparkles className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg font-semibold text-slate-950">
+                          Draft workspace
+                        </CardTitle>
+                        <CardDescription className="mt-1 text-sm leading-6 text-slate-500">
+                          Ask one customer question at a time, enrich it with
+                          context, and generate a reviewable answer.
+                        </CardDescription>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge
+                      variant="outline"
+                      className="border-slate-200 bg-white text-slate-600"
+                    >
+                      Cmd + Enter to generate
+                    </Badge>
+                    <Badge
+                      variant="outline"
+                      className="border-slate-200 bg-white text-slate-600"
+                    >
+                      Reusable approvals
+                    </Badge>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6 p-6">
+                <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
+                  <div className="space-y-5">
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-slate-900">
+                        Questionnaire prompt
+                      </label>
+                      <Textarea
+                        className="min-h-[180px] resize-y rounded-2xl border-slate-200 bg-slate-50/60 px-4 py-3 text-sm leading-7 text-slate-700"
+                        placeholder="e.g. Describe your access control approach, MFA coverage, and quarterly access review process for production systems."
+                        value={question}
+                        onChange={(e) => setQuestion(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                            e.preventDefault();
+                            handleGenerate();
+                          }
+                        }}
+                      />
+                      <div className="flex flex-col gap-2 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+                        <p>
+                          Use the customer’s exact wording to improve
+                          traceability and review speed.
+                        </p>
+                        <p>{question.trim().length} characters</p>
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                      <button
+                        className="flex w-full items-center justify-between gap-3 text-left"
+                        onClick={() => setShowContextInput((prev) => !prev)}
+                        type="button"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="rounded-xl bg-white p-2 shadow-sm">
+                            {showContextInput ? (
+                              <X className="h-4 w-4 text-slate-600" />
+                            ) : (
+                              <MessageSquare className="h-4 w-4 text-slate-600" />
+                            )}
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-slate-900">
+                              Add request context
+                            </p>
+                            <p className="text-sm text-slate-500">
+                              Buyer stage, framework, product scope, or response
+                              tone.
+                            </p>
+                          </div>
+                        </div>
+                        {showContextInput ? (
+                          <ChevronUp className="h-4 w-4 text-slate-500" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4 text-slate-500" />
+                        )}
+                      </button>
+
+                      {showContextInput && (
+                        <div className="mt-4">
+                          <Textarea
+                            className="min-h-[120px] resize-y rounded-2xl border-slate-200 bg-white px-4 py-3 text-sm leading-7 text-slate-700"
+                            placeholder="Optional: This is for a SOC 2 renewal with an enterprise buyer who wants concise answers focused on production access controls and policy references."
+                            value={context}
+                            onChange={(e) => setContext(e.target.value)}
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="text-sm text-slate-500">
+                        The assistant drafts an answer, but your team remains
+                        the final approver.
+                      </div>
+                      <div className="flex flex-col gap-2 sm:flex-row">
+                        {(question || context) && (
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              setQuestion('');
+                              setContext('');
+                              setShowContextInput(false);
+                            }}
+                            className="border-slate-200 text-slate-700"
+                          >
+                            Clear
+                          </Button>
+                        )}
+                        <Button
+                          onClick={handleGenerate}
+                          disabled={
+                            !question.trim() || generateMutation.isPending
+                          }
+                          className="bg-slate-950 text-white hover:bg-slate-800"
+                        >
+                          {generateMutation.isPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Sparkles className="h-4 w-4" />
+                          )}
+                          Generate answer
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                      Review checklist
+                    </p>
+                    <div className="mt-4 space-y-4">
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                        <p className="text-sm font-semibold text-slate-900">
+                          Keep it buyer-ready
+                        </p>
+                        <p className="mt-1 text-sm leading-6 text-slate-600">
+                          Prefer crisp, declarative language over long policy
+                          excerpts.
+                        </p>
+                      </div>
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                        <p className="text-sm font-semibold text-slate-900">
+                          Verify every claim
+                        </p>
+                        <p className="mt-1 text-sm leading-6 text-slate-600">
+                          Open the cited excerpts before approving
+                          customer-facing content.
+                        </p>
+                      </div>
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                        <p className="text-sm font-semibold text-slate-900">
+                          Save strong responses
+                        </p>
+                        <p className="mt-1 text-sm leading-6 text-slate-600">
+                          Each approval improves consistency across future
+                          diligence cycles.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {generateMutation.isError && (
+              <Card className="border-rose-200 bg-rose-50/80 shadow-sm">
+                <CardContent className="flex items-start gap-3 p-5">
+                  <div className="rounded-xl bg-white p-2 shadow-sm">
+                    <X className="h-4 w-4 text-rose-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-rose-800">
+                      Generation failed
+                    </p>
+                    <p className="mt-1 text-sm leading-6 text-rose-700">
+                      Try again, adjust the question, or draft the response
+                      manually.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {currentGeneration &&
+              !generationDismissed &&
+              !generationApproved && (
+                <Card className="border-slate-200 shadow-sm">
+                  <CardHeader className="border-b border-slate-200 bg-white">
+                    <div className="flex items-center gap-3">
+                      <div className="rounded-xl bg-slate-950 p-2 text-white">
+                        <FileText className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg font-semibold text-slate-950">
+                          Generated draft
+                        </CardTitle>
+                        <CardDescription className="mt-1 text-sm text-slate-500">
+                          Review the draft, verify its evidence, and approve
+                          only when it reflects your controls accurately.
+                        </CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    <GenerationPanel
+                      result={currentGeneration}
+                      onApprove={handleApprove}
+                      onDismiss={handleDismiss}
+                      isApproving={approveMutation.isPending}
+                      isDismissing={dismissMutation.isPending}
+                    />
+                  </CardContent>
+                </Card>
               )}
 
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-gray-400">
-                  Press Cmd+Enter to generate
-                </p>
-                <Button
-                  onClick={handleGenerate}
-                  disabled={!question.trim() || generateMutation.isPending}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  {generateMutation.isPending ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Sparkles className="mr-2 h-4 w-4" />
+            {generationApproved && (
+              <Card className="border-emerald-200 bg-emerald-50/70 shadow-sm">
+                <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-start gap-3">
+                    <div className="rounded-2xl bg-white p-2.5 shadow-sm">
+                      <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-emerald-900">
+                        Answer approved and saved to your library
+                      </p>
+                      <p className="mt-1 text-sm leading-6 text-emerald-800">
+                        This response can now be reused as a vetted starting
+                        point for similar questionnaires.
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    className="border-emerald-200 bg-white text-emerald-800 hover:bg-emerald-100"
+                    onClick={() => {
+                      setQuestion('');
+                      setContext('');
+                      setCurrentGeneration(null);
+                      setGenerationApproved(false);
+                    }}
+                  >
+                    Ask another question
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {generationDismissed && (
+              <Card className="border-slate-200 bg-slate-50/80 shadow-sm">
+                <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">
+                      Draft dismissed
+                    </p>
+                    <p className="mt-1 text-sm leading-6 text-slate-600">
+                      Adjust the question, add more context, or draft a manual
+                      response.
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    className="border-slate-200 text-slate-700"
+                    onClick={() => {
+                      setCurrentGeneration(null);
+                      setGenerationDismissed(false);
+                    }}
+                  >
+                    Try a different approach
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          <div className="space-y-6">
+            <Card className="border-slate-200 shadow-sm xl:sticky xl:top-6">
+              <CardHeader className="border-b border-slate-200 bg-slate-50/70">
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <CardTitle className="text-lg font-semibold text-slate-950">
+                        Answer library
+                      </CardTitle>
+                      <CardDescription className="mt-1 text-sm leading-6 text-slate-500">
+                        Approved answers your team can safely reuse and adapt.
+                      </CardDescription>
+                    </div>
+                    <Badge className="bg-slate-950 text-white">
+                      {approvedAnswers.length} saved
+                    </Badge>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                      <p className="text-xs uppercase tracking-[0.16em] text-slate-500">
+                        Searchable
+                      </p>
+                      <p className="mt-1 text-sm font-semibold text-slate-900">
+                        Response memory
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                      <p className="text-xs uppercase tracking-[0.16em] text-slate-500">
+                        Library size
+                      </p>
+                      <p className="mt-1 text-sm font-semibold text-slate-900">
+                        {approvedAnswers.length} answers
+                      </p>
+                    </div>
+                  </div>
+
+                  {approvedAnswers.length > 3 && (
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                      <Input
+                        type="text"
+                        className="h-11 rounded-2xl border-slate-200 bg-white pl-10 pr-4 text-sm"
+                        placeholder="Search approved answers..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                      />
+                    </div>
                   )}
-                  Generate answer
-                </Button>
-              </div>
-            </div>
-          </Card>
+                </div>
+              </CardHeader>
 
-          {/* Generation result */}
-          {generateMutation.isError && (
-            <Card className="p-5 border-red-100">
-              <p className="text-sm text-red-600">
-                Failed to generate answer. Please try again or enter an answer
-                manually.
-              </p>
+              <CardContent className="p-5">
+                {approvedQuery.isLoading && (
+                  <div className="flex h-28 items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/70">
+                    <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+                  </div>
+                )}
+
+                {!approvedQuery.isLoading && filteredAnswers.length === 0 && (
+                  <div className="rounded-3xl border border-dashed border-slate-200 bg-slate-50/70 px-6 py-12 text-center">
+                    <BookOpen className="mx-auto h-10 w-10 text-slate-300" />
+                    <p className="mt-4 text-sm font-semibold text-slate-700">
+                      {searchQuery
+                        ? 'No matching answers found'
+                        : 'No approved answers yet'}
+                    </p>
+                    <p className="mt-2 text-sm leading-6 text-slate-500">
+                      {searchQuery
+                        ? 'Try a different phrase or search by control language.'
+                        : 'Approve strong drafts to create a reusable response library.'}
+                    </p>
+                  </div>
+                )}
+
+                <div className="max-h-[760px] space-y-3 overflow-y-auto pr-1">
+                  {filteredAnswers.map((answer) => (
+                    <ApprovedAnswerItem key={answer.id} answer={answer} />
+                  ))}
+                </div>
+              </CardContent>
             </Card>
-          )}
-
-          {currentGeneration && !generationDismissed && !generationApproved && (
-            <Card className="p-6">
-              <h3 className="text-sm font-semibold text-gray-700 mb-4">
-                Draft answer
-              </h3>
-              <GenerationPanel
-                result={currentGeneration}
-                onApprove={handleApprove}
-                onDismiss={handleDismiss}
-                isApproving={approveMutation.isPending}
-                isDismissing={dismissMutation.isPending}
-              />
-            </Card>
-          )}
-
-          {generationApproved && (
-            <Card className="p-5 border-green-100 bg-green-50">
-              <div className="flex items-center gap-2 text-green-700">
-                <CheckCircle2 className="h-5 w-5" />
-                <p className="text-sm font-medium">
-                  Answer approved and saved for reuse.
-                </p>
-              </div>
-              <button
-                className="mt-2 text-xs text-green-600 hover:underline"
-                onClick={() => {
-                  setQuestion('');
-                  setContext('');
-                  setCurrentGeneration(null);
-                  setGenerationApproved(false);
-                }}
-              >
-                Ask another question
-              </button>
-            </Card>
-          )}
-
-          {generationDismissed && (
-            <Card className="p-5 border-gray-100">
-              <p className="text-sm text-gray-500">
-                Answer dismissed.{' '}
-                <button
-                  className="text-blue-600 hover:underline"
-                  onClick={() => {
-                    setCurrentGeneration(null);
-                    setGenerationDismissed(false);
-                  }}
-                >
-                  Try a different approach
-                </button>{' '}
-                or write the answer manually.
-              </p>
-            </Card>
-          )}
-        </div>
-
-        {/* ── Right: Approved answers library ──────────────────────────────── */}
-        <div className="space-y-4">
-          <Card className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h2 className="text-base font-semibold text-gray-900">
-                  Answer library
-                </h2>
-                <p className="text-sm text-gray-500">
-                  Previously approved answers ready for reuse.
-                </p>
-              </div>
-              {approvedAnswers.length > 0 && (
-                <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">
-                  {approvedAnswers.length} saved
-                </span>
-              )}
-            </div>
-
-            {/* Search */}
-            {approvedAnswers.length > 3 && (
-              <div className="relative mb-4">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <input
-                  type="text"
-                  className="w-full rounded-lg border border-gray-200 bg-gray-50 pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Search approved answers..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-            )}
-
-            {approvedQuery.isLoading && (
-              <div className="flex h-24 items-center justify-center">
-                <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
-              </div>
-            )}
-
-            {!approvedQuery.isLoading && filteredAnswers.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <BookOpen className="h-10 w-10 text-gray-200 mb-3" />
-                <p className="text-sm font-medium text-gray-500">
-                  {searchQuery
-                    ? 'No matching answers found'
-                    : 'No approved answers yet'}
-                </p>
-                <p className="text-xs text-gray-400 mt-1">
-                  {searchQuery
-                    ? 'Try a different search term'
-                    : 'Generate and approve answers to build your library'}
-                </p>
-              </div>
-            )}
-
-            <div className="space-y-3 max-h-[600px] overflow-y-auto">
-              {filteredAnswers.map((answer) => (
-                <ApprovedAnswerItem key={answer.id} answer={answer} />
-              ))}
-            </div>
-          </Card>
+          </div>
         </div>
       </div>
     </PageTemplate>
