@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import {
   X,
   FileText,
@@ -235,9 +235,9 @@ export function ControlReviewPanel({
   onClose: () => void;
   onUpdated: () => void;
 }) {
-  const qc = useQueryClient();
   const [showFindingModal, setShowFindingModal] = useState(false);
   const [savingStatus, setSavingStatus] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [notes, setNotes] = useState(auditControl.notes ?? '');
   const [notesDirty, setNotesDirty] = useState(false);
 
@@ -249,14 +249,17 @@ export function ControlReviewPanel({
 
   async function handleStatusChange(status: AuditControlStatus) {
     setSavingStatus(true);
+    setSaveError(null);
     try {
       await auditsService.updateControl(auditId, auditControl.id, {
         reviewStatus: status,
         notes: notes || undefined,
       });
       onUpdated();
-    } catch {
-      /* ignore */
+    } catch (err) {
+      setSaveError(
+        err instanceof Error ? err.message : 'Failed to update status',
+      );
     } finally {
       setSavingStatus(false);
     }
@@ -264,12 +267,13 @@ export function ControlReviewPanel({
 
   async function handleSaveNotes() {
     setSavingStatus(true);
+    setSaveError(null);
     try {
       await auditsService.updateControl(auditId, auditControl.id, { notes });
       setNotesDirty(false);
       onUpdated();
-    } catch {
-      /* ignore */
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Failed to save notes');
     } finally {
       setSavingStatus(false);
     }
@@ -374,6 +378,9 @@ export function ControlReviewPanel({
                   setNotesDirty(true);
                 }}
               />
+              {saveError && (
+                <p className="mt-1 text-xs text-red-600">{saveError}</p>
+              )}
               {notesDirty && (
                 <div className="flex justify-end mt-1.5">
                   <Button

@@ -1,11 +1,18 @@
 import { Worker } from 'bullmq';
-import { createPgExecutor, getPostgresPool, readPostgresRuntimeConfig } from '@/server/db/postgres';
+import {
+  createPgExecutor,
+  getPostgresPool,
+  readPostgresRuntimeConfig,
+} from '@/server/db/postgres';
 import { NotificationEventType } from '@/domain/notifications/eventTypes';
 import { refreshAllCoverageSnapshots } from '@/server/frameworks/coverageEngine';
 import { NotificationService } from '@/server/notifications/service';
 import { EmailService } from '@/server/notifications/emailService';
 import { getRedisConnection, QUEUES } from '@/server/queue/client';
-import { getTestsRuntimeService, type TestRecordDto } from '@/server/tests/runtime';
+import {
+  getTestsRuntimeService,
+  type TestRecordDto,
+} from '@/server/tests/runtime';
 import { startScheduler } from './scheduler';
 
 const emailService = new EmailService();
@@ -20,11 +27,12 @@ function getExecutor() {
 
 async function processDigest(period: 'hourly' | 'daily' | 'weekly') {
   const db = getExecutor();
-  const windowSql = period === 'hourly'
-    ? "interval '1 hour'"
-    : period === 'daily'
-      ? "interval '1 day'"
-      : "interval '7 days'";
+  const windowSql =
+    period === 'hourly'
+      ? "interval '1 hour'"
+      : period === 'daily'
+        ? "interval '1 day'"
+        : "interval '7 days'";
 
   const preferenceRows = await db.query<{
     organization_id: string;
@@ -89,7 +97,11 @@ async function processDigest(period: 'hourly' | 'daily' | 'weekly') {
       period,
     });
 
-    const status = digestResult.sent ? 'sent' : digestResult.skipped ? 'skipped' : 'failed';
+    const status = digestResult.sent
+      ? 'sent'
+      : digestResult.skipped
+        ? 'skipped'
+        : 'failed';
     for (const notification of notifications.rows) {
       await db.query(
         `insert into notification_delivery_log
@@ -126,13 +138,17 @@ async function processDigest(period: 'hourly' | 'daily' | 'weekly') {
 async function processRiskReminders() {
   const db = getExecutor();
   const service = new NotificationService(db);
-  const rows = await db.query<{ id: string; organization_id: string; owner_id: string }>(
+  const rows = await db.query<{
+    id: string;
+    organization_id: string;
+    owner_id: string;
+  }>(
     `select id, organization_id, owner_id
        from organization_framework_requirement_status
       where owner_id is not null
         and due_date is not null
         and due_date <= now() + interval '48 hours'
-        and due_date >= now()`
+        and due_date >= now()`,
   );
   for (const row of rows.rows) {
     await service.emit({
@@ -168,7 +184,9 @@ async function processAuditReminders() {
       severity: 'warning',
       resourceType: 'audit',
       resourceId: test.audits[0]?.auditId,
-      recipientEmails: { [test.ownerId]: test.owner?.email ?? `${test.ownerId}@manzen.dev` },
+      recipientEmails: {
+        [test.ownerId]: test.owner?.email ?? `${test.ownerId}@manzen.dev`,
+      },
       resourceUrl: '/compliance/audits',
     });
   }
@@ -182,7 +200,9 @@ async function processAccessReviewReminders() {
 
   for (const test of tests) {
     const label = `${test.name} ${test.category}`.toLowerCase();
-    const isAccessReview = label.includes('access review') || label.includes('privilege recertification');
+    const isAccessReview =
+      label.includes('access review') ||
+      label.includes('privilege recertification');
     const dueAt = new Date(test.dueDate).getTime();
     if (!isAccessReview || dueAt < now || dueAt > horizon) continue;
 
@@ -191,11 +211,13 @@ async function processAccessReviewReminders() {
       recipientUserIds: [test.ownerId],
       eventType: NotificationEventType.ACCESS_REVIEW_DUE,
       title: `Access review due soon: ${test.name}`,
-      body: `The access review task \"${test.name}\" is due within the next 7 days.`,
+      body: `The access review task "${test.name}" is due within the next 7 days.`,
       severity: 'warning',
       resourceType: 'test',
       resourceId: test.id,
-      recipientEmails: { [test.ownerId]: test.owner?.email ?? `${test.ownerId}@manzen.dev` },
+      recipientEmails: {
+        [test.ownerId]: test.owner?.email ?? `${test.ownerId}@manzen.dev`,
+      },
       resourceUrl: `/tests/${test.id}`,
     });
   }
@@ -229,11 +251,13 @@ export function startDigestWorker() {
 }
 
 if (process.env.WORKER_ROLE === 'digests') {
-  startScheduler().then(() => {
-    startDigestWorker();
-    console.info('[worker-digests] started');
-  }).catch((error) => {
-    console.error('[worker-digests] failed to start', error);
-    process.exit(1);
-  });
+  startScheduler()
+    .then(() => {
+      startDigestWorker();
+      console.info('[worker-digests] started');
+    })
+    .catch((error) => {
+      console.error('[worker-digests] failed to start', error);
+      process.exit(1);
+    });
 }

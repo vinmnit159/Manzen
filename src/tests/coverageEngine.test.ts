@@ -5,7 +5,10 @@
  * We mock it with a simple function that returns preset row data.
  */
 import { describe, it, expect, vi } from 'vitest';
-import { computeAndInsertCoverageSnapshot, refreshAllCoverageSnapshots } from '@/server/frameworks/coverageEngine';
+import {
+  computeAndInsertCoverageSnapshot,
+  refreshAllCoverageSnapshots,
+} from '@/server/frameworks/coverageEngine';
 import type { SqlExecutor } from '@/domain/risk-engine/persistence';
 
 // ── Mock DB builder ───────────────────────────────────────────────────────────
@@ -23,7 +26,9 @@ import type { SqlExecutor } from '@/domain/risk-engine/persistence';
  *  6. openGaps          (count)
  *  7. INSERT snapshot   (no rows needed)
  */
-function buildMockDb(responses: Array<{ rows: Record<string, string>[] }>): SqlExecutor {
+function buildMockDb(
+  responses: Array<{ rows: Record<string, string>[] }>,
+): SqlExecutor {
   let callIndex = 0;
   return {
     query: vi.fn().mockImplementation(() => {
@@ -37,14 +42,18 @@ function buildMockDb(responses: Array<{ rows: Record<string, string>[] }>): SqlE
 /** Standard preset: 10 total reqs, 8 mapped, 2 applicable, 1 covered, 2 tests 1 passing, 0 gaps */
 function defaultResponses() {
   return [
-    { rows: [{ count: '10' }] },                                              // totalRequirements
-    { rows: [{ count: '8' }] },                                               // totalMapped
-    { rows: [{ applicability_status: 'applicable', count: '6' },             // applicability
-             { applicability_status: 'not_applicable', count: '2' }] },
-    { rows: [{ count: '4' }] },                                               // covered
-    { rows: [{ total: '5', passing: '3' }] },                                 // testResult
-    { rows: [{ count: '1' }] },                                               // openGaps
-    { rows: [] },                                                             // INSERT
+    { rows: [{ count: '10' }] }, // totalRequirements
+    { rows: [{ count: '8' }] }, // totalMapped
+    {
+      rows: [
+        { applicability_status: 'applicable', count: '6' }, // applicability
+        { applicability_status: 'not_applicable', count: '2' },
+      ],
+    },
+    { rows: [{ count: '4' }] }, // covered
+    { rows: [{ total: '5', passing: '3' }] }, // testResult
+    { rows: [{ count: '1' }] }, // openGaps
+    { rows: [] }, // INSERT
   ];
 }
 
@@ -77,21 +86,22 @@ describe('computeAndInsertCoverageSnapshot', () => {
     // 4 covered / 6 applicable = 66% (rounded), 3 passing / 5 total = 60%
     const db = buildMockDb(defaultResponses());
     await computeAndInsertCoverageSnapshot(db, 'org-1', 'fw-1');
-    const insertArgs = (db.query as ReturnType<typeof vi.fn>).mock.calls[6][1] as number[];
+    const insertArgs = (db.query as ReturnType<typeof vi.fn>).mock
+      .calls[6][1] as number[];
     // insertArgs layout: [id, orgId, fwId, totalReqs, totalMapped, notApplicable, applicable,
     //                      covered, partiallyCovered, notCovered, controlCoveragePct, testPassRatePct,
     //                      mappedTestCount, passingTestCount, openGaps]
     const controlCoveragePct = insertArgs[10];
     const testPassRatePct = insertArgs[11];
     expect(controlCoveragePct).toBe(67); // round(4/6 * 100)
-    expect(testPassRatePct).toBe(60);    // round(3/5 * 100)
+    expect(testPassRatePct).toBe(60); // round(3/5 * 100)
   });
 
   it('handles 0 applicable requirements without dividing by zero', async () => {
     const responses = [
       { rows: [{ count: '10' }] },
       { rows: [{ count: '0' }] },
-      { rows: [] },                    // no applicability rows → applicable=0
+      { rows: [] }, // no applicability rows → applicable=0
       { rows: [{ count: '0' }] },
       { rows: [{ total: '0', passing: '0' }] },
       { rows: [{ count: '0' }] },
@@ -99,8 +109,11 @@ describe('computeAndInsertCoverageSnapshot', () => {
     ];
     const db = buildMockDb(responses);
     // Should not throw
-    await expect(computeAndInsertCoverageSnapshot(db, 'org-1', 'fw-1')).resolves.toBeUndefined();
-    const insertArgs = (db.query as ReturnType<typeof vi.fn>).mock.calls[6][1] as number[];
+    await expect(
+      computeAndInsertCoverageSnapshot(db, 'org-1', 'fw-1'),
+    ).resolves.toBeUndefined();
+    const insertArgs = (db.query as ReturnType<typeof vi.fn>).mock
+      .calls[6][1] as number[];
     const controlCoveragePct = insertArgs[10];
     expect(controlCoveragePct).toBe(0);
   });
@@ -124,7 +137,9 @@ describe('computeAndInsertCoverageSnapshot', () => {
         return Promise.resolve(responses[idx] ?? { rows: [] });
       }),
     };
-    await expect(computeAndInsertCoverageSnapshot(db, 'org-1', 'fw-1')).resolves.toBeUndefined();
+    await expect(
+      computeAndInsertCoverageSnapshot(db, 'org-1', 'fw-1'),
+    ).resolves.toBeUndefined();
   });
 });
 
@@ -143,7 +158,7 @@ describe('refreshAllCoverageSnapshots', () => {
   it('processes each active pair independently', async () => {
     let calls = 0;
     const db: SqlExecutor = {
-      query: vi.fn().mockImplementation((sql: string) => {
+      query: vi.fn().mockImplementation((_sql: string) => {
         calls++;
         // Return 2 active pairs on the first call
         if (calls === 1) {
@@ -155,7 +170,11 @@ describe('refreshAllCoverageSnapshots', () => {
           });
         }
         // All subsequent calls return empty rows (for the sub-queries)
-        return Promise.resolve({ rows: [{ count: '0' }, { total: '0', passing: '0' }][0] ?? { rows: [] } });
+        return Promise.resolve({
+          rows: [{ count: '0' }, { total: '0', passing: '0' }][0] ?? {
+            rows: [],
+          },
+        });
       }),
     };
 

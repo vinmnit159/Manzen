@@ -8,17 +8,36 @@
  * - Periodic access review reminders
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
-  ClipboardList, Plus, CheckCircle2, XCircle, Clock, AlertCircle,
-  X, User, Shield, Calendar, MessageSquare, ChevronDown, Loader2,
-  Bell, RefreshCw, Filter, Check, Minus,
+  ClipboardList,
+  Plus,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  AlertCircle,
+  X,
+  Shield,
+  Calendar,
+  MessageSquare,
+  Loader2,
+  Bell,
 } from 'lucide-react';
-import { ROLE_LABELS, ROLE_CONFIG, AppRole, ROLE_DESCRIPTIONS } from '@/lib/rbac/permissions';
+import {
+  ROLE_LABELS,
+  ROLE_CONFIG,
+  AppRole,
+  ROLE_DESCRIPTIONS,
+} from '@/lib/rbac/permissions';
 import { RoleBadge } from '@/app/components/rbac/RequirePermission';
 import { useCurrentUser, useHasPermission } from '@/hooks/useCurrentUser';
 import { PERMISSIONS } from '@/lib/rbac/permissions';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/tabs';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/app/components/ui/tabs';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -44,12 +63,22 @@ interface AccessRequest {
 
 function fmtDate(s: string | null | undefined) {
   if (!s) return '—';
-  return new Date(s).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  return new Date(s).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
 }
 
 function fmtDateTime(s: string | null | undefined) {
   if (!s) return '—';
-  return new Date(s).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return new Date(s).toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
 // ── Mock data (will be replaced by real API) ────────────────────────────────────
@@ -63,7 +92,8 @@ const MOCK_REQUESTS: AccessRequest[] = [
     type: 'ROLE_UPGRADE',
     requestedRole: 'SECURITY_OWNER',
     currentRole: 'CONTRIBUTOR',
-    justification: 'I am taking over the ISO 27001 compliance program and need access to approve policies and manage the audit cycle.',
+    justification:
+      'I am taking over the ISO 27001 compliance program and need access to approve policies and manage the audit cycle.',
     status: 'PENDING',
     createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
   },
@@ -75,7 +105,8 @@ const MOCK_REQUESTS: AccessRequest[] = [
     type: 'TEMPORARY_ACCESS',
     requestedRole: 'AUDITOR',
     currentRole: 'VIEWER',
-    justification: 'External auditor needs read access to compliance records for the Q2 audit.',
+    justification:
+      'External auditor needs read access to compliance records for the Q2 audit.',
     status: 'APPROVED',
     reviewedBy: 'admin@company.com',
     reviewNote: 'Approved for 30 days. Access expires 2026-04-09.',
@@ -91,10 +122,12 @@ const MOCK_REQUESTS: AccessRequest[] = [
     type: 'ROLE_UPGRADE',
     requestedRole: 'ORG_ADMIN',
     currentRole: 'SECURITY_OWNER',
-    justification: 'Need to manage billing and user provisioning while the current admin is on leave.',
+    justification:
+      'Need to manage billing and user provisioning while the current admin is on leave.',
     status: 'REJECTED',
     reviewedBy: 'admin@company.com',
-    reviewNote: 'Admin escalation is not appropriate for temporary coverage. Please use temporary delegation instead.',
+    reviewNote:
+      'Admin escalation is not appropriate for temporary coverage. Please use temporary delegation instead.',
     createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
     reviewedAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
   },
@@ -102,22 +135,61 @@ const MOCK_REQUESTS: AccessRequest[] = [
 
 // ── Status config ─────────────────────────────────────────────────────────────
 
-const STATUS_CONFIG: Record<RequestStatus, { label: string; bg: string; text: string; border: string; Icon: React.ElementType }> = {
-  PENDING:  { label: 'Pending Review', bg: 'bg-amber-50',  text: 'text-amber-700',  border: 'border-amber-200', Icon: Clock },
-  APPROVED: { label: 'Approved',       bg: 'bg-green-50',  text: 'text-green-700',  border: 'border-green-200', Icon: CheckCircle2 },
-  REJECTED: { label: 'Rejected',       bg: 'bg-red-50',    text: 'text-red-600',    border: 'border-red-200',   Icon: XCircle },
-  EXPIRED:  { label: 'Expired',        bg: 'bg-gray-50',   text: 'text-gray-500',   border: 'border-gray-200',  Icon: AlertCircle },
+const STATUS_CONFIG: Record<
+  RequestStatus,
+  {
+    label: string;
+    bg: string;
+    text: string;
+    border: string;
+    Icon: React.ElementType;
+  }
+> = {
+  PENDING: {
+    label: 'Pending Review',
+    bg: 'bg-amber-50',
+    text: 'text-amber-700',
+    border: 'border-amber-200',
+    Icon: Clock,
+  },
+  APPROVED: {
+    label: 'Approved',
+    bg: 'bg-green-50',
+    text: 'text-green-700',
+    border: 'border-green-200',
+    Icon: CheckCircle2,
+  },
+  REJECTED: {
+    label: 'Rejected',
+    bg: 'bg-red-50',
+    text: 'text-red-600',
+    border: 'border-red-200',
+    Icon: XCircle,
+  },
+  EXPIRED: {
+    label: 'Expired',
+    bg: 'bg-gray-50',
+    text: 'text-gray-500',
+    border: 'border-gray-200',
+    Icon: AlertCircle,
+  },
 };
 
 const TYPE_LABELS: Record<RequestType, string> = {
-  ROLE_UPGRADE:     'Role Upgrade',
+  ROLE_UPGRADE: 'Role Upgrade',
   TEMPORARY_ACCESS: 'Temporary Access',
   POLICY_EXCEPTION: 'Policy Exception',
 };
 
 // ── New Request Modal ──────────────────────────────────────────────────────────
 
-function NewRequestModal({ onClose, onCreated }: { onClose: () => void; onCreated: (req: AccessRequest) => void }) {
+function NewRequestModal({
+  onClose,
+  onCreated,
+}: {
+  onClose: () => void;
+  onCreated: (req: AccessRequest) => void;
+}) {
   const currentUser = useCurrentUser();
   const [type, setType] = useState<RequestType>('ROLE_UPGRADE');
   const [requestedRole, setRequestedRole] = useState<AppRole>('SECURITY_OWNER');
@@ -125,11 +197,21 @@ function NewRequestModal({ onClose, onCreated }: { onClose: () => void; onCreate
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const allRoles: AppRole[] = ['SUPER_ADMIN', 'ORG_ADMIN', 'SECURITY_OWNER', 'AUDITOR', 'CONTRIBUTOR', 'VIEWER'];
+  const allRoles: AppRole[] = [
+    'SUPER_ADMIN',
+    'ORG_ADMIN',
+    'SECURITY_OWNER',
+    'AUDITOR',
+    'CONTRIBUTOR',
+    'VIEWER',
+  ];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!justification.trim()) { setError('Please provide a justification'); return; }
+    if (!justification.trim()) {
+      setError('Please provide a justification');
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
@@ -148,7 +230,7 @@ function NewRequestModal({ onClose, onCreated }: { onClose: () => void; onCreate
         createdAt: new Date().toISOString(),
       };
       // Simulate API delay
-      await new Promise(r => setTimeout(r, 600));
+      await new Promise((r) => setTimeout(r, 600));
       onCreated(newReq);
     } catch (err: any) {
       setError(err?.message ?? 'Failed to submit request');
@@ -158,55 +240,82 @@ function NewRequestModal({ onClose, onCreated }: { onClose: () => void; onCreate
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6" onClick={e => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between mb-5">
           <div>
-            <h2 className="text-base font-semibold text-gray-900">New Access Request</h2>
-            <p className="text-xs text-gray-500 mt-0.5">Requests are reviewed by Org Admins and Security Owners.</p>
+            <h2 className="text-base font-semibold text-gray-900">
+              New Access Request
+            </h2>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Requests are reviewed by Org Admins and Security Owners.
+            </p>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"><X className="w-4 h-4" /></button>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Request type */}
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1.5">Request Type</label>
+            <label className="block text-xs font-medium text-gray-600 mb-1.5">
+              Request Type
+            </label>
             <div className="grid grid-cols-2 gap-2">
-              {(['ROLE_UPGRADE', 'TEMPORARY_ACCESS'] as RequestType[]).map(t => (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => setType(t)}
-                  className={`p-3 rounded-xl border text-left text-xs font-medium transition-all ${type === t ? 'border-blue-500 bg-blue-50 text-blue-700 ring-1 ring-blue-500' : 'border-gray-200 text-gray-700 hover:border-gray-300'}`}
-                >
-                  <p className="font-semibold">{TYPE_LABELS[t]}</p>
-                  <p className="text-xs text-gray-500 mt-0.5 font-normal">
-                    {t === 'ROLE_UPGRADE' ? 'Permanent role change' : 'Time-limited access'}
-                  </p>
-                </button>
-              ))}
+              {(['ROLE_UPGRADE', 'TEMPORARY_ACCESS'] as RequestType[]).map(
+                (t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setType(t)}
+                    className={`p-3 rounded-xl border text-left text-xs font-medium transition-all ${type === t ? 'border-blue-500 bg-blue-50 text-blue-700 ring-1 ring-blue-500' : 'border-gray-200 text-gray-700 hover:border-gray-300'}`}
+                  >
+                    <p className="font-semibold">{TYPE_LABELS[t]}</p>
+                    <p className="text-xs text-gray-500 mt-0.5 font-normal">
+                      {t === 'ROLE_UPGRADE'
+                        ? 'Permanent role change'
+                        : 'Time-limited access'}
+                    </p>
+                  </button>
+                ),
+              )}
             </div>
           </div>
 
           {/* Requested role */}
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1.5">Requested Role</label>
+            <label className="block text-xs font-medium text-gray-600 mb-1.5">
+              Requested Role
+            </label>
             <div className="grid grid-cols-2 gap-2">
-              {allRoles.filter(r => r !== 'SUPER_ADMIN' && r !== currentUser?.role).map(r => {
-                const rc = ROLE_CONFIG[r];
-                return (
-                  <button
-                    key={r}
-                    type="button"
-                    onClick={() => setRequestedRole(r)}
-                    className={`flex items-center gap-2 p-2.5 rounded-lg border text-xs font-medium transition-all ${requestedRole === r ? `${rc.bg} ${rc.border} ${rc.text} ring-1 ring-current` : 'border-gray-200 text-gray-700 bg-white hover:border-gray-300'}`}
-                  >
-                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${rc.dot}`} />
-                    {ROLE_LABELS[r]}
-                  </button>
-                );
-              })}
+              {allRoles
+                .filter((r) => r !== 'SUPER_ADMIN' && r !== currentUser?.role)
+                .map((r) => {
+                  const rc = ROLE_CONFIG[r];
+                  return (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => setRequestedRole(r)}
+                      className={`flex items-center gap-2 p-2.5 rounded-lg border text-xs font-medium transition-all ${requestedRole === r ? `${rc.bg} ${rc.border} ${rc.text} ring-1 ring-current` : 'border-gray-200 text-gray-700 bg-white hover:border-gray-300'}`}
+                    >
+                      <span
+                        className={`w-2 h-2 rounded-full flex-shrink-0 ${rc.dot}`}
+                      />
+                      {ROLE_LABELS[r]}
+                    </button>
+                  );
+                })}
             </div>
             {requestedRole && (
               <p className="text-xs text-gray-500 mt-1.5 bg-gray-50 rounded-lg px-3 py-2">
@@ -217,10 +326,12 @@ function NewRequestModal({ onClose, onCreated }: { onClose: () => void; onCreate
 
           {/* Justification */}
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Justification *</label>
+            <label className="block text-xs font-medium text-gray-600 mb-1">
+              Justification *
+            </label>
             <textarea
               value={justification}
-              onChange={e => setJustification(e.target.value)}
+              onChange={(e) => setJustification(e.target.value)}
               placeholder="Explain why you need this access and how it relates to your job responsibilities..."
               rows={4}
               className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
@@ -228,16 +339,30 @@ function NewRequestModal({ onClose, onCreated }: { onClose: () => void; onCreate
             />
           </div>
 
-          {error && <p className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
+          {error && (
+            <p className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2">
+              {error}
+            </p>
+          )}
 
           <div className="flex gap-3 pt-1">
-            <button type="button" onClick={onClose} className="flex-1 px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              Cancel
+            </button>
             <button
               type="submit"
               disabled={!justification.trim() || submitting}
               className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white text-sm font-medium"
             >
-              {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <ClipboardList className="w-4 h-4" />}
+              {submitting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <ClipboardList className="w-4 h-4" />
+              )}
               {submitting ? 'Submitting…' : 'Submit Request'}
             </button>
           </div>
@@ -269,7 +394,7 @@ function RequestCard({
 
   const handleAction = async (action: 'approve' | 'reject') => {
     setProcessing(true);
-    await new Promise(r => setTimeout(r, 500));
+    await new Promise((r) => setTimeout(r, 500));
     if (action === 'approve') onApprove(request.id, note);
     else onReject(request.id, note);
     setProcessing(false);
@@ -277,28 +402,42 @@ function RequestCard({
   };
 
   return (
-    <div className={`bg-white rounded-xl border shadow-sm overflow-hidden ${request.status === 'PENDING' ? 'border-amber-200' : 'border-gray-200'}`}>
+    <div
+      className={`bg-white rounded-xl border shadow-sm overflow-hidden ${request.status === 'PENDING' ? 'border-amber-200' : 'border-gray-200'}`}
+    >
       {/* Status bar */}
-      <div className={`flex items-center justify-between px-4 py-2 ${st.bg} border-b ${st.border}`}>
-        <div className={`flex items-center gap-1.5 text-xs font-semibold ${st.text}`}>
+      <div
+        className={`flex items-center justify-between px-4 py-2 ${st.bg} border-b ${st.border}`}
+      >
+        <div
+          className={`flex items-center gap-1.5 text-xs font-semibold ${st.text}`}
+        >
           <StatusIcon className="w-3.5 h-3.5" />
           {st.label}
         </div>
-        <span className="text-xs text-gray-400">{fmtDateTime(request.createdAt)}</span>
+        <span className="text-xs text-gray-400">
+          {fmtDateTime(request.createdAt)}
+        </span>
       </div>
 
       <div className="p-4 space-y-3">
         {/* Requester */}
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center text-xs font-bold text-blue-700 flex-shrink-0">
-            {(request.requesterName ?? request.requesterEmail).slice(0, 2).toUpperCase()}
+            {(request.requesterName ?? request.requesterEmail)
+              .slice(0, 2)
+              .toUpperCase()}
           </div>
           <div>
-            <p className="text-sm font-semibold text-gray-900">{request.requesterName ?? request.requesterEmail}</p>
+            <p className="text-sm font-semibold text-gray-900">
+              {request.requesterName ?? request.requesterEmail}
+            </p>
             <p className="text-xs text-gray-500">{request.requesterEmail}</p>
           </div>
           <div className="ml-auto text-xs text-gray-500 flex items-center gap-1 flex-shrink-0">
-            <span className="bg-gray-100 px-2 py-0.5 rounded-full font-medium">{TYPE_LABELS[request.type]}</span>
+            <span className="bg-gray-100 px-2 py-0.5 rounded-full font-medium">
+              {TYPE_LABELS[request.type]}
+            </span>
           </div>
         </div>
 
@@ -310,7 +449,8 @@ function RequestCard({
             <RoleBadge role={request.requestedRole} />
             {request.expiresAt && (
               <span className="ml-auto text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5 flex items-center gap-1">
-                <Calendar className="w-3 h-3" /> Expires {fmtDate(request.expiresAt)}
+                <Calendar className="w-3 h-3" /> Expires{' '}
+                {fmtDate(request.expiresAt)}
               </span>
             )}
           </div>
@@ -321,17 +461,29 @@ function RequestCard({
           <p className="text-xs font-medium text-gray-500 mb-1 flex items-center gap-1">
             <MessageSquare className="w-3 h-3" /> Justification
           </p>
-          <p className="text-sm text-gray-700 leading-relaxed">{request.justification}</p>
+          <p className="text-sm text-gray-700 leading-relaxed">
+            {request.justification}
+          </p>
         </div>
 
         {/* Review note */}
         {request.reviewNote && (
-          <div className={`rounded-lg px-3 py-2.5 border ${request.status === 'APPROVED' ? 'bg-green-50 border-green-100' : 'bg-red-50 border-red-100'}`}>
-            <p className={`text-xs font-medium mb-1 flex items-center gap-1 ${request.status === 'APPROVED' ? 'text-green-600' : 'text-red-600'}`}>
-              {request.status === 'APPROVED' ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
+          <div
+            className={`rounded-lg px-3 py-2.5 border ${request.status === 'APPROVED' ? 'bg-green-50 border-green-100' : 'bg-red-50 border-red-100'}`}
+          >
+            <p
+              className={`text-xs font-medium mb-1 flex items-center gap-1 ${request.status === 'APPROVED' ? 'text-green-600' : 'text-red-600'}`}
+            >
+              {request.status === 'APPROVED' ? (
+                <CheckCircle2 className="w-3 h-3" />
+              ) : (
+                <XCircle className="w-3 h-3" />
+              )}
               Reviewer Note — {request.reviewedBy}
             </p>
-            <p className="text-sm text-gray-700 leading-relaxed">{request.reviewNote}</p>
+            <p className="text-sm text-gray-700 leading-relaxed">
+              {request.reviewNote}
+            </p>
           </div>
         )}
 
@@ -349,7 +501,7 @@ function RequestCard({
               <div className="space-y-2.5">
                 <textarea
                   value={note}
-                  onChange={e => setNote(e.target.value)}
+                  onChange={(e) => setNote(e.target.value)}
                   placeholder="Add a review note (optional)..."
                   rows={2}
                   className="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
@@ -360,7 +512,11 @@ function RequestCard({
                     disabled={processing}
                     className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white text-xs font-medium transition-colors"
                   >
-                    {processing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                    {processing ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                    )}
                     Approve
                   </button>
                   <button
@@ -368,10 +524,19 @@ function RequestCard({
                     disabled={processing}
                     className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-red-600 hover:bg-red-700 disabled:bg-red-300 text-white text-xs font-medium transition-colors"
                   >
-                    {processing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
+                    {processing ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <XCircle className="w-3.5 h-3.5" />
+                    )}
                     Reject
                   </button>
-                  <button onClick={() => setShowReview(false)} className="px-3 py-2 rounded-lg border border-gray-200 text-xs text-gray-500 hover:bg-gray-50">Cancel</button>
+                  <button
+                    onClick={() => setShowReview(false)}
+                    className="px-3 py-2 rounded-lg border border-gray-200 text-xs text-gray-500 hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
                 </div>
               </div>
             )}
@@ -391,33 +556,70 @@ export function AccessRequestsPage() {
   const [showNew, setShowNew] = useState(false);
   const [statusFilter, setStatusFilter] = useState<RequestStatus | ''>('');
 
-  const filtered = requests.filter(r => !statusFilter || r.status === statusFilter);
-  const pendingCount = requests.filter(r => r.status === 'PENDING').length;
-  const myRequests = requests.filter(r => r.requesterId === currentUser?.id || r.requesterEmail === currentUser?.email);
-  const pendingReview = requests.filter(r => r.status === 'PENDING');
+  const filtered = requests.filter(
+    (r) => !statusFilter || r.status === statusFilter,
+  );
+  const pendingCount = requests.filter((r) => r.status === 'PENDING').length;
+  const myRequests = requests.filter(
+    (r) =>
+      r.requesterId === currentUser?.id ||
+      r.requesterEmail === currentUser?.email,
+  );
+  const pendingReview = requests.filter((r) => r.status === 'PENDING');
 
   const handleApprove = (id: string, note: string) => {
-    setRequests(prev => prev.map(r => r.id === id ? { ...r, status: 'APPROVED', reviewNote: note || undefined, reviewedBy: currentUser?.email, reviewedAt: new Date().toISOString() } : r));
+    setRequests((prev) =>
+      prev.map((r) =>
+        r.id === id
+          ? {
+              ...r,
+              status: 'APPROVED',
+              reviewNote: note || undefined,
+              reviewedBy: currentUser?.email,
+              reviewedAt: new Date().toISOString(),
+            }
+          : r,
+      ),
+    );
   };
 
   const handleReject = (id: string, note: string) => {
-    setRequests(prev => prev.map(r => r.id === id ? { ...r, status: 'REJECTED', reviewNote: note || undefined, reviewedBy: currentUser?.email, reviewedAt: new Date().toISOString() } : r));
+    setRequests((prev) =>
+      prev.map((r) =>
+        r.id === id
+          ? {
+              ...r,
+              status: 'REJECTED',
+              reviewNote: note || undefined,
+              reviewedBy: currentUser?.email,
+              reviewedAt: new Date().toISOString(),
+            }
+          : r,
+      ),
+    );
   };
 
   const handleCreated = (req: AccessRequest) => {
-    setRequests(prev => [req, ...prev]);
+    setRequests((prev) => [req, ...prev]);
     setShowNew(false);
   };
 
   return (
     <div className="flex flex-col bg-gray-50">
-      {showNew && <NewRequestModal onClose={() => setShowNew(false)} onCreated={handleCreated} />}
+      {showNew && (
+        <NewRequestModal
+          onClose={() => setShowNew(false)}
+          onCreated={handleCreated}
+        />
+      )}
 
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between shadow-sm sticky top-0 z-10">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-semibold text-gray-900 tracking-tight">Access Requests</h1>
+            <h1 className="text-xl font-semibold text-gray-900 tracking-tight">
+              Access Requests
+            </h1>
             {pendingCount > 0 && (
               <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700 border border-amber-200">
                 <Bell className="w-3 h-3" /> {pendingCount} pending
@@ -446,7 +648,9 @@ export function AccessRequestsPage() {
               <TabsTrigger value="pending">
                 Pending Review
                 {pendingReview.length > 0 && (
-                  <span className="ml-1.5 px-1.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700">{pendingReview.length}</span>
+                  <span className="ml-1.5 px-1.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700">
+                    {pendingReview.length}
+                  </span>
                 )}
               </TabsTrigger>
             )}
@@ -461,11 +665,21 @@ export function AccessRequestsPage() {
                 <div className="flex flex-col items-center py-20 text-gray-400">
                   <CheckCircle2 className="w-12 h-12 mb-3 opacity-30" />
                   <p className="text-sm font-medium">No pending requests</p>
-                  <p className="text-xs mt-1">All access requests have been reviewed.</p>
+                  <p className="text-xs mt-1">
+                    All access requests have been reviewed.
+                  </p>
                 </div>
-              ) : pendingReview.map(req => (
-                <RequestCard key={req.id} request={req} onApprove={handleApprove} onReject={handleReject} canReview={canApprove} />
-              ))}
+              ) : (
+                pendingReview.map((req) => (
+                  <RequestCard
+                    key={req.id}
+                    request={req}
+                    onApprove={handleApprove}
+                    onReject={handleReject}
+                    canReview={canApprove}
+                  />
+                ))
+              )}
             </TabsContent>
           )}
 
@@ -475,7 +689,9 @@ export function AccessRequestsPage() {
               <div className="flex flex-col items-center py-16 text-gray-400">
                 <ClipboardList className="w-12 h-12 mb-3 opacity-30" />
                 <p className="text-sm font-medium">No requests yet</p>
-                <p className="text-xs mt-1">Submit a request when you need elevated access.</p>
+                <p className="text-xs mt-1">
+                  Submit a request when you need elevated access.
+                </p>
                 <button
                   onClick={() => setShowNew(true)}
                   className="mt-4 flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium"
@@ -483,9 +699,17 @@ export function AccessRequestsPage() {
                   <Plus className="w-4 h-4" /> New Request
                 </button>
               </div>
-            ) : myRequests.map(req => (
-              <RequestCard key={req.id} request={req} onApprove={handleApprove} onReject={handleReject} canReview={false} />
-            ))}
+            ) : (
+              myRequests.map((req) => (
+                <RequestCard
+                  key={req.id}
+                  request={req}
+                  onApprove={handleApprove}
+                  onReject={handleReject}
+                  canReview={false}
+                />
+              ))
+            )}
           </TabsContent>
 
           {/* All requests */}
@@ -493,8 +717,10 @@ export function AccessRequestsPage() {
             <TabsContent value="all" className="mt-0 space-y-4">
               {/* Filter */}
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs font-medium text-gray-500">Status:</span>
-                {(['', 'PENDING', 'APPROVED', 'REJECTED'] as const).map(s => {
+                <span className="text-xs font-medium text-gray-500">
+                  Status:
+                </span>
+                {(['', 'PENDING', 'APPROVED', 'REJECTED'] as const).map((s) => {
                   const cfg = s ? STATUS_CONFIG[s] : null;
                   return (
                     <button
@@ -502,7 +728,9 @@ export function AccessRequestsPage() {
                       onClick={() => setStatusFilter(s)}
                       className={`px-3 py-1 rounded-full text-xs font-medium border transition-all ${
                         statusFilter === s
-                          ? s ? `${cfg!.bg} ${cfg!.text} ${cfg!.border}` : 'bg-gray-900 text-white border-gray-900'
+                          ? s
+                            ? `${cfg!.bg} ${cfg!.text} ${cfg!.border}`
+                            : 'bg-gray-900 text-white border-gray-900'
                           : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
                       }`}
                     >
@@ -513,10 +741,20 @@ export function AccessRequestsPage() {
               </div>
 
               {filtered.length === 0 ? (
-                <div className="text-center py-10 text-gray-400 text-sm">No requests match the selected filter.</div>
-              ) : filtered.map(req => (
-                <RequestCard key={req.id} request={req} onApprove={handleApprove} onReject={handleReject} canReview={canApprove && req.status === 'PENDING'} />
-              ))}
+                <div className="text-center py-10 text-gray-400 text-sm">
+                  No requests match the selected filter.
+                </div>
+              ) : (
+                filtered.map((req) => (
+                  <RequestCard
+                    key={req.id}
+                    request={req}
+                    onApprove={handleApprove}
+                    onReject={handleReject}
+                    canReview={canApprove && req.status === 'PENDING'}
+                  />
+                ))
+              )}
             </TabsContent>
           )}
         </Tabs>

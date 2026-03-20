@@ -1,7 +1,7 @@
 // F2: Recharts is imported lazily so the vendor-charts chunk is only fetched
 // when the ReportViewerPage is actually visited. Since this page is already
 // a lazy-loaded route, the Recharts chunk is deferred until first navigation.
-import React, { lazy, Suspense, useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import {

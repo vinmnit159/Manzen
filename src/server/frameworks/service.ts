@@ -433,7 +433,7 @@ export class FrameworkService {
 
     let requirementsLoaded = 0;
     let mappingsSuggested = 0;
-    let mappingsSkipped = 0;
+    const mappingsSkipped = 0;
 
     if (!isReactivation) {
       // Seed default requirement status rows (idempotent)

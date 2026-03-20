@@ -1,7 +1,15 @@
 import { addDays, differenceInCalendarDays } from 'date-fns';
 import { getRiskEngineRuntimeService } from '@/server/risk-engine/runtime';
-import { getTestsRuntimeService, type TestRecordDto, type TestRunRecordDto } from './runtime';
-import { createPgExecutor, getPostgresPool, readPostgresRuntimeConfig } from '@/server/db/postgres';
+import {
+  getTestsRuntimeService,
+  type TestRecordDto,
+  type TestRunRecordDto,
+} from './runtime';
+import {
+  createPgExecutor,
+  getPostgresPool,
+  readPostgresRuntimeConfig,
+} from '@/server/db/postgres';
 import {
   createJiraTicket,
   forwardSiemEvent,
@@ -104,7 +112,8 @@ const TEMPLATE_LIBRARY: TestTemplateDto[] = [
     id: 'soc2-access-reviews',
     framework: 'SOC 2',
     name: 'SOC 2 Access Review Suite',
-    description: 'Quarterly access reviews, privileged access checks, and evidence attestation.',
+    description:
+      'Quarterly access reviews, privileged access checks, and evidence attestation.',
     category: 'Policy',
     type: 'Document',
     recurrenceRule: 'quarterly',
@@ -114,7 +123,8 @@ const TEMPLATE_LIBRARY: TestTemplateDto[] = [
     id: 'iso-cloud-hardening',
     framework: 'ISO 27001',
     name: 'ISO Cloud Hardening Suite',
-    description: 'Automated control tests for cloud exposure, encryption, and WAF posture.',
+    description:
+      'Automated control tests for cloud exposure, encryption, and WAF posture.',
     category: 'Risks',
     type: 'Automated',
     recurrenceRule: 'monthly',
@@ -124,7 +134,8 @@ const TEMPLATE_LIBRARY: TestTemplateDto[] = [
     id: 'nist-devsecops',
     framework: 'NIST',
     name: 'NIST DevSecOps Pipeline Suite',
-    description: 'Pipeline-native checks for branch protection, reviews, scanning, and CI traceability.',
+    description:
+      'Pipeline-native checks for branch protection, reviews, scanning, and CI traceability.',
     category: 'Engineering',
     type: 'Pipeline',
     recurrenceRule: 'weekly',
@@ -134,7 +145,8 @@ const TEMPLATE_LIBRARY: TestTemplateDto[] = [
     id: 'hipaa-evidence-readiness',
     framework: 'HIPAA',
     name: 'HIPAA Evidence Readiness Suite',
-    description: 'Evidence freshness, control attestations, and audit-ready reporting for regulated systems.',
+    description:
+      'Evidence freshness, control attestations, and audit-ready reporting for regulated systems.',
     category: 'IT',
     type: 'Document',
     recurrenceRule: 'monthly',
@@ -147,7 +159,9 @@ const TEMPLATE_LIBRARY: TestTemplateDto[] = [
  * Falls back to the hardcoded baseline when no DB is available (e.g. in tests).
  * Gap 8 fix: replaced static constant with a live DB query to organization_frameworks.
  */
-async function getActiveFrameworkNames(organizationId?: string): Promise<string[]> {
+async function getActiveFrameworkNames(
+  organizationId?: string,
+): Promise<string[]> {
   const FALLBACK = ['SOC 2', 'ISO 27001', 'NIST', 'HIPAA'];
   if (!organizationId) return FALLBACK;
   try {
@@ -162,7 +176,7 @@ async function getActiveFrameworkNames(organizationId?: string): Promise<string[
       [organizationId],
     );
     if (result.rows.length === 0) return FALLBACK;
-    return result.rows.map(r => r.name);
+    return result.rows.map((r) => r.name);
   } catch {
     return FALLBACK;
   }
@@ -175,14 +189,21 @@ function plural(value: number, label: string) {
 function countBy(values: string[]) {
   const counts = new Map<string, number>();
   for (const value of values) counts.set(value, (counts.get(value) ?? 0) + 1);
-  return Array.from(counts.entries()).map(([label, count]) => ({ label, count }));
+  return Array.from(counts.entries()).map(([label, count]) => ({
+    label,
+    count,
+  }));
 }
 
 async function getMutableService() {
   return (await getTestsRuntimeService()) as any;
 }
 
-function emitNotification(payload: Parameters<NonNullable<ReturnType<typeof getNotificationServiceOrNull>>['emit']>[0]) {
+function emitNotification(
+  payload: Parameters<
+    NonNullable<ReturnType<typeof getNotificationServiceOrNull>>['emit']
+  >[0],
+) {
   const notificationService = getNotificationServiceOrNull();
   if (notificationService) {
     notificationService.emit(payload).catch((error) => {
@@ -203,39 +224,102 @@ function getOrgIdForTest(service: any, testId: string) {
 export async function getTestsDashboard(): Promise<TestDashboardDto> {
   const service = await getMutableService();
   const tests = asRecords(service);
-  const allControls = new Set(tests.flatMap((test) => test.controls.map((control) => control.controlId)));
-  const coveredControls = new Set(tests.filter((test) => test.controls.length > 0).flatMap((test) => test.controls.map((control) => control.controlId)));
-  const evidenceAges = tests.flatMap((test) => test.evidences.map((evidence) => differenceInCalendarDays(new Date(), new Date(evidence.evidence.createdAt))));
-  const onTimeCompleted = tests.filter((test) => test.completedAt && new Date(test.completedAt) <= new Date(test.dueDate)).length;
+  const allControls = new Set(
+    tests.flatMap((test) => test.controls.map((control) => control.controlId)),
+  );
+  const coveredControls = new Set(
+    tests
+      .filter((test) => test.controls.length > 0)
+      .flatMap((test) => test.controls.map((control) => control.controlId)),
+  );
+  const evidenceAges = tests.flatMap((test) =>
+    test.evidences.map((evidence) =>
+      differenceInCalendarDays(
+        new Date(),
+        new Date(evidence.evidence.createdAt),
+      ),
+    ),
+  );
+  const onTimeCompleted = tests.filter(
+    (test) =>
+      test.completedAt && new Date(test.completedAt) <= new Date(test.dueDate),
+  ).length;
   const completed = tests.filter((test) => Boolean(test.completedAt)).length;
 
   return {
-    controlCoverage: allControls.size === 0 ? 0 : Math.round((coveredControls.size / allControls.size) * 100),
-    frameworkCoverage: countBy(tests.flatMap((test) => test.frameworks.map((framework) => framework.frameworkName))).map((item) => ({ framework: item.label, count: item.count })),
-    automationCoverage: tests.length === 0 ? 0 : Math.round((tests.filter((test) => test.type !== 'Document').length / tests.length) * 100),
-    evidenceFreshness: evidenceAges.length === 0 ? 0 : Math.max(0, 100 - Math.round(evidenceAges.reduce((sum, age) => sum + age, 0) / evidenceAges.length)),
-    slaCompliance: completed === 0 ? 0 : Math.round((onTimeCompleted / completed) * 100),
+    controlCoverage:
+      allControls.size === 0
+        ? 0
+        : Math.round((coveredControls.size / allControls.size) * 100),
+    frameworkCoverage: countBy(
+      tests.flatMap((test) =>
+        test.frameworks.map((framework) => framework.frameworkName),
+      ),
+    ).map((item) => ({ framework: item.label, count: item.count })),
+    automationCoverage:
+      tests.length === 0
+        ? 0
+        : Math.round(
+            (tests.filter((test) => test.type !== 'Document').length /
+              tests.length) *
+              100,
+          ),
+    evidenceFreshness:
+      evidenceAges.length === 0
+        ? 0
+        : Math.max(
+            0,
+            100 -
+              Math.round(
+                evidenceAges.reduce((sum, age) => sum + age, 0) /
+                  evidenceAges.length,
+              ),
+          ),
+    slaCompliance:
+      completed === 0 ? 0 : Math.round((onTimeCompleted / completed) * 100),
     statusBreakdown: countBy(tests.map((test) => test.status)),
   };
 }
 
-export async function getTestGapAnalysis(organizationId?: string): Promise<TestGapAnalysisDto> {
+export async function getTestGapAnalysis(
+  organizationId?: string,
+): Promise<TestGapAnalysisDto> {
   const service = await getMutableService();
   const tests = asRecords(service);
-  const coveredFrameworks = new Set(tests.flatMap((test) => test.frameworks.map((framework) => framework.frameworkName)));
-  const controlsWithoutTests = TEMPLATE_LIBRARY.flatMap((template) => template.controls).filter((control) => !tests.some((test) => test.controls.some((link) => link.control.title === control || link.controlId === control)));
+  const coveredFrameworks = new Set(
+    tests.flatMap((test) =>
+      test.frameworks.map((framework) => framework.frameworkName),
+    ),
+  );
+  const controlsWithoutTests = TEMPLATE_LIBRARY.flatMap(
+    (template) => template.controls,
+  ).filter(
+    (control) =>
+      !tests.some((test) =>
+        test.controls.some(
+          (link) =>
+            link.control.title === control || link.controlId === control,
+        ),
+      ),
+  );
   const activeFrameworks = await getActiveFrameworkNames(organizationId);
 
   return {
     controlsWithoutTests: Array.from(new Set(controlsWithoutTests)),
-    frameworksWithoutCoverage: activeFrameworks.filter((framework) => !coveredFrameworks.has(framework)),
-    testsWithoutEvidence: tests.filter((test) => test.evidences.length === 0).map((test) => ({ id: test.id, name: test.name })),
+    frameworksWithoutCoverage: activeFrameworks.filter(
+      (framework) => !coveredFrameworks.has(framework),
+    ),
+    testsWithoutEvidence: tests
+      .filter((test) => test.evidences.length === 0)
+      .map((test) => ({ id: test.id, name: test.name })),
   };
 }
 
 export const getGapAnalysis = getTestGapAnalysis;
 
-export async function getTestRiskContext(testId: string): Promise<TestRiskContextDto> {
+export async function getTestRiskContext(
+  testId: string,
+): Promise<TestRiskContextDto> {
   const service = await getMutableService();
   const linkedTest = service.getTest(testId) as TestRecordDto;
   const riskEngine = await getRiskEngineRuntimeService();
@@ -245,9 +329,14 @@ export async function getTestRiskContext(testId: string): Promise<TestRiskContex
     riskEngine.listSignals(),
   ]);
 
-  const matchingResults = results.filter((result) => result.testId === linkedTest.riskEngineTestId);
+  const matchingResults = results.filter(
+    (result) => result.testId === linkedTest.riskEngineTestId,
+  );
   return {
-    linkedTest: { id: linkedTest.id, riskEngineTestId: linkedTest.riskEngineTestId },
+    linkedTest: {
+      id: linkedTest.id,
+      riskEngineTestId: linkedTest.riskEngineTestId,
+    },
     results: matchingResults.map((result) => {
       const signal = signals.find((item) => item.id === result.signalId);
       return {
@@ -261,14 +350,18 @@ export async function getTestRiskContext(testId: string): Promise<TestRiskContex
         signalType: signal?.signalType ?? 'unknown',
       };
     }),
-    risks: risks.filter((risk) => matchingResults.some((result) => result.id === risk.testResultId)).map((risk) => ({
-      id: risk.id,
-      title: risk.title,
-      severity: risk.severity,
-      score: risk.score,
-      status: risk.status,
-      resourceName: risk.resourceName,
-    })),
+    risks: risks
+      .filter((risk) =>
+        matchingResults.some((result) => result.id === risk.testResultId),
+      )
+      .map((risk) => ({
+        id: risk.id,
+        title: risk.title,
+        severity: risk.severity,
+        score: risk.score,
+        status: risk.status,
+        resourceName: risk.resourceName,
+      })),
   };
 }
 
@@ -297,7 +390,11 @@ export async function createTestSuiteFromTemplate(templateId: string) {
       status: record.status,
       riskEngineTestId: record.riskEngineTestId,
     });
-    service.updateRecord(record.id, (current: TestRecordDto) => ({ ...current, templateId: template.id, updatedAt: new Date().toISOString() }));
+    service.updateRecord(record.id, (current: TestRecordDto) => ({
+      ...current,
+      templateId: template.id,
+      updatedAt: new Date().toISOString(),
+    }));
     created.push(service.getTest(record.id));
   }
   return created;
@@ -307,7 +404,11 @@ export async function requestAttestation(testId: string, reviewerId: string) {
   const service = await getMutableService();
   const organizationId = getOrgIdForTest(service, testId);
   const currentTest = service.getTest(testId) as TestRecordDto;
-  const reviewer = { id: reviewerId, name: reviewerId, email: `${reviewerId}@manzen.dev` };
+  const reviewer = {
+    id: reviewerId,
+    name: reviewerId,
+    email: `${reviewerId}@manzen.dev`,
+  };
   service.updateRecord(testId, (current: TestRecordDto) => ({
     ...current,
     reviewerId,
@@ -315,16 +416,28 @@ export async function requestAttestation(testId: string, reviewerId: string) {
     attestationStatus: 'Pending_review',
     updatedAt: new Date().toISOString(),
   }));
-  service.addHistory(testId, 'Attestation requested', null, reviewerId, 'workflow');
+  service.addHistory(
+    testId,
+    'Attestation requested',
+    null,
+    reviewerId,
+    'workflow',
+  );
   await Promise.all([
-    createJiraTicket({ testId, summary: `Attestation requested for ${testId}`, description: `Evidence review requested for test ${testId}. Reviewer: ${reviewerId}.`, labels: ['test-attestation'], organizationId }),
+    createJiraTicket({
+      testId,
+      summary: `Attestation requested for ${testId}`,
+      description: `Evidence review requested for test ${testId}. Reviewer: ${reviewerId}.`,
+      labels: ['test-attestation'],
+      organizationId,
+    }),
   ]);
   emitNotification({
     organizationId,
     recipientUserIds: [reviewerId],
     eventType: NotificationEventType.ATTESTATION_REQUESTED,
     title: `Attestation requested for ${currentTest.name}`,
-    body: `Please review and attest evidence for test \"${currentTest.name}\".`,
+    body: `Please review and attest evidence for test "${currentTest.name}".`,
     severity: 'info',
     resourceType: 'test',
     resourceId: testId,
@@ -342,7 +455,11 @@ export async function signAttestation(testId: string, reviewerId: string) {
   service.updateRecord(testId, (current: TestRecordDto) => ({
     ...current,
     reviewerId,
-    reviewer: { id: reviewerId, name: reviewerId, email: `${reviewerId}@manzen.dev` },
+    reviewer: {
+      id: reviewerId,
+      name: reviewerId,
+      email: `${reviewerId}@manzen.dev`,
+    },
     attestationStatus: 'Attested',
     attestedAt: now,
     updatedAt: now,
@@ -353,11 +470,14 @@ export async function signAttestation(testId: string, reviewerId: string) {
     recipientUserIds: [currentTest.ownerId],
     eventType: NotificationEventType.ATTESTATION_SIGNED,
     title: `Evidence attested for ${currentTest.name}`,
-    body: `Reviewer ${reviewerId} approved the evidence attached to \"${currentTest.name}\".`,
+    body: `Reviewer ${reviewerId} approved the evidence attached to "${currentTest.name}".`,
     severity: 'info',
     resourceType: 'test',
     resourceId: testId,
-    recipientEmails: { [currentTest.ownerId]: currentTest.owner?.email ?? `${currentTest.ownerId}@manzen.dev` },
+    recipientEmails: {
+      [currentTest.ownerId]:
+        currentTest.owner?.email ?? `${currentTest.ownerId}@manzen.dev`,
+    },
     resourceUrl: `/tests/${testId}`,
   });
   return service.getTest(testId) as TestRecordDto;
@@ -367,9 +487,10 @@ export async function runAutoRemediation(testId: string) {
   const service = await getMutableService();
   const organizationId = getOrgIdForTest(service, testId);
   const current = service.getTest(testId) as TestRecordDto;
-  const playbook = current.lastResult === 'Fail'
-    ? `Auto-remediation playbook executed for ${current.name}`
-    : `Remediation validation executed for ${current.name}`;
+  const playbook =
+    current.lastResult === 'Fail'
+      ? `Auto-remediation playbook executed for ${current.name}`
+      : `Remediation validation executed for ${current.name}`;
   const now = new Date().toISOString();
   service.updateRecord(testId, (record: TestRecordDto) => ({
     ...record,
@@ -377,10 +498,20 @@ export async function runAutoRemediation(testId: string) {
     status: 'OK',
     lastRunAt: now,
     lastRemediationAt: now,
-    lastResultDetails: { ...(record.lastResultDetails ?? {}), remediationPlaybook: playbook, approvalWorkflow: 'Security owner approval captured' },
+    lastResultDetails: {
+      ...(record.lastResultDetails ?? {}),
+      remediationPlaybook: playbook,
+      approvalWorkflow: 'Security owner approval captured',
+    },
     updatedAt: now,
   }));
-  service.addHistory(testId, 'Auto-remediation executed', current.lastResult ?? null, 'Pass', 'soar');
+  service.addHistory(
+    testId,
+    'Auto-remediation executed',
+    current.lastResult ?? null,
+    'Pass',
+    'soar',
+  );
   await Promise.all([
     triggerGithubActionsWorkflow({
       testId,
@@ -393,22 +524,38 @@ export async function runAutoRemediation(testId: string) {
         remediationPlaybook: playbook,
       },
     }),
-    sendSlackNotification({ testId, title: 'Auto-remediation executed', body: `${playbook}. Status has been updated to pass.`, severity: 'warning', organizationId }),
+    sendSlackNotification({
+      testId,
+      title: 'Auto-remediation executed',
+      body: `${playbook}. Status has been updated to pass.`,
+      severity: 'warning',
+      organizationId,
+    }),
   ]);
   return service.getTest(testId) as TestRecordDto;
 }
 
-export async function ingestPipelineRun(input: { pipelineName: string; provider: string; status: 'success' | 'failure'; summary: string; branch?: string }) {
+export async function ingestPipelineRun(input: {
+  pipelineName: string;
+  provider: string;
+  status: 'success' | 'failure';
+  summary: string;
+  branch?: string;
+}) {
   const service = await getMutableService();
-  const existing = asRecords(service).find((test) => test.name === input.pipelineName && test.type === 'Pipeline');
-  const test = existing ?? service.createTest({
-    name: input.pipelineName,
-    category: 'Engineering',
-    type: 'Pipeline',
-    ownerId: 'user-appsec',
-    dueDate: new Date().toISOString(),
-    recurrenceRule: 'weekly',
-  });
+  const existing = asRecords(service).find(
+    (test) => test.name === input.pipelineName && test.type === 'Pipeline',
+  );
+  const test =
+    existing ??
+    service.createTest({
+      name: input.pipelineName,
+      category: 'Engineering',
+      type: 'Pipeline',
+      ownerId: 'user-appsec',
+      dueDate: new Date().toISOString(),
+      recurrenceRule: 'weekly',
+    });
 
   const now = new Date().toISOString();
   const organizationId = (test as TestRecordDto).organizationId;
@@ -423,7 +570,10 @@ export async function ingestPipelineRun(input: { pipelineName: string; provider:
     durationMs: null,
   };
 
-  service.state.runs[test.id] = [run, ...(service.state.runs[test.id] ?? [])].slice(0, 25);
+  service.state.runs[test.id] = [
+    run,
+    ...(service.state.runs[test.id] ?? []),
+  ].slice(0, 25);
   service.updateRecord(test.id, (current: TestRecordDto) => ({
     ...current,
     type: 'Pipeline',
@@ -432,7 +582,11 @@ export async function ingestPipelineRun(input: { pipelineName: string; provider:
     lastRunAt: now,
     lastResult: run.status,
     status: run.status === 'Fail' ? 'Needs_remediation' : 'OK',
-    lastResultDetails: { summary: input.summary, branch: input.branch ?? 'main', provider: input.provider },
+    lastResultDetails: {
+      summary: input.summary,
+      branch: input.branch ?? 'main',
+      provider: input.provider,
+    },
     updatedAt: now,
   }));
   service.applyAutomationMappings(test.id);
@@ -440,7 +594,13 @@ export async function ingestPipelineRun(input: { pipelineName: string; provider:
   service.addHistory(test.id, 'Pipeline run ingested', null, run.status, 'ci');
   if (run.status === 'Fail') {
     await Promise.all([
-      createJiraTicket({ testId: test.id, summary: `Pipeline failure: ${input.pipelineName}`, description: input.summary, labels: ['pipeline-test', 'failure'], organizationId }),
+      createJiraTicket({
+        testId: test.id,
+        summary: `Pipeline failure: ${input.pipelineName}`,
+        description: input.summary,
+        labels: ['pipeline-test', 'failure'],
+        organizationId,
+      }),
       forwardSiemEvent({
         testId: test.id,
         organizationId,
@@ -465,7 +625,11 @@ export async function ingestPipelineRun(input: { pipelineName: string; provider:
       resourceType: 'test',
       resourceId: test.id,
       metadata: { provider: input.provider, branch: input.branch ?? 'main' },
-      recipientEmails: { [(test as TestRecordDto).ownerId]: (test as TestRecordDto).owner?.email ?? `${(test as TestRecordDto).ownerId}@manzen.dev` },
+      recipientEmails: {
+        [(test as TestRecordDto).ownerId]:
+          (test as TestRecordDto).owner?.email ??
+          `${(test as TestRecordDto).ownerId}@manzen.dev`,
+      },
       resourceUrl: `/tests/${test.id}`,
     });
   }
@@ -474,7 +638,13 @@ export async function ingestPipelineRun(input: { pipelineName: string; provider:
 
 export async function listSecurityEvents(): Promise<SecurityEventDto[]> {
   return listWorkflowDeliveryLog()
-    .filter((entry) => entry.kind === 'siem' || entry.kind === 'jira' || entry.kind === 'slack' || entry.kind === 'github-actions')
+    .filter(
+      (entry) =>
+        entry.kind === 'siem' ||
+        entry.kind === 'jira' ||
+        entry.kind === 'slack' ||
+        entry.kind === 'github-actions',
+    )
     .map((entry) => ({
       id: entry.id,
       testId: entry.testId,
@@ -486,9 +656,13 @@ export async function listSecurityEvents(): Promise<SecurityEventDto[]> {
     }));
 }
 
-export async function listUnifiedEvidence(testId?: string): Promise<UnifiedEvidenceDto[]> {
+export async function listUnifiedEvidence(
+  testId?: string,
+): Promise<UnifiedEvidenceDto[]> {
   const service = await getMutableService();
-  const tests = testId ? [service.getTest(testId) as TestRecordDto] : asRecords(service);
+  const tests = testId
+    ? [service.getTest(testId) as TestRecordDto]
+    : asRecords(service);
   const riskEngine = await getRiskEngineRuntimeService();
   const riskEvidence = await riskEngine.listEvidence();
   const result: UnifiedEvidenceDto[] = [];
@@ -504,7 +678,11 @@ export async function listUnifiedEvidence(testId?: string): Promise<UnifiedEvide
         provider: 'compliance',
       });
     }
-    for (const snapshot of riskEvidence.filter((item) => item.testId === test.riskEngineTestId || test.evidences.some((link) => link.evidenceId === item.id))) {
+    for (const snapshot of riskEvidence.filter(
+      (item) =>
+        item.testId === test.riskEngineTestId ||
+        test.evidences.some((link) => link.evidenceId === item.id),
+    )) {
       result.push({
         id: `unified-risk-${snapshot.id}`,
         sourceType: 'risk-snapshot',
@@ -516,25 +694,71 @@ export async function listUnifiedEvidence(testId?: string): Promise<UnifiedEvide
       });
     }
   }
-  return result.sort((a, b) => +new Date(b.capturedAt) - +new Date(a.capturedAt));
+  return result.sort(
+    (a, b) => +new Date(b.capturedAt) - +new Date(a.capturedAt),
+  );
 }
 
 export async function listEscalations(): Promise<EscalationDto[]> {
   const service = await getMutableService();
   const tests = asRecords(service).filter((test) => test.status === 'Overdue');
   const escalations = tests.flatMap((test) => [
-    { id: `${test.id}-owner`, testId: test.id, owner: test.owner?.name ?? test.ownerId, stage: 'OWNER' as const, dueAt: test.dueDate, integration: 'Slack', status: 'TRIGGERED' as const },
-    { id: `${test.id}-manager`, testId: test.id, owner: test.owner?.name ?? test.ownerId, stage: 'MANAGER' as const, dueAt: addDays(new Date(test.dueDate), 3).toISOString(), integration: 'Jira', status: differenceInCalendarDays(new Date(), addDays(new Date(test.dueDate), 3)) >= 0 ? 'TRIGGERED' as const : 'PENDING' as const },
-    { id: `${test.id}-ciso`, testId: test.id, owner: test.owner?.name ?? test.ownerId, stage: 'CISO' as const, dueAt: addDays(new Date(test.dueDate), 7).toISOString(), integration: 'Slack + Jira', status: differenceInCalendarDays(new Date(), addDays(new Date(test.dueDate), 7)) >= 0 ? 'TRIGGERED' as const : 'PENDING' as const },
+    {
+      id: `${test.id}-owner`,
+      testId: test.id,
+      owner: test.owner?.name ?? test.ownerId,
+      stage: 'OWNER' as const,
+      dueAt: test.dueDate,
+      integration: 'Slack',
+      status: 'TRIGGERED' as const,
+    },
+    {
+      id: `${test.id}-manager`,
+      testId: test.id,
+      owner: test.owner?.name ?? test.ownerId,
+      stage: 'MANAGER' as const,
+      dueAt: addDays(new Date(test.dueDate), 3).toISOString(),
+      integration: 'Jira',
+      status:
+        differenceInCalendarDays(
+          new Date(),
+          addDays(new Date(test.dueDate), 3),
+        ) >= 0
+          ? ('TRIGGERED' as const)
+          : ('PENDING' as const),
+    },
+    {
+      id: `${test.id}-ciso`,
+      testId: test.id,
+      owner: test.owner?.name ?? test.ownerId,
+      stage: 'CISO' as const,
+      dueAt: addDays(new Date(test.dueDate), 7).toISOString(),
+      integration: 'Slack + Jira',
+      status:
+        differenceInCalendarDays(
+          new Date(),
+          addDays(new Date(test.dueDate), 7),
+        ) >= 0
+          ? ('TRIGGERED' as const)
+          : ('PENDING' as const),
+    },
   ]);
-  await Promise.all(escalations.filter((item) => item.status === 'TRIGGERED').map((item) => maybeDispatchEscalation({
-    escalationKey: item.id,
-    testId: item.testId,
-    stage: item.stage,
-    organizationId: tests.find((test) => test.id === item.testId)?.organizationId,
-    message: `Escalation stage ${item.stage} triggered for overdue test ${item.testId}. Owner: ${item.owner}.`,
-    channels: item.stage === 'OWNER' ? { slack: false, jira: true } : undefined,
-  })));
+  await Promise.all(
+    escalations
+      .filter((item) => item.status === 'TRIGGERED')
+      .map((item) =>
+        maybeDispatchEscalation({
+          escalationKey: item.id,
+          testId: item.testId,
+          stage: item.stage,
+          organizationId: tests.find((test) => test.id === item.testId)
+            ?.organizationId,
+          message: `Escalation stage ${item.stage} triggered for overdue test ${item.testId}. Owner: ${item.owner}.`,
+          channels:
+            item.stage === 'OWNER' ? { slack: false, jira: true } : undefined,
+        }),
+      ),
+  );
   escalations
     .filter((item) => item.stage === 'OWNER' && item.status === 'TRIGGERED')
     .forEach((item) => {
@@ -545,40 +769,68 @@ export async function listEscalations(): Promise<EscalationDto[]> {
         recipientUserIds: [test.ownerId],
         eventType: NotificationEventType.TEST_OVERDUE,
         title: `Overdue test: ${test.name}`,
-        body: `\"${test.name}\" is overdue and needs attention from ${item.owner}.`,
+        body: `"${test.name}" is overdue and needs attention from ${item.owner}.`,
         severity: 'warning',
         resourceType: 'test',
         resourceId: test.id,
-        recipientEmails: { [test.ownerId]: test.owner?.email ?? `${test.ownerId}@manzen.dev` },
+        recipientEmails: {
+          [test.ownerId]: test.owner?.email ?? `${test.ownerId}@manzen.dev`,
+        },
         resourceUrl: `/tests/${test.id}`,
       });
     });
   return escalations;
 }
 
-export async function exportTestsBundle(format: ExportFormat, framework?: string): Promise<ExportBundleDto> {
+export async function exportTestsBundle(
+  format: ExportFormat,
+  framework?: string,
+): Promise<ExportBundleDto> {
   const service = await getMutableService();
-  const tests = asRecords(service).filter((test) => !framework || test.frameworks.some((item) => item.frameworkName === framework));
+  const tests = asRecords(service).filter(
+    (test) =>
+      !framework ||
+      test.frameworks.some((item) => item.frameworkName === framework),
+  );
   if (format === 'csv') {
     const rows = [
-      ['Name', 'Type', 'Status', 'Frameworks', 'Controls', 'Evidence', 'Owner'].join(','),
-      ...tests.map((test) => [
-        test.name,
-        test.type,
-        test.status,
-        test.frameworks.map((item) => item.frameworkName).join('|'),
-        test.controls.map((item) => item.control.title).join('|'),
-        String(test.evidences.length),
-        test.owner?.name ?? test.ownerId,
-      ].map((value) => `"${String(value).replace(/"/g, '""')}"`).join(',')),
+      [
+        'Name',
+        'Type',
+        'Status',
+        'Frameworks',
+        'Controls',
+        'Evidence',
+        'Owner',
+      ].join(','),
+      ...tests.map((test) =>
+        [
+          test.name,
+          test.type,
+          test.status,
+          test.frameworks.map((item) => item.frameworkName).join('|'),
+          test.controls.map((item) => item.control.title).join('|'),
+          String(test.evidences.length),
+          test.owner?.name ?? test.ownerId,
+        ]
+          .map((value) => `"${String(value).replace(/"/g, '""')}"`)
+          .join(','),
+      ),
     ].join('\n');
-    return { format, fileName: `tests-${framework ?? 'all'}.csv`, content: rows };
+    return {
+      format,
+      fileName: `tests-${framework ?? 'all'}.csv`,
+      content: rows,
+    };
   }
 
   const content = [
     `Compliance Test Report${framework ? ` - ${framework}` : ''}`,
     '',
-    ...tests.map((test) => `${test.name}\nStatus: ${test.status}\nFrameworks: ${test.frameworks.map((item) => item.frameworkName).join(', ') || 'None'}\nControls: ${test.controls.map((item) => item.control.title).join(', ') || 'None'}\nEvidence: ${plural(test.evidences.length, 'item')}\nOwner: ${test.owner?.name ?? test.ownerId}`),
+    ...tests.map(
+      (test) =>
+        `${test.name}\nStatus: ${test.status}\nFrameworks: ${test.frameworks.map((item) => item.frameworkName).join(', ') || 'None'}\nControls: ${test.controls.map((item) => item.control.title).join(', ') || 'None'}\nEvidence: ${plural(test.evidences.length, 'item')}\nOwner: ${test.owner?.name ?? test.ownerId}`,
+    ),
   ].join('\n\n');
   return { format, fileName: `tests-${framework ?? 'all'}.pdf`, content };
 }

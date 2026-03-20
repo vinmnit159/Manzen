@@ -1,4 +1,4 @@
-import { apiClient } from './client';
+import { apiClient, API_BASE_URL } from './client';
 import { getAuthToken } from '@/services/authStorage';
 
 export interface GitHubRepo {
@@ -54,9 +54,7 @@ export const integrationsService = {
   async getGitHubRepos(): Promise<{ repos: GitHubRepo[] }> {
     return apiClient.get('/api/integrations/github/repos');
   },
-  async triggerScan(
-    payload?: TriggerGitHubScanRequest,
-  ): Promise<{
+  async triggerScan(payload?: TriggerGitHubScanRequest): Promise<{
     success: boolean;
     message: string;
     data?: { signals: number; testResults: number; risks: number };
@@ -79,16 +77,12 @@ export const integrationsService = {
     return apiClient.get('/api/integrations/github/tests');
   },
   getConnectUrl(): string {
-    const backendUrl =
-      (import.meta as any).env?.VITE_API_URL ?? 'https://api.cloudanzen.com';
     const token = getAuthToken() ?? '';
-    return `${backendUrl}/api/integrations/github/connect?token=${encodeURIComponent(token)}`;
+    return `${API_BASE_URL}/api/integrations/github/connect?token=${encodeURIComponent(token)}`;
   },
   getDriveConnectUrl(): string {
-    const backendUrl =
-      (import.meta as any).env?.VITE_API_URL ?? 'https://api.cloudanzen.com';
     const token = getAuthToken() ?? '';
-    return `${backendUrl}/api/integrations/google/connect?token=${encodeURIComponent(token)}`;
+    return `${API_BASE_URL}/api/integrations/google/connect?token=${encodeURIComponent(token)}`;
   },
   async disconnectDrive(): Promise<{ success: boolean }> {
     return apiClient.delete('/api/integrations/google');

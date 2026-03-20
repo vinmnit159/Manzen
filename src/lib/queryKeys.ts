@@ -8,8 +8,8 @@
 export const QK = {
   // Dashboard
   complianceStats: () => ['compliance', 'stats'] as const,
-  riskOverview:    () => ['risks', 'overview']    as const,
-  activityLog:     (limit?: number) => ['activity', 'recent', limit] as const,
+  riskOverview: () => ['risks', 'overview'] as const,
+  activityLog: (limit?: number) => ['activity', 'recent', limit] as const,
 
   // Controls
   controls: (filter?: object) => ['controls', 'list', filter] as const,
@@ -28,35 +28,61 @@ export const QK = {
 
   // MDM / Computers
   mdmDevices: () => ['mdm', 'devices'] as const,
-  mdmTokens:  () => ['mdm', 'tokens']  as const,
+  mdmTokens: () => ['mdm', 'tokens'] as const,
 
   // Personnel
   users: () => ['users', 'list'] as const,
 
   // Access Management
   accessRequests: (filter?: object) => ['access', 'requests', filter] as const,
-  auditLog: (filter?: object)       => ['access', 'audit-log', filter] as const,
+  auditLog: (filter?: object) => ['access', 'audit-log', filter] as const,
 
   // Onboarding
-  onboardingMe:    () => ['onboarding', 'me']       as const,
-  onboardingUsers: () => ['onboarding', 'users']    as const,
+  onboardingMe: () => ['onboarding', 'me'] as const,
+  onboardingUsers: () => ['onboarding', 'users'] as const,
 
   // Tests
-  tests:       (filter?: object) => ['tests', 'list', filter]    as const,
-  testSummary: ()                => ['tests', 'summary']         as const,
-  testDetail:  (id: string)      => ['tests', 'detail', id]      as const,
-  testHistory: (id: string)      => ['tests', 'history', id]     as const,
-  testRuns:    (id: string)      => ['tests', 'runs', id]         as const,
+  tests: (filter?: object) => ['tests', 'list', filter] as const,
+  testSummary: () => ['tests', 'summary'] as const,
+  testDetail: (id: string) => ['tests', 'detail', id] as const,
+  testHistory: (id: string) => ['tests', 'history', id] as const,
+  testRuns: (id: string) => ['tests', 'runs', id] as const,
 
   // Notifications
   notificationsRoot: () => ['notifications'] as const,
   notificationsUnreadCount: () => ['notifications', 'unread-count'] as const,
-  notificationsInbox: (filter?: object) => ['notifications', 'inbox', filter] as const,
+  notificationsInbox: (filter?: object) =>
+    ['notifications', 'inbox', filter] as const,
   notificationsPreferences: () => ['notifications', 'preferences'] as const,
 
   // Partner API
-  partnerKeys:     ()             => ['partner', 'keys']           as const,
-  partnerResults:  (filter?: object) => ['partner', 'results', filter] as const,
-  partnerCatalogue: ()            => ['partner', 'catalogue']      as const,
-  toolRequests:    (filter?: object) => ['partner', 'tool-requests', filter] as const,
+  partnerKeys: () => ['partner', 'keys'] as const,
+  partnerResults: (filter?: object) => ['partner', 'results', filter] as const,
+  partnerCatalogue: () => ['partner', 'catalogue'] as const,
+  toolRequests: (filter?: object) =>
+    ['partner', 'tool-requests', filter] as const,
+
+  // Findings
+  findings: (filter?: object) => ['findings', 'list', filter] as const,
+  findingDetail: (id: string) => ['findings', 'detail', id] as const,
+  remediationActions: (findingId: string) =>
+    ['findings', 'remediation', findingId] as const,
+
+  // Audits
+  audits: (filter?: object) => ['audits', 'list', filter] as const,
+  auditDetail: (id: string) => ['audits', 'detail', id] as const,
+  auditReport: (id: string) => ['audits', 'report', id] as const,
+  auditControls: (id: string) => ['audits', 'controls', id] as const,
+  auditFindings: (auditId: string, controlId?: string) =>
+    ['audits', 'findings', auditId, controlId] as const,
+
+  // Vendors
+  vendors: (filter?: object) => ['vendors', 'list', filter] as const,
+  vendorDetail: (id: string) => ['vendors', 'detail', id] as const,
+
+  // Frameworks
+  orgFrameworks: () => ['frameworks', 'org', 'list'] as const,
+  frameworkDetail: (slug: string) => ['frameworks', 'detail', slug] as const,
+  frameworkCoverage: (slug: string) =>
+    ['frameworks', 'coverage', slug] as const,
 } as const;

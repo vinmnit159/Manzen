@@ -21,7 +21,7 @@ interface HandlerRequest {
 }
 
 export function createFrameworkHandlers(deps: FrameworkHandlerDeps = {}) {
-  function getService(request?: HandlerRequest): FrameworkService {
+  function getService(_request?: HandlerRequest): FrameworkService {
     if (deps.service) return deps.service;
     // The service is injected at call-time via the module's runtime getter.
     // This path should never be hit — module.ts always provides a service.

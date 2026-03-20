@@ -54,7 +54,7 @@ export class DashboardService {
         success: true,
         data: dashboardData,
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to fetch dashboard statistics',
@@ -85,7 +85,7 @@ export class DashboardService {
       }
 
       return response;
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to fetch risk distribution',
@@ -117,7 +117,7 @@ export class DashboardService {
       }
 
       return response;
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to fetch control compliance',

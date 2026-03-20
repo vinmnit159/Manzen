@@ -2,7 +2,6 @@ import { authService } from '@/services/api/auth';
 import {
   AppRole,
   Permission,
-  ROLE_PERMISSIONS,
   roleHasPermission,
   getPermissionsForRole,
 } from '@/lib/rbac/permissions';
@@ -33,7 +32,9 @@ export function useCurrentUser(): CurrentUser | null {
 
 export function useIsAdmin(): boolean {
   const user = useCurrentUser();
-  return ['SUPER_ADMIN', 'ORG_ADMIN', 'SECURITY_OWNER'].includes(user?.role ?? '');
+  return ['SUPER_ADMIN', 'ORG_ADMIN', 'SECURITY_OWNER'].includes(
+    user?.role ?? '',
+  );
 }
 
 export function useIsAuditor(): boolean {
@@ -42,7 +43,9 @@ export function useIsAuditor(): boolean {
 
 export function useCanAudit(): boolean {
   const user = useCurrentUser();
-  return ['SUPER_ADMIN', 'ORG_ADMIN', 'SECURITY_OWNER', 'AUDITOR'].includes(user?.role ?? '');
+  return ['SUPER_ADMIN', 'ORG_ADMIN', 'SECURITY_OWNER', 'AUDITOR'].includes(
+    user?.role ?? '',
+  );
 }
 
 /** Returns true if the user has any of the given roles */
@@ -87,4 +90,10 @@ export function usePermissionChecker(): (permission: Permission) => boolean {
 
 // ── Typed role info ────────────────────────────────────────────────────────────
 
-export { ROLE_PERMISSIONS, ROLE_LABELS, ROLE_DESCRIPTIONS, ROLE_CONFIG, PERMISSIONS } from '@/lib/rbac/permissions';
+export {
+  ROLE_PERMISSIONS,
+  ROLE_LABELS,
+  ROLE_DESCRIPTIONS,
+  ROLE_CONFIG,
+  PERMISSIONS,
+} from '@/lib/rbac/permissions';

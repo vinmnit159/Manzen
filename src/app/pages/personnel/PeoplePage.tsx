@@ -1,13 +1,12 @@
-import { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { QK } from "@/lib/queryKeys";
-import { STALE } from "@/lib/queryClient";
-import { PageTemplate } from "@/app/components/PageTemplate";
-import { Button } from "@/app/components/ui/button";
-import { Card } from "@/app/components/ui/card";
-import { Badge } from "@/app/components/ui/badge";
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { QK } from '@/lib/queryKeys';
+import { STALE } from '@/lib/queryClient';
+import { PageTemplate } from '@/app/components/PageTemplate';
+import { Button } from '@/app/components/ui/button';
+import { Card } from '@/app/components/ui/card';
+import { Badge } from '@/app/components/ui/badge';
 import {
-  Plus,
   RefreshCw,
   Github,
   Trash2,
@@ -20,50 +19,64 @@ import {
   BookOpen,
   FileText,
   ChevronRight,
-} from "lucide-react";
-import { usersService, UserWithGit } from "@/services/api/users";
-import { onboardingService, UserOnboardingSummary } from "@/services/api/onboarding";
-import { Role } from "@/services/api/types";
-import { ROLE_LABELS, ROLE_CONFIG, AppRole } from "@/lib/rbac/permissions";
-import { useHasPermission, useCurrentUser } from "@/hooks/useCurrentUser";
-import { PERMISSIONS } from "@/lib/rbac/permissions";
+} from 'lucide-react';
+import { usersService, UserWithGit } from '@/services/api/users';
+import {
+  onboardingService,
+  UserOnboardingSummary,
+} from '@/services/api/onboarding';
+import { Role } from '@/services/api/types';
+import { ROLE_LABELS, AppRole } from '@/lib/rbac/permissions';
+import { useHasPermission, useCurrentUser } from '@/hooks/useCurrentUser';
+import { PERMISSIONS } from '@/lib/rbac/permissions';
 
 // ─── Role badge colour map ─────────────────────────────────────────────────
 
-const ROLE_VARIANT: Record<string, "destructive" | "default" | "secondary" | "outline"> = {
-  SUPER_ADMIN:    "destructive",
-  ORG_ADMIN:      "destructive",
-  SECURITY_OWNER: "default",
-  AUDITOR:        "secondary",
-  CONTRIBUTOR:    "secondary",
-  VIEWER:         "outline",
+const ROLE_VARIANT: Record<
+  string,
+  'destructive' | 'default' | 'secondary' | 'outline'
+> = {
+  SUPER_ADMIN: 'destructive',
+  ORG_ADMIN: 'destructive',
+  SECURITY_OWNER: 'default',
+  AUDITOR: 'secondary',
+  CONTRIBUTOR: 'secondary',
+  VIEWER: 'outline',
 };
 
 function roleLabel(role: string): string {
-  return role.toLowerCase().replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  return role
+    .toLowerCase()
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 function fmtDate(d: string | null | undefined): string {
-  if (!d) return "—";
-  return new Date(d).toLocaleString("en-US", {
-    year: "numeric", month: "short", day: "numeric",
-    hour: "2-digit", minute: "2-digit",
+  if (!d) return '—';
+  return new Date(d).toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
   });
 }
 
 // ─── Onboarding progress mini-badge ──────────────────────────────────────────
 
 function OnboardingBadge({ count, total }: { count: number; total: number }) {
-  if (count === total) return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-50 text-green-700 border border-green-200">
-      <CheckCircle2 className="w-3 h-3" /> {count}/{total}
-    </span>
-  );
-  if (count > 0) return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
-      <Clock className="w-3 h-3" /> {count}/{total}
-    </span>
-  );
+  if (count === total)
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-50 text-green-700 border border-green-200">
+        <CheckCircle2 className="w-3 h-3" /> {count}/{total}
+      </span>
+    );
+  if (count > 0)
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+        <Clock className="w-3 h-3" /> {count}/{total}
+      </span>
+    );
   return (
     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-50 text-gray-400 border border-gray-200">
       <Circle className="w-3 h-3" /> {count}/{total}
@@ -82,27 +95,53 @@ interface TaskRowProps {
   subDetail?: string | null;
 }
 
-function TaskRow({ icon: Icon, title, done, inProgress, detail, subDetail }: TaskRowProps) {
+function TaskRow({
+  icon: Icon,
+  title,
+  done,
+  inProgress,
+  detail,
+  subDetail,
+}: TaskRowProps) {
   return (
-    <div className={`flex items-start gap-3 p-3 rounded-xl border ${done ? "border-green-200 bg-green-50/40" : inProgress ? "border-amber-200 bg-amber-50/30" : "border-gray-200 bg-white"}`}>
-      <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 ${done ? "bg-green-100" : inProgress ? "bg-amber-100" : "bg-gray-100"}`}>
-        {done
-          ? <CheckCircle2 className="w-4 h-4 text-green-600" />
-          : inProgress
-            ? <Clock className="w-4 h-4 text-amber-600" />
-            : <Circle className="w-4 h-4 text-gray-400" />
-        }
+    <div
+      className={`flex items-start gap-3 p-3 rounded-xl border ${done ? 'border-green-200 bg-green-50/40' : inProgress ? 'border-amber-200 bg-amber-50/30' : 'border-gray-200 bg-white'}`}
+    >
+      <div
+        className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 ${done ? 'bg-green-100' : inProgress ? 'bg-amber-100' : 'bg-gray-100'}`}
+      >
+        {done ? (
+          <CheckCircle2 className="w-4 h-4 text-green-600" />
+        ) : inProgress ? (
+          <Clock className="w-4 h-4 text-amber-600" />
+        ) : (
+          <Circle className="w-4 h-4 text-gray-400" />
+        )}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <Icon className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
           <span className="text-sm font-medium text-gray-900">{title}</span>
-          {done && <span className="text-xs text-green-700 bg-green-50 border border-green-200 rounded-full px-1.5 py-0.5">Completed</span>}
-          {!done && inProgress && <span className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-1.5 py-0.5">In Progress</span>}
-          {!done && !inProgress && <span className="text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-full px-1.5 py-0.5">Not Started</span>}
+          {done && (
+            <span className="text-xs text-green-700 bg-green-50 border border-green-200 rounded-full px-1.5 py-0.5">
+              Completed
+            </span>
+          )}
+          {!done && inProgress && (
+            <span className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-1.5 py-0.5">
+              In Progress
+            </span>
+          )}
+          {!done && !inProgress && (
+            <span className="text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-full px-1.5 py-0.5">
+              Not Started
+            </span>
+          )}
         </div>
         {detail && <p className="text-xs text-gray-500 mt-0.5">{detail}</p>}
-        {subDetail && <p className="text-xs text-gray-400 mt-0.5 font-mono">{subDetail}</p>}
+        {subDetail && (
+          <p className="text-xs text-gray-400 mt-0.5 font-mono">{subDetail}</p>
+        )}
       </div>
     </div>
   );
@@ -117,7 +156,11 @@ function UserDetailPanel({
 }) {
   const ob = user.onboarding;
   const policyIds: string[] = (() => {
-    try { return JSON.parse(ob.policyVersionAccepted ?? "[]"); } catch { return []; }
+    try {
+      return JSON.parse(ob.policyVersionAccepted ?? '[]');
+    } catch {
+      return [];
+    }
   })();
 
   return (
@@ -132,10 +175,17 @@ function UserDetailPanel({
             {(user.name ?? user.email).slice(0, 2).toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-gray-900 truncate">{user.name ?? <span className="italic text-gray-400">No name</span>}</p>
+            <p className="text-sm font-semibold text-gray-900 truncate">
+              {user.name ?? (
+                <span className="italic text-gray-400">No name</span>
+              )}
+            </p>
             <p className="text-xs text-gray-500 truncate">{user.email}</p>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"
+          >
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -143,13 +193,19 @@ function UserDetailPanel({
         {/* Summary bar */}
         <div className="px-5 py-3 bg-gray-50 border-b border-gray-200 flex-shrink-0">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-xs font-semibold text-gray-700">Security Onboarding</span>
-            <span className="text-xs font-bold text-blue-700">{ob.completedCount}/{ob.totalCount} complete</span>
+            <span className="text-xs font-semibold text-gray-700">
+              Security Onboarding
+            </span>
+            <span className="text-xs font-bold text-blue-700">
+              {ob.completedCount}/{ob.totalCount} complete
+            </span>
           </div>
           <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
             <div
-              className={`h-full rounded-full transition-all duration-500 ${ob.allComplete ? "bg-green-500" : ob.completedCount > 0 ? "bg-blue-500" : "bg-gray-300"}`}
-              style={{ width: `${Math.round((ob.completedCount / ob.totalCount) * 100)}%` }}
+              className={`h-full rounded-full transition-all duration-500 ${ob.allComplete ? 'bg-green-500' : ob.completedCount > 0 ? 'bg-blue-500' : 'bg-gray-300'}`}
+              style={{
+                width: `${Math.round((ob.completedCount / ob.totalCount) * 100)}%`,
+              }}
             />
           </div>
           {ob.allComplete && (
@@ -161,15 +217,27 @@ function UserDetailPanel({
 
         {/* Task detail */}
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Task Status</p>
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+            Task Status
+          </p>
 
           {/* Task 1 */}
           <TaskRow
             icon={FileText}
             title="Accept All Organisation Policies"
             done={ob.policyAccepted}
-            detail={ob.policyAccepted ? `Accepted on ${fmtDate(ob.policyAcceptedAt)}` : undefined}
-            subDetail={ob.policyAccepted && policyIds.length > 0 ? `${policyIds.length} polic${policyIds.length === 1 ? "y" : "ies"} acknowledged` : ob.policyAccepted ? undefined : "Not yet accepted"}
+            detail={
+              ob.policyAccepted
+                ? `Accepted on ${fmtDate(ob.policyAcceptedAt)}`
+                : undefined
+            }
+            subDetail={
+              ob.policyAccepted && policyIds.length > 0
+                ? `${policyIds.length} polic${policyIds.length === 1 ? 'y' : 'ies'} acknowledged`
+                : ob.policyAccepted
+                  ? undefined
+                  : 'Not yet accepted'
+            }
           />
 
           {/* Task 2 */}
@@ -177,7 +245,11 @@ function UserDetailPanel({
             icon={Laptop}
             title="Install MDM Agent"
             done={ob.mdmEnrolled}
-            detail={ob.mdmEnrolled ? `Enrolled on ${fmtDate(ob.mdmEnrolledAt)}` : "Awaiting device enrollment"}
+            detail={
+              ob.mdmEnrolled
+                ? `Enrolled on ${fmtDate(ob.mdmEnrolledAt)}`
+                : 'Awaiting device enrollment'
+            }
             subDetail={ob.deviceId ? `Device: ${ob.deviceId}` : undefined}
           />
 
@@ -192,21 +264,27 @@ function UserDetailPanel({
                 ? `Completed on ${fmtDate(ob.trainingCompletedAt)}`
                 : ob.trainingStarted
                   ? `Started on ${fmtDate(ob.trainingStartedAt)} — training not completed yet`
-                  : "Not started"
+                  : 'Not started'
             }
           />
 
           {/* User info */}
           <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">User Info</p>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              User Info
+            </p>
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div>
                 <p className="text-gray-400">Role</p>
-                <p className="font-medium text-gray-700">{roleLabel(user.role)}</p>
+                <p className="font-medium text-gray-700">
+                  {roleLabel(user.role)}
+                </p>
               </div>
               <div>
                 <p className="text-gray-400">Joined</p>
-                <p className="font-medium text-gray-700">{new Date(user.createdAt).toLocaleDateString()}</p>
+                <p className="font-medium text-gray-700">
+                  {new Date(user.createdAt).toLocaleDateString()}
+                </p>
               </div>
             </div>
           </div>
@@ -218,15 +296,28 @@ function UserDetailPanel({
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-const ALL_ROLES: AppRole[] = ['SUPER_ADMIN', 'ORG_ADMIN', 'SECURITY_OWNER', 'AUDITOR', 'CONTRIBUTOR', 'VIEWER'];
+const ALL_ROLES: AppRole[] = [
+  'SUPER_ADMIN',
+  'ORG_ADMIN',
+  'SECURITY_OWNER',
+  'AUDITOR',
+  'CONTRIBUTOR',
+  'VIEWER',
+];
 
 export function PeoplePage() {
   const qc = useQueryClient();
   const currentUser = useCurrentUser();
   const canAssignRoles = useHasPermission(PERMISSIONS.USERS_ROLES_ASSIGN);
-  const [selectedUser, setSelectedUser] = useState<UserOnboardingSummary | null>(null);
+  const [selectedUser, setSelectedUser] =
+    useState<UserOnboardingSummary | null>(null);
 
-  const { data: usersData, isLoading: loadingUsers, isFetching, error: usersError } = useQuery({
+  const {
+    data: usersData,
+    isLoading: loadingUsers,
+    isFetching,
+    error: usersError,
+  } = useQuery({
     queryKey: QK.users(),
     queryFn: async () => {
       return usersService.listUsers();
@@ -245,7 +336,9 @@ export function PeoplePage() {
 
   const users: UserWithGit[] = usersData ?? [];
   const loading = loadingUsers;
-  const error: string | null = usersError ? ((usersError as any)?.message ?? "Failed to load users") : null;
+  const error: string | null = usersError
+    ? ((usersError as any)?.message ?? 'Failed to load users')
+    : null;
 
   const onboardingMap = new Map<string, UserOnboardingSummary>();
   for (const u of onboardingData ?? []) onboardingMap.set(u.id, u);
@@ -256,12 +349,13 @@ export function PeoplePage() {
   };
 
   const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`Remove ${name || "this user"} from the organisation?`)) return;
+    if (!confirm(`Remove ${name || 'this user'} from the organisation?`))
+      return;
     try {
       await usersService.deleteUser(id);
       qc.invalidateQueries({ queryKey: QK.users() });
     } catch (e: any) {
-      alert(e?.message ?? "Failed to remove user");
+      alert(e?.message ?? 'Failed to remove user');
     }
   };
 
@@ -276,15 +370,25 @@ export function PeoplePage() {
       description="Organisation members and their security roles."
       actions={
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={fetchUsers} disabled={isFetching}>
-            <RefreshCw className={`w-4 h-4 mr-2 ${isFetching ? "animate-spin" : ""}`} />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={fetchUsers}
+            disabled={isFetching}
+          >
+            <RefreshCw
+              className={`w-4 h-4 mr-2 ${isFetching ? 'animate-spin' : ''}`}
+            />
             Refresh
           </Button>
         </div>
       }
     >
       {selectedUser && (
-        <UserDetailPanel user={selectedUser} onClose={() => setSelectedUser(null)} />
+        <UserDetailPanel
+          user={selectedUser}
+          onClose={() => setSelectedUser(null)}
+        />
       )}
 
       {error && (
@@ -298,22 +402,44 @@ export function PeoplePage() {
           <table className="w-full">
             <thead className="bg-gray-50 border-b">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name / Email</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">GitHub Accounts</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Onboarding</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Joined</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Name / Email
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Role
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  GitHub Accounts
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Onboarding
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Joined
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-10 text-center text-sm text-gray-400">Loading users…</td>
+                  <td
+                    colSpan={6}
+                    className="px-6 py-10 text-center text-sm text-gray-400"
+                  >
+                    Loading users…
+                  </td>
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-10 text-center text-sm text-gray-400">No users found.</td>
+                  <td
+                    colSpan={6}
+                    className="px-6 py-10 text-center text-sm text-gray-400"
+                  >
+                    No users found.
+                  </td>
                 </tr>
               ) : (
                 users.map((user) => {
@@ -322,26 +448,41 @@ export function PeoplePage() {
                   return (
                     <tr
                       key={user.id}
-                      className={`hover:bg-gray-50 ${hasOnboarding ? "cursor-pointer" : ""}`}
-                      onClick={hasOnboarding ? () => handleRowClick(user.id) : undefined}
+                      className={`hover:bg-gray-50 ${hasOnboarding ? 'cursor-pointer' : ''}`}
+                      onClick={
+                        hasOnboarding
+                          ? () => handleRowClick(user.id)
+                          : undefined
+                      }
                     >
                       {/* Name / Email */}
                       <td className="px-6 py-4">
                         <div className="text-sm font-medium text-gray-900">
-                          {user.name ?? <span className="text-gray-400 italic">No name</span>}
+                          {user.name ?? (
+                            <span className="text-gray-400 italic">
+                              No name
+                            </span>
+                          )}
                         </div>
-                        <div className="text-xs text-gray-500">{user.email}</div>
+                        <div className="text-xs text-gray-500">
+                          {user.email}
+                        </div>
                       </td>
 
                       {/* Role */}
-                      <td className="px-6 py-4 whitespace-nowrap" onClick={e => e.stopPropagation()}>
+                      <td
+                        className="px-6 py-4 whitespace-nowrap"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         {canAssignRoles && currentUser?.id !== user.id ? (
                           <select
                             value={user.role}
                             onChange={async (e) => {
                               const newRole = e.target.value as Role;
                               try {
-                                await usersService.updateUser(user.id, { role: newRole });
+                                await usersService.updateUser(user.id, {
+                                  role: newRole,
+                                });
                                 qc.invalidateQueries({ queryKey: QK.users() });
                               } catch {
                                 // silently fail — user sees no change
@@ -350,19 +491,24 @@ export function PeoplePage() {
                             className="text-xs font-medium px-2 py-1 rounded-md border border-gray-300 bg-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
                             title="Change role"
                           >
-                            {ALL_ROLES.map(r => (
-                              <option key={r} value={r}>{ROLE_LABELS[r]}</option>
+                            {ALL_ROLES.map((r) => (
+                              <option key={r} value={r}>
+                                {ROLE_LABELS[r]}
+                              </option>
                             ))}
                           </select>
                         ) : (
-                          <Badge variant={ROLE_VARIANT[user.role] ?? "outline"}>
+                          <Badge variant={ROLE_VARIANT[user.role] ?? 'outline'}>
                             {roleLabel(user.role)}
                           </Badge>
                         )}
                       </td>
 
                       {/* GitHub accounts */}
-                      <td className="px-6 py-4" onClick={e => e.stopPropagation()}>
+                      <td
+                        className="px-6 py-4"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         {user.gitAccounts.length === 0 ? (
                           <span className="text-xs text-gray-400">—</span>
                         ) : (
@@ -370,12 +516,21 @@ export function PeoplePage() {
                             {user.gitAccounts.map((ga) => (
                               <a
                                 key={ga.id}
-                                href={ga.profileUrl ?? `https://github.com/${ga.githubUsername}`}
+                                href={
+                                  ga.profileUrl ??
+                                  `https://github.com/${ga.githubUsername}`
+                                }
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="flex items-center gap-1 text-xs text-blue-600 hover:underline"
                               >
-                                {ga.avatarUrl && <img src={ga.avatarUrl} alt={ga.githubUsername} className="w-4 h-4 rounded-full" />}
+                                {ga.avatarUrl && (
+                                  <img
+                                    src={ga.avatarUrl}
+                                    alt={ga.githubUsername}
+                                    className="w-4 h-4 rounded-full"
+                                  />
+                                )}
                                 <Github className="w-3 h-3" />
                                 {ga.githubUsername}
                               </a>
@@ -395,16 +550,27 @@ export function PeoplePage() {
                             {/* Mini task icons */}
                             <div className="flex gap-0.5">
                               {[
-                                { done: ob.onboarding.policyAccepted,   icon: FileText  },
-                                { done: ob.onboarding.mdmEnrolled,      icon: Laptop    },
-                                { done: ob.onboarding.trainingCompleted, icon: BookOpen },
+                                {
+                                  done: ob.onboarding.policyAccepted,
+                                  icon: FileText,
+                                },
+                                {
+                                  done: ob.onboarding.mdmEnrolled,
+                                  icon: Laptop,
+                                },
+                                {
+                                  done: ob.onboarding.trainingCompleted,
+                                  icon: BookOpen,
+                                },
                               ].map(({ done, icon: Icon }, i) => (
                                 <span
                                   key={i}
-                                  className={`w-5 h-5 rounded-md flex items-center justify-center ${done ? "bg-green-100" : "bg-gray-100"}`}
-                                  title={["Policies", "MDM", "Training"][i]}
+                                  className={`w-5 h-5 rounded-md flex items-center justify-center ${done ? 'bg-green-100' : 'bg-gray-100'}`}
+                                  title={['Policies', 'MDM', 'Training'][i]}
                                 >
-                                  <Icon className={`w-3 h-3 ${done ? "text-green-600" : "text-gray-400"}`} />
+                                  <Icon
+                                    className={`w-3 h-3 ${done ? 'text-green-600' : 'text-gray-400'}`}
+                                  />
                                 </span>
                               ))}
                             </div>
@@ -421,9 +587,14 @@ export function PeoplePage() {
                       </td>
 
                       {/* Actions */}
-                      <td className="px-6 py-4 whitespace-nowrap" onClick={e => e.stopPropagation()}>
+                      <td
+                        className="px-6 py-4 whitespace-nowrap"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <button
-                          onClick={() => handleDelete(user.id, user.name ?? user.email)}
+                          onClick={() =>
+                            handleDelete(user.id, user.name ?? user.email)
+                          }
                           className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 transition-colors"
                           title="Remove user"
                         >
@@ -440,10 +611,16 @@ export function PeoplePage() {
 
         {!loading && users.length > 0 && (
           <div className="px-6 py-3 bg-gray-50 border-t text-xs text-gray-500">
-            {users.length} member{users.length !== 1 ? "s" : ""}
+            {users.length} member{users.length !== 1 ? 's' : ''}
             {onboardingMap.size > 0 && (
               <span className="ml-2 text-gray-400">
-                · {Array.from(onboardingMap.values()).filter(u => u.onboarding.allComplete).length} fully onboarded
+                ·{' '}
+                {
+                  Array.from(onboardingMap.values()).filter(
+                    (u) => u.onboarding.allComplete,
+                  ).length
+                }{' '}
+                fully onboarded
               </span>
             )}
           </div>

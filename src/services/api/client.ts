@@ -1,9 +1,13 @@
-import { clearAuthSession, getAuthToken, setAuthToken } from '@/services/authStorage';
+import {
+  clearAuthSession,
+  getAuthToken,
+  setAuthToken,
+} from '@/services/authStorage';
 
 // Base API configuration and types
-const API_BASE_URL =
-  (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env?.VITE_API_URL ||
-  'https://api.cloudanzen.com';
+export const API_BASE_URL =
+  (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env
+    ?.VITE_API_URL || 'https://api.cloudanzen.com';
 
 export interface ApiResponse<T = unknown> {
   success: boolean;
@@ -66,7 +70,11 @@ class ApiClient {
   private buildHeaders(options: RequestInit): Headers {
     const headers = new Headers(options.headers);
 
-    if (!headers.has('Content-Type') && options.body && !(options.body instanceof FormData)) {
+    if (
+      !headers.has('Content-Type') &&
+      options.body &&
+      !(options.body instanceof FormData)
+    ) {
       headers.set('Content-Type', 'application/json');
     }
 
@@ -115,7 +123,12 @@ class ApiClient {
     }
 
     if (typeof payload === 'string' && payload.trim()) {
-      return new ApiError(response.statusText || 'Request failed', payload, response.status, payload);
+      return new ApiError(
+        response.statusText || 'Request failed',
+        payload,
+        response.status,
+        payload,
+      );
     }
 
     return new ApiError(
@@ -128,7 +141,7 @@ class ApiClient {
 
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
 
@@ -152,7 +165,11 @@ class ApiClient {
       }
 
       if (error instanceof DOMException && error.name === 'AbortError') {
-        throw new ApiError('Request Aborted', 'The request was cancelled before it completed.', 0);
+        throw new ApiError(
+          'Request Aborted',
+          'The request was cancelled before it completed.',
+          0,
+        );
       }
 
       throw new ApiError(
@@ -206,7 +223,7 @@ export class ApiError extends Error {
     public error: string,
     public message: string,
     public statusCode: number,
-    public details?: unknown
+    public details?: unknown,
   ) {
     super(message);
   }

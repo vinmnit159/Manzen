@@ -3,12 +3,31 @@ import { PageTemplate } from '@/app/components/PageTemplate';
 import { PageFilterBar } from '@/app/components/filters/PageFilterBar';
 import { useUrlFilterState } from '@/app/hooks/useUrlFilterState';
 import { Button } from '@/app/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
 import { Progress } from '@/app/components/ui/progress';
 import { Input } from '@/app/components/ui/input';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/app/components/ui/dialog';
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/app/components/ui/sheet';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/app/components/ui/dialog';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/app/components/ui/sheet';
 import {
   AlertTriangle,
   Building2,
@@ -18,22 +37,52 @@ import {
   ShieldCheck,
   Sparkles,
 } from 'lucide-react';
-import { CreateVendorInput, VendorRecord, VendorStatus, VendorTier, vendorsService } from '@/services/api/vendors';
+import {
+  CreateVendorInput,
+  VendorRecord,
+  VendorStatus,
+  VendorTier,
+  vendorsService,
+} from '@/services/api/vendors';
 
 type TabKey = 'ALL' | 'DUE' | 'HIGH_RISK';
 
 const statusMeta: Record<VendorStatus, { label: string; className: string }> = {
-  MONITORED: { label: 'Monitored', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-  ASSESSMENT_DUE: { label: 'Assessment due', className: 'bg-amber-50 text-amber-700 border-amber-200' },
-  IN_REVIEW: { label: 'In review', className: 'bg-blue-50 text-blue-700 border-blue-200' },
-  BLOCKED: { label: 'Blocked', className: 'bg-red-50 text-red-700 border-red-200' },
+  MONITORED: {
+    label: 'Monitored',
+    className: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  },
+  ASSESSMENT_DUE: {
+    label: 'Assessment due',
+    className: 'bg-amber-50 text-amber-700 border-amber-200',
+  },
+  IN_REVIEW: {
+    label: 'In review',
+    className: 'bg-blue-50 text-blue-700 border-blue-200',
+  },
+  BLOCKED: {
+    label: 'Blocked',
+    className: 'bg-red-50 text-red-700 border-red-200',
+  },
 };
 
 const tierMeta: Record<VendorTier, { label: string; className: string }> = {
-  LOW: { label: 'Low', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-  MEDIUM: { label: 'Medium', className: 'bg-amber-50 text-amber-700 border-amber-200' },
-  HIGH: { label: 'High', className: 'bg-orange-50 text-orange-700 border-orange-200' },
-  CRITICAL: { label: 'Critical', className: 'bg-red-50 text-red-700 border-red-200' },
+  LOW: {
+    label: 'Low',
+    className: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  },
+  MEDIUM: {
+    label: 'Medium',
+    className: 'bg-amber-50 text-amber-700 border-amber-200',
+  },
+  HIGH: {
+    label: 'High',
+    className: 'bg-orange-50 text-orange-700 border-orange-200',
+  },
+  CRITICAL: {
+    label: 'Critical',
+    className: 'bg-red-50 text-red-700 border-red-200',
+  },
 };
 
 const emptyVendorInput: CreateVendorInput = {
@@ -55,7 +104,10 @@ function isDueWithinDays(isoDate: string, days: number): boolean {
 export function VendorsPage() {
   const [vendors, setVendors] = useState<VendorRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const { filters, update, reset } = useUrlFilterState({ defaults: { search: '', status: 'ALL', tier: 'ALL', tab: 'ALL' } });
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const { filters, update, reset } = useUrlFilterState({
+    defaults: { search: '', status: 'ALL', tier: 'ALL', tab: 'ALL' },
+  });
   const search = filters.search;
   const statusFilter = filters.status as 'ALL' | VendorStatus;
   const tierFilter = filters.tier as 'ALL' | VendorTier;
@@ -71,18 +123,43 @@ export function VendorsPage() {
 
   useEffect(() => {
     let cancelled = false;
-    vendorsService.list()
-      .then((data) => { if (!cancelled) setVendors(data); })
-      .catch((err: unknown) => { if (!cancelled) console.error('Failed to load vendors', err); })
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
+    vendorsService
+      .list()
+      .then((data) => {
+        if (!cancelled) {
+          setVendors(data);
+          setLoadError(null);
+        }
+      })
+      .catch((err: unknown) => {
+        if (!cancelled)
+          setLoadError(
+            err instanceof Error ? err.message : 'Failed to load vendors',
+          );
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const stats = useMemo(() => {
-    const dueSoon = vendors.filter((v) => isDueWithinDays(v.nextAssessmentAt, 30)).length;
-    const highRisk = vendors.filter((v) => v.tier === 'HIGH' || v.tier === 'CRITICAL').length;
+    const dueSoon = vendors.filter((v) =>
+      isDueWithinDays(v.nextAssessmentAt, 30),
+    ).length;
+    const highRisk = vendors.filter(
+      (v) => v.tier === 'HIGH' || v.tier === 'CRITICAL',
+    ).length;
     const openFindings = vendors.reduce((sum, v) => sum + v.openFindings, 0);
-    const avgScore = vendors.length > 0 ? Math.round(vendors.reduce((sum, v) => sum + v.securityScore, 0) / vendors.length) : 0;
+    const avgScore =
+      vendors.length > 0
+        ? Math.round(
+            vendors.reduce((sum, v) => sum + v.securityScore, 0) /
+              vendors.length,
+          )
+        : 0;
     return { dueSoon, highRisk, openFindings, avgScore };
   }, [vendors]);
 
@@ -98,25 +175,64 @@ export function VendorsPage() {
           v.owner.toLowerCase().includes(normalized)
         );
       })
-      .filter((v) => (statusFilter === 'ALL' ? true : v.status === statusFilter))
+      .filter((v) =>
+        statusFilter === 'ALL' ? true : v.status === statusFilter,
+      )
       .filter((v) => (tierFilter === 'ALL' ? true : v.tier === tierFilter))
       .filter((v) => {
         if (tab === 'ALL') return true;
         if (tab === 'DUE') return isDueWithinDays(v.nextAssessmentAt, 30);
         return v.tier === 'HIGH' || v.tier === 'CRITICAL';
       })
-      .sort((a, b) => new Date(a.nextAssessmentAt).getTime() - new Date(b.nextAssessmentAt).getTime());
+      .sort(
+        (a, b) =>
+          new Date(a.nextAssessmentAt).getTime() -
+          new Date(b.nextAssessmentAt).getTime(),
+      );
   }, [vendors, search, statusFilter, tierFilter, tab]);
 
   const activeFilters = [
-    ...(search.trim() ? [{ key: 'search', label: `Search: ${search.trim()}`, onRemove: () => update({ search: '' }) }] : []),
-    ...(statusFilter !== 'ALL' ? [{ key: 'status', label: `Status: ${statusMeta[statusFilter].label}`, onRemove: () => update({ status: 'ALL' }) }] : []),
-    ...(tierFilter !== 'ALL' ? [{ key: 'tier', label: `Tier: ${tierMeta[tierFilter].label}`, onRemove: () => update({ tier: 'ALL' }) }] : []),
-    ...(tab !== 'ALL' ? [{ key: 'tab', label: `View: ${tab === 'DUE' ? 'Due soon' : 'High risk'}`, onRemove: () => update({ tab: 'ALL' }) }] : []),
+    ...(search.trim()
+      ? [
+          {
+            key: 'search',
+            label: `Search: ${search.trim()}`,
+            onRemove: () => update({ search: '' }),
+          },
+        ]
+      : []),
+    ...(statusFilter !== 'ALL'
+      ? [
+          {
+            key: 'status',
+            label: `Status: ${statusMeta[statusFilter].label}`,
+            onRemove: () => update({ status: 'ALL' }),
+          },
+        ]
+      : []),
+    ...(tierFilter !== 'ALL'
+      ? [
+          {
+            key: 'tier',
+            label: `Tier: ${tierMeta[tierFilter].label}`,
+            onRemove: () => update({ tier: 'ALL' }),
+          },
+        ]
+      : []),
+    ...(tab !== 'ALL'
+      ? [
+          {
+            key: 'tab',
+            label: `View: ${tab === 'DUE' ? 'Due soon' : 'High risk'}`,
+            onRemove: () => update({ tab: 'ALL' }),
+          },
+        ]
+      : []),
   ];
 
   async function onCreateVendor() {
-    if (!form.name.trim() || !form.category.trim() || !form.owner.trim()) return;
+    if (!form.name.trim() || !form.category.trim() || !form.owner.trim())
+      return;
     await vendorsService.create({
       ...form,
       name: form.name.trim(),
@@ -147,6 +263,11 @@ export function VendorsPage() {
         </Button>
       }
     >
+      {loadError && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          Failed to load vendors: {loadError}
+        </div>
+      )}
       <div className="space-y-6">
         <Card className="border-slate-200 bg-gradient-to-r from-slate-50 via-white to-emerald-50/60">
           <CardHeader>
@@ -155,7 +276,8 @@ export function VendorsPage() {
               Third-party risk command center
             </CardTitle>
             <CardDescription className="text-slate-600">
-              Track questionnaire coverage, pending reviews, and critical vendor exposure in one workflow.
+              Track questionnaire coverage, pending reviews, and critical vendor
+              exposure in one workflow.
             </CardDescription>
           </CardHeader>
         </Card>
@@ -163,36 +285,52 @@ export function VendorsPage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardContent className="pt-6">
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Vendors</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                Vendors
+              </p>
               <div className="mt-2 flex items-center justify-between">
-                <p className="text-2xl font-semibold text-slate-900">{vendors.length}</p>
+                <p className="text-2xl font-semibold text-slate-900">
+                  {vendors.length}
+                </p>
                 <Building2 className="h-5 w-5 text-slate-500" />
               </div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-6">
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">High risk</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                High risk
+              </p>
               <div className="mt-2 flex items-center justify-between">
-                <p className="text-2xl font-semibold text-slate-900">{stats.highRisk}</p>
+                <p className="text-2xl font-semibold text-slate-900">
+                  {stats.highRisk}
+                </p>
                 <AlertTriangle className="h-5 w-5 text-orange-500" />
               </div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-6">
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Assessments due (30d)</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                Assessments due (30d)
+              </p>
               <div className="mt-2 flex items-center justify-between">
-                <p className="text-2xl font-semibold text-slate-900">{stats.dueSoon}</p>
+                <p className="text-2xl font-semibold text-slate-900">
+                  {stats.dueSoon}
+                </p>
                 <CalendarClock className="h-5 w-5 text-amber-500" />
               </div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-6">
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Avg security score</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                Avg security score
+              </p>
               <div className="mt-2 flex items-center justify-between">
-                <p className="text-2xl font-semibold text-slate-900">{stats.avgScore}</p>
+                <p className="text-2xl font-semibold text-slate-900">
+                  {stats.avgScore}
+                </p>
                 <ShieldCheck className="h-5 w-5 text-emerald-500" />
               </div>
             </CardContent>
@@ -210,7 +348,8 @@ export function VendorsPage() {
                   key: 'status',
                   value: statusFilter,
                   placeholder: 'Status',
-                  onChange: (value) => update({ status: value as 'ALL' | VendorStatus }),
+                  onChange: (value) =>
+                    update({ status: value as 'ALL' | VendorStatus }),
                   options: [
                     { value: 'ALL', label: 'All statuses' },
                     { value: 'MONITORED', label: 'Monitored' },
@@ -223,7 +362,8 @@ export function VendorsPage() {
                   key: 'tier',
                   value: tierFilter,
                   placeholder: 'Risk tier',
-                  onChange: (value) => update({ tier: value as 'ALL' | VendorTier }),
+                  onChange: (value) =>
+                    update({ tier: value as 'ALL' | VendorTier }),
                   options: [
                     { value: 'ALL', label: 'All risk tiers' },
                     { value: 'LOW', label: 'Low' },
@@ -274,38 +414,72 @@ export function VendorsPage() {
                 <tbody>
                   {!loading && filteredVendors.length === 0 && (
                     <tr>
-                      <td colSpan={9} className="py-10 text-center text-slate-500">
+                      <td
+                        colSpan={9}
+                        className="py-10 text-center text-slate-500"
+                      >
                         No vendors match this view.
                       </td>
                     </tr>
                   )}
 
                   {filteredVendors.map((vendor) => (
-                    <tr key={vendor.id} className="border-b last:border-b-0 hover:bg-slate-50/60">
+                    <tr
+                      key={vendor.id}
+                      className="border-b last:border-b-0 hover:bg-slate-50/60"
+                    >
                       <td className="py-3 pr-4">
                         <div>
-                          <p className="font-medium text-slate-900">{vendor.name}</p>
-                          <p className="text-xs text-slate-500">Owner: {vendor.owner}</p>
+                          <p className="font-medium text-slate-900">
+                            {vendor.name}
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            Owner: {vendor.owner}
+                          </p>
                         </div>
                       </td>
-                      <td className="py-3 pr-4 text-slate-700">{vendor.category}</td>
-                      <td className="py-3 pr-4">
-                        <Badge variant="outline" className={tierMeta[vendor.tier].className}>{tierMeta[vendor.tier].label}</Badge>
+                      <td className="py-3 pr-4 text-slate-700">
+                        {vendor.category}
                       </td>
-                      <td className="py-3 pr-4 font-medium text-slate-900">{vendor.securityScore}</td>
+                      <td className="py-3 pr-4">
+                        <Badge
+                          variant="outline"
+                          className={tierMeta[vendor.tier].className}
+                        >
+                          {tierMeta[vendor.tier].label}
+                        </Badge>
+                      </td>
+                      <td className="py-3 pr-4 font-medium text-slate-900">
+                        {vendor.securityScore}
+                      </td>
                       <td className="py-3 pr-4">
                         <div className="w-28">
                           <Progress value={vendor.questionnaireCompletion} />
-                          <p className="mt-1 text-xs text-slate-500">{vendor.questionnaireCompletion}%</p>
+                          <p className="mt-1 text-xs text-slate-500">
+                            {vendor.questionnaireCompletion}%
+                          </p>
                         </div>
                       </td>
-                      <td className="py-3 pr-4 text-slate-700">{vendor.openFindings}</td>
-                      <td className="py-3 pr-4 text-slate-700">{new Date(vendor.nextAssessmentAt).toLocaleDateString()}</td>
+                      <td className="py-3 pr-4 text-slate-700">
+                        {vendor.openFindings}
+                      </td>
+                      <td className="py-3 pr-4 text-slate-700">
+                        {new Date(vendor.nextAssessmentAt).toLocaleDateString()}
+                      </td>
                       <td className="py-3 pr-4">
-                        <Badge variant="outline" className={statusMeta[vendor.status].className}>{statusMeta[vendor.status].label}</Badge>
+                        <Badge
+                          variant="outline"
+                          className={statusMeta[vendor.status].className}
+                        >
+                          {statusMeta[vendor.status].label}
+                        </Badge>
                       </td>
                       <td className="py-3 pr-0">
-                        <Button variant="ghost" className="h-8" onClick={() => setSelected(vendor)}>
+                        <Button
+                          variant="ghost"
+                          className="h-8"
+                          onClick={() => setSelected(vendor)}
+                        >
                           View
                         </Button>
                       </td>
@@ -327,7 +501,9 @@ export function VendorsPage() {
           <CardContent className="space-y-2 text-sm text-slate-700">
             <p>- Trigger reassessment for vendors due in the next 30 days.</p>
             <p>- Prioritize vendors with PII data class and score below 70.</p>
-            <p>- Ensure DPA is signed before moving a vendor to monitored status.</p>
+            <p>
+              - Ensure DPA is signed before moving a vendor to monitored status.
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -336,19 +512,48 @@ export function VendorsPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Add vendor</DialogTitle>
-            <DialogDescription>Capture basic details and start the assessment workflow.</DialogDescription>
+            <DialogDescription>
+              Capture basic details and start the assessment workflow.
+            </DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-3">
-            <Input placeholder="Vendor name" value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} />
-            <Input placeholder="Category (e.g. Identity, Payroll)" value={form.category} onChange={(e) => setForm((p) => ({ ...p, category: e.target.value }))} />
-            <Input placeholder="Business owner" value={form.owner} onChange={(e) => setForm((p) => ({ ...p, owner: e.target.value }))} />
-            <Input placeholder="Website (optional)" value={form.website} onChange={(e) => setForm((p) => ({ ...p, website: e.target.value }))} />
+            <Input
+              placeholder="Vendor name"
+              value={form.name}
+              onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+            />
+            <Input
+              placeholder="Category (e.g. Identity, Payroll)"
+              value={form.category}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, category: e.target.value }))
+              }
+            />
+            <Input
+              placeholder="Business owner"
+              value={form.owner}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, owner: e.target.value }))
+              }
+            />
+            <Input
+              placeholder="Website (optional)"
+              value={form.website}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, website: e.target.value }))
+              }
+            />
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <select
                 value={form.businessCriticality}
-                onChange={(e) => setForm((p) => ({ ...p, businessCriticality: e.target.value as any }))}
+                onChange={(e) =>
+                  setForm((p) => ({
+                    ...p,
+                    businessCriticality: e.target.value as any,
+                  }))
+                }
                 className="rounded-md border border-slate-300 px-3 py-2 text-sm"
               >
                 <option value="Mission-critical">Mission-critical</option>
@@ -358,7 +563,9 @@ export function VendorsPage() {
 
               <select
                 value={form.dataClass}
-                onChange={(e) => setForm((p) => ({ ...p, dataClass: e.target.value as any }))}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, dataClass: e.target.value as any }))
+                }
                 className="rounded-md border border-slate-300 px-3 py-2 text-sm"
               >
                 <option value="PII">PII</option>
@@ -370,13 +577,18 @@ export function VendorsPage() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setIsAddOpen(false)}>
+              Cancel
+            </Button>
             <Button onClick={onCreateVendor}>Create vendor</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <Sheet open={!!selected} onOpenChange={(open) => !open && setSelected(null)}>
+      <Sheet
+        open={!!selected}
+        onOpenChange={(open) => !open && setSelected(null)}
+      >
         <SheetContent className="sm:max-w-xl">
           {selected && (
             <>
@@ -392,13 +604,23 @@ export function VendorsPage() {
                   <Card>
                     <CardContent className="pt-4">
                       <p className="text-xs text-slate-500">Risk tier</p>
-                      <Badge variant="outline" className={`mt-2 ${tierMeta[selected.tier].className}`}>{tierMeta[selected.tier].label}</Badge>
+                      <Badge
+                        variant="outline"
+                        className={`mt-2 ${tierMeta[selected.tier].className}`}
+                      >
+                        {tierMeta[selected.tier].label}
+                      </Badge>
                     </CardContent>
                   </Card>
                   <Card>
                     <CardContent className="pt-4">
                       <p className="text-xs text-slate-500">Status</p>
-                      <Badge variant="outline" className={`mt-2 ${statusMeta[selected.status].className}`}>{statusMeta[selected.status].label}</Badge>
+                      <Badge
+                        variant="outline"
+                        className={`mt-2 ${statusMeta[selected.status].className}`}
+                      >
+                        {statusMeta[selected.status].label}
+                      </Badge>
                     </CardContent>
                   </Card>
                 </div>
@@ -422,7 +644,9 @@ export function VendorsPage() {
                       </div>
                       <Progress value={selected.questionnaireCompletion} />
                     </div>
-                    <p className="text-xs text-slate-600">Open findings: {selected.openFindings}</p>
+                    <p className="text-xs text-slate-600">
+                      Open findings: {selected.openFindings}
+                    </p>
                   </CardContent>
                 </Card>
 
@@ -431,12 +655,32 @@ export function VendorsPage() {
                     <CardTitle className="text-sm">Risk context</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2 text-slate-700">
-                    <p><span className="text-slate-500">Business criticality:</span> {selected.businessCriticality}</p>
-                    <p><span className="text-slate-500">Data class:</span> {selected.dataClass}</p>
-                    <p><span className="text-slate-500">Sub-processors:</span> {selected.subprocessors}</p>
-                    <p><span className="text-slate-500">DPA signed:</span> {selected.dpaSigned ? 'Yes' : 'No'}</p>
-                    <p><span className="text-slate-500">Last assessment:</span> {new Date(selected.lastAssessmentAt).toLocaleDateString()}</p>
-                    <p><span className="text-slate-500">Next assessment:</span> {new Date(selected.nextAssessmentAt).toLocaleDateString()}</p>
+                    <p>
+                      <span className="text-slate-500">
+                        Business criticality:
+                      </span>{' '}
+                      {selected.businessCriticality}
+                    </p>
+                    <p>
+                      <span className="text-slate-500">Data class:</span>{' '}
+                      {selected.dataClass}
+                    </p>
+                    <p>
+                      <span className="text-slate-500">Sub-processors:</span>{' '}
+                      {selected.subprocessors}
+                    </p>
+                    <p>
+                      <span className="text-slate-500">DPA signed:</span>{' '}
+                      {selected.dpaSigned ? 'Yes' : 'No'}
+                    </p>
+                    <p>
+                      <span className="text-slate-500">Last assessment:</span>{' '}
+                      {new Date(selected.lastAssessmentAt).toLocaleDateString()}
+                    </p>
+                    <p>
+                      <span className="text-slate-500">Next assessment:</span>{' '}
+                      {new Date(selected.nextAssessmentAt).toLocaleDateString()}
+                    </p>
                   </CardContent>
                 </Card>
 
@@ -451,7 +695,10 @@ export function VendorsPage() {
                   </Card>
                 )}
 
-                <Button className="w-full" onClick={() => onCompleteAssessment(selected.id)}>
+                <Button
+                  className="w-full"
+                  onClick={() => onCompleteAssessment(selected.id)}
+                >
                   Mark assessment complete
                 </Button>
               </div>

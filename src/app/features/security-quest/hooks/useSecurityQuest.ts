@@ -1,6 +1,6 @@
 import { useReducer, useCallback, useEffect, useRef } from 'react';
 import { questReducer, createInitialState } from '../lib/reducer';
-import type { QuestAction, QuestState, FeedbackData, UserAnswer } from '../lib/types';
+import type { QuestState, FeedbackData, UserAnswer } from '../lib/types';
 import { MODULE_IDS, getModuleById } from '../content/modules';
 
 const STORAGE_KEY = 'manzen-security-quest-state';
@@ -74,9 +74,12 @@ export function useSecurityQuest() {
     dispatch({ type: 'NEXT_INTERACTION' });
   }, []);
 
-  const recordAnswer = useCallback((answer: UserAnswer, feedback: FeedbackData) => {
-    dispatch({ type: 'RECORD_ANSWER', answer, feedback });
-  }, []);
+  const recordAnswer = useCallback(
+    (answer: UserAnswer, feedback: FeedbackData) => {
+      dispatch({ type: 'RECORD_ANSWER', answer, feedback });
+    },
+    [],
+  );
 
   const dismissFeedback = useCallback(() => {
     dispatch({ type: 'DISMISS_FEEDBACK' });
@@ -91,9 +94,12 @@ export function useSecurityQuest() {
     });
   }, []);
 
-  const updateInteractionState = useCallback((interactionId: string, data: unknown) => {
-    dispatch({ type: 'UPDATE_INTERACTION_STATE', interactionId, data });
-  }, []);
+  const updateInteractionState = useCallback(
+    (interactionId: string, data: unknown) => {
+      dispatch({ type: 'UPDATE_INTERACTION_STATE', interactionId, data });
+    },
+    [],
+  );
 
   const completeQuest = useCallback(() => {
     dispatch({ type: 'COMPLETE_QUEST', completedAt: new Date().toISOString() });
@@ -112,7 +118,7 @@ export function useSecurityQuest() {
     : null;
 
   const currentInteraction = currentModule
-    ? currentModule.interactions[state.currentInteractionIndex] ?? null
+    ? (currentModule.interactions[state.currentInteractionIndex] ?? null)
     : null;
 
   const isLastInteraction = currentModule
@@ -120,12 +126,14 @@ export function useSecurityQuest() {
     : false;
 
   const completedModuleCount = Object.values(state.moduleProgress).filter(
-    s => s === 'complete',
+    (s) => s === 'complete',
   ).length;
 
   const totalModuleCount = MODULE_IDS.length;
 
-  const progressPercent = Math.round((completedModuleCount / totalModuleCount) * 100);
+  const progressPercent = Math.round(
+    (completedModuleCount / totalModuleCount) * 100,
+  );
 
   return {
     state,

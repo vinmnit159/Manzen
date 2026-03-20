@@ -15,7 +15,11 @@
 import React from 'react';
 import { Navigate } from 'react-router';
 import { ShieldOff } from 'lucide-react';
-import { useHasPermission, useHasRole, useCurrentUser } from '@/hooks/useCurrentUser';
+import {
+  useHasPermission,
+  useHasRole,
+  useCurrentUser,
+} from '@/hooks/useCurrentUser';
 import type { Permission, AppRole } from '@/lib/rbac/permissions';
 
 // ── RequirePermission ──────────────────────────────────────────────────────────
@@ -32,7 +36,11 @@ interface RequirePermissionProps {
  * has the specified permission.
  * If not, renders `fallback` (default: nothing).
  */
-export function RequirePermission({ permission, fallback = null, children }: RequirePermissionProps) {
+export function RequirePermission({
+  permission,
+  fallback = null,
+  children,
+}: RequirePermissionProps) {
   const has = useHasPermission(permission);
   return has ? <>{children}</> : <>{fallback}</>;
 }
@@ -48,7 +56,11 @@ interface RequireRoleProps {
 /**
  * Conditionally renders children if the user has ANY of the given roles.
  */
-export function RequireRole({ roles, fallback = null, children }: RequireRoleProps) {
+export function RequireRole({
+  roles,
+  fallback = null,
+  children,
+}: RequireRoleProps) {
   const has = useHasRole(...roles);
   return has ? <>{children}</> : <>{fallback}</>;
 }
@@ -74,16 +86,24 @@ interface ProtectedPageProps {
  *     <UsersPage />
  *   </ProtectedPage>
  */
-export function ProtectedPage({ permission, roles, redirectTo = '/tests', children }: ProtectedPageProps) {
+export function ProtectedPage({
+  permission,
+  roles,
+  redirectTo = '/tests',
+  children,
+}: ProtectedPageProps) {
+  // Hooks must be called unconditionally — never after an early return.
+  // We call all three hooks here, then apply the guard logic below.
   const user = useCurrentUser();
+  const hasPermission = useHasPermission(permission as Permission);
+  const hasRole = useHasRole(...(roles ?? []));
+
   if (!user) return <Navigate to="/login" replace />;
 
-  const hasPermission = permission ? useHasPermission(permission) : true;
-  const hasRole = roles ? useHasRole(...roles) : true;
+  const permitted =
+    (permission == null || hasPermission) && (roles == null || hasRole);
+  if (!permitted) return <Navigate to={redirectTo} replace />;
 
-  if (!hasPermission && !hasRole) {
-    return <Navigate to={redirectTo} replace />;
-  }
   return <>{children}</>;
 }
 
@@ -106,10 +126,13 @@ export function AccessDenied({
         <ShieldOff className="w-8 h-8 text-red-400" />
       </div>
       <h2 className="text-xl font-semibold text-gray-900 mb-2">{title}</h2>
-      <p className="text-sm text-gray-500 text-center max-w-sm mb-4">{message}</p>
+      <p className="text-sm text-gray-500 text-center max-w-sm mb-4">
+        {message}
+      </p>
       {requiredRole && (
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-100 text-xs font-medium text-gray-600 border border-gray-200">
-          Required role: <span className="font-semibold text-gray-800">{requiredRole}</span>
+          Required role:{' '}
+          <span className="font-semibold text-gray-800">{requiredRole}</span>
         </div>
       )}
     </div>

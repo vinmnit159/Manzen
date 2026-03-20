@@ -36,7 +36,6 @@ import {
   LayoutDashboard,
   ListChecks,
   FileBox,
-  Gauge,
   RefreshCw,
 } from 'lucide-react';
 import { frameworksService } from '@/services/api/frameworks';

@@ -25,18 +25,6 @@
 
 import type { SqlExecutor } from '@/domain/risk-engine/persistence';
 
-interface CoverageInput {
-  totalRequirements: number;
-  totalMapped: number;
-  notApplicable: number;
-  applicable: number;
-  covered: number;
-  partiallyCovered: number;
-  notCovered: number;
-  mappedTestCount: number;
-  passingTestCount: number;
-}
-
 function computePercentage(numerator: number, denominator: number): number {
   if (denominator === 0) return 0;
   return Math.round((numerator / denominator) * 100);
@@ -70,7 +58,10 @@ export async function computeAndInsertCoverageSnapshot(
   const totalMapped = Number(mappedResult.rows[0]?.count ?? 0);
 
   // ── Layer 3: applicability split ────────────────────────────────────────────
-  const applicabilityResult = await db.query<{ applicability_status: string; count: string }>(
+  const applicabilityResult = await db.query<{
+    applicability_status: string;
+    count: string;
+  }>(
     `select s.applicability_status, count(*) as count
        from organization_framework_requirement_status s
        join framework_requirements r on r.id = s.framework_requirement_id
@@ -112,8 +103,9 @@ export async function computeAndInsertCoverageSnapshot(
   const partiallyCovered = 0;
 
   // ── Test pass rate ──────────────────────────────────────────────────────────
-  const testResult = await db.query<{ total: string; passing: string }>(
-    `select
+  const testResult = await db
+    .query<{ total: string; passing: string }>(
+      `select
        count(*) as total,
        count(*) filter (where tr.status = 'Pass') as passing
        from test_framework_requirement_mappings m
@@ -124,8 +116,9 @@ export async function computeAndInsertCoverageSnapshot(
        ) tr on tr.test_id = m.test_id
       where m.organization_id = $1
         and m.framework_id    = $2`,
-    [organizationId, frameworkId],
-  ).catch(() => ({ rows: [{ total: '0', passing: '0' }] })); // graceful degradation if table missing
+      [organizationId, frameworkId],
+    )
+    .catch(() => ({ rows: [{ total: '0', passing: '0' }] })); // graceful degradation if table missing
 
   const mappedTestCount = Number(testResult.rows[0]?.total ?? 0);
   const passingTestCount = Number(testResult.rows[0]?.passing ?? 0);
@@ -165,12 +158,20 @@ export async function computeAndInsertCoverageSnapshot(
         open_gaps, calculated_at)
      values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, now())`,
     [
-      snapshotId, organizationId, frameworkId,
-      totalRequirements, totalMapped,
-      notApplicable, applicable,
-      covered, partiallyCovered, notCovered,
-      controlCoveragePct, testPassRatePct,
-      mappedTestCount, passingTestCount,
+      snapshotId,
+      organizationId,
+      frameworkId,
+      totalRequirements,
+      totalMapped,
+      notApplicable,
+      applicable,
+      covered,
+      partiallyCovered,
+      notCovered,
+      controlCoveragePct,
+      testPassRatePct,
+      mappedTestCount,
+      passingTestCount,
       openGaps,
     ],
   );
@@ -180,17 +181,29 @@ export async function computeAndInsertCoverageSnapshot(
  * Refreshes coverage snapshots for all active org + framework pairs.
  * Runs idempotently — safe to call on any schedule.
  */
-export async function refreshAllCoverageSnapshots(db: SqlExecutor): Promise<void> {
-  const activeResult = await db.query<{ organization_id: string; framework_id: string }>(
+export async function refreshAllCoverageSnapshots(
+  db: SqlExecutor,
+): Promise<void> {
+  const activeResult = await db.query<{
+    organization_id: string;
+    framework_id: string;
+  }>(
     `select organization_id, framework_id from organization_frameworks where status = 'active'`,
   );
 
   for (const row of activeResult.rows) {
     try {
-      await computeAndInsertCoverageSnapshot(db, row.organization_id, row.framework_id);
+      await computeAndInsertCoverageSnapshot(
+        db,
+        row.organization_id,
+        row.framework_id,
+      );
     } catch (err) {
       // Log and continue — one failure should not block others
-      console.error(`[coverageEngine] Failed to refresh snapshot for org=${row.organization_id} fw=${row.framework_id}:`, err);
+      console.error(
+        `[coverageEngine] Failed to refresh snapshot for org=${row.organization_id} fw=${row.framework_id}:`,
+        err,
+      );
     }
   }
 }

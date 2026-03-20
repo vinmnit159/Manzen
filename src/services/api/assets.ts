@@ -1,10 +1,10 @@
-import { apiClient, ApiResponse, PaginatedResponse } from './client';
-import { 
-  Asset, 
-  CreateAssetRequest, 
+import { apiClient, ApiResponse } from './client';
+import {
+  Asset,
+  CreateAssetRequest,
   UpdateAssetRequest,
   AssetType,
-  RiskLevel 
+  RiskLevel,
 } from './types';
 
 export class AssetsService {
@@ -25,12 +25,17 @@ export class AssetsService {
   }
 
   // Create new asset
-  async createAsset(assetData: CreateAssetRequest): Promise<ApiResponse<Asset>> {
+  async createAsset(
+    assetData: CreateAssetRequest,
+  ): Promise<ApiResponse<Asset>> {
     return apiClient.post('/api/assets', assetData);
   }
 
   // Update asset
-  async updateAsset(id: string, assetData: UpdateAssetRequest): Promise<ApiResponse<Asset>> {
+  async updateAsset(
+    id: string,
+    assetData: UpdateAssetRequest,
+  ): Promise<ApiResponse<Asset>> {
     return apiClient.put(`/api/assets/${id}`, assetData);
   }
 
@@ -50,44 +55,57 @@ export class AssetsService {
   }
 
   // Get assets by type distribution
-  async getAssetTypeDistribution(): Promise<ApiResponse<{
-    type: AssetType;
-    count: number;
-    percentage: number;
-  }[]>> {
+  async getAssetTypeDistribution(): Promise<
+    ApiResponse<
+      {
+        type: AssetType;
+        count: number;
+        percentage: number;
+      }[]
+    >
+  > {
     return apiClient.get('/api/assets/distribution');
   }
 
   // Export assets data
   async exportAssets(format: 'csv' | 'xlsx' | 'pdf' = 'csv'): Promise<Blob> {
-    const response = await fetch(`${apiClient.baseURL}/api/assets/export?format=${format}`, {
-      headers: apiClient.token ? {
-        Authorization: `Bearer ${apiClient.token}`,
-      } : {},
-    });
-    
+    const response = await fetch(
+      `${apiClient.baseURL}/api/assets/export?format=${format}`,
+      {
+        headers: apiClient.token
+          ? {
+              Authorization: `Bearer ${apiClient.token}`,
+            }
+          : {},
+      },
+    );
+
     if (!response.ok) {
       throw new Error('Failed to export assets');
     }
-    
+
     return response.blob();
   }
 
   // Upload asset file (for bulk import)
-  async uploadAssetFile(file: File): Promise<ApiResponse<{
-    imported: number;
-    failed: number;
-    errors?: any[];
-  }>> {
+  async uploadAssetFile(file: File): Promise<
+    ApiResponse<{
+      imported: number;
+      failed: number;
+      errors?: any[];
+    }>
+  > {
     const formData = new FormData();
     formData.append('file', file);
 
     const response = await fetch(`${apiClient.baseURL}/api/assets/import`, {
       method: 'POST',
       body: formData,
-      headers: apiClient.token ? {
-        Authorization: `Bearer ${apiClient.token}`,
-      } : {},
+      headers: apiClient.token
+        ? {
+            Authorization: `Bearer ${apiClient.token}`,
+          }
+        : {},
     });
 
     if (!response.ok) {

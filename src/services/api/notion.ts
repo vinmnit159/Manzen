@@ -1,4 +1,4 @@
-import { apiClient } from './client';
+import { apiClient, API_BASE_URL } from './client';
 import { getAuthToken } from '@/services/authStorage';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -65,16 +65,26 @@ export interface NotionUserMapping {
 
 export const notionService = {
   getConnectUrl(): string {
-    const backendUrl = (import.meta as any).env?.VITE_API_URL ?? 'https://api.cloudanzen.com';
     const token = getAuthToken() ?? '';
-    return `${backendUrl}/api/integrations/notion/connect?token=${encodeURIComponent(token)}`;
+    return `${API_BASE_URL}/api/integrations/notion/connect?token=${encodeURIComponent(token)}`;
   },
 
-  async getStatus(): Promise<{ connected: boolean; data: NotionStatus | null }> {
+  async getStatus(): Promise<{
+    connected: boolean;
+    data: NotionStatus | null;
+  }> {
     return apiClient.get('/api/integrations/notion/status');
   },
 
-  async connect(token: string): Promise<{ success: boolean; data: { id: string; workspaceId: string; workspaceName: string; workspaceIcon: string | null } }> {
+  async connect(token: string): Promise<{
+    success: boolean;
+    data: {
+      id: string;
+      workspaceId: string;
+      workspaceName: string;
+      workspaceIcon: string | null;
+    };
+  }> {
     return apiClient.post('/api/integrations/notion/connect', { token });
   },
 
@@ -82,12 +92,21 @@ export const notionService = {
     return apiClient.delete('/api/integrations/notion/');
   },
 
-  async getDatabases(): Promise<{ success: boolean; data: NotionAvailableDatabase[] }> {
+  async getDatabases(): Promise<{
+    success: boolean;
+    data: NotionAvailableDatabase[];
+  }> {
     return apiClient.get('/api/integrations/notion/databases');
   },
 
-  async linkDatabase(databaseId: string, databaseName: string): Promise<{ success: boolean; data: NotionDatabase }> {
-    return apiClient.post('/api/integrations/notion/databases/link', { databaseId, databaseName });
+  async linkDatabase(
+    databaseId: string,
+    databaseName: string,
+  ): Promise<{ success: boolean; data: NotionDatabase }> {
+    return apiClient.post('/api/integrations/notion/databases/link', {
+      databaseId,
+      databaseName,
+    });
   },
 
   async unlinkDatabase(mappingId: string): Promise<{ success: boolean }> {
@@ -102,11 +121,18 @@ export const notionService = {
     return apiClient.get('/api/integrations/notion/tasks');
   },
 
-  async getUserMappings(): Promise<{ success: boolean; data: NotionUserMapping[] }> {
+  async getUserMappings(): Promise<{
+    success: boolean;
+    data: NotionUserMapping[];
+  }> {
     return apiClient.get('/api/integrations/notion/user-mappings');
   },
 
-  async createUserMapping(data: { ismsUserId: string; externalUserId: string; email?: string }): Promise<{ success: boolean; data: NotionUserMapping }> {
+  async createUserMapping(data: {
+    ismsUserId: string;
+    externalUserId: string;
+    email?: string;
+  }): Promise<{ success: boolean; data: NotionUserMapping }> {
     return apiClient.post('/api/integrations/notion/user-mappings', data);
   },
 
@@ -121,7 +147,10 @@ export const notionService = {
     assigneeNotionUserId?: string;
     dueDate?: string;
     controlId?: string;
-  }): Promise<{ success: boolean; data: { notionPageId: string; notionPageUrl: string; title: string } }> {
+  }): Promise<{
+    success: boolean;
+    data: { notionPageId: string; notionPageUrl: string; title: string };
+  }> {
     return apiClient.post('/api/integrations/notion/create-task', data);
   },
 
@@ -129,7 +158,11 @@ export const notionService = {
     return apiClient.get('/api/integrations/notion/logs');
   },
 
-  async getTests(): Promise<{ success: boolean; data: any[]; seeded: boolean }> {
+  async getTests(): Promise<{
+    success: boolean;
+    data: any[];
+    seeded: boolean;
+  }> {
     return apiClient.get('/api/integrations/notion/tests');
   },
 };

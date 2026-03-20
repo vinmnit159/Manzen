@@ -14,9 +14,12 @@ interface SecurityQuestAppProps {
   onTrainingComplete?: () => Promise<void>;
 }
 
-export function SecurityQuestApp({ onTrainingStart, onTrainingComplete }: SecurityQuestAppProps) {
+export function SecurityQuestApp({
+  onTrainingStart,
+  onTrainingComplete,
+}: SecurityQuestAppProps) {
   const quest = useSecurityQuest();
-  const { state, startQuest, completeQuest, resetQuest } = quest;
+  const { state, startQuest, resetQuest } = quest;
 
   const handleStart = async () => {
     startQuest();
@@ -43,10 +46,7 @@ export function SecurityQuestApp({ onTrainingStart, onTrainingComplete }: Securi
   if (state.phase === 'intro') {
     return (
       <div className="security-quest">
-        <IntroScreen
-          onStart={handleStart}
-          hasProgress={!!state.startedAt}
-        />
+        <IntroScreen onStart={handleStart} hasProgress={!!state.startedAt} />
       </div>
     );
   }

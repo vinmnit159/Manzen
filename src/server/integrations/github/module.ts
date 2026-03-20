@@ -1,5 +1,9 @@
 import { getRiskEngineRuntimeService } from '@/server/risk-engine/runtime';
-import type { NormalizedSignal, ScanRunRecord, IntegrationJobExecutionRecord } from '@/domain/risk-engine/types';
+import type {
+  NormalizedSignal,
+  ScanRunRecord,
+  IntegrationJobExecutionRecord,
+} from '@/domain/risk-engine/types';
 import type { GitHubRepo } from '@/services/api/integrations';
 
 function nowIso() {
@@ -10,16 +14,35 @@ function getRepoProtection(repo: GitHubRepo) {
   const raw = repo.rawData ?? {};
   const protection = raw.branchProtection ?? raw.protection ?? {};
   return {
-    branchProtectionEnabled: Boolean(protection.enabled ?? raw.branchProtectionEnabled ?? false),
-    requiredReviewsEnabled: Boolean(protection.requiredReviewsEnabled ?? ((protection.requiredApprovingReviewCount ?? 0) > 0) ?? false),
-    requiredApprovingReviewCount: Number(protection.requiredApprovingReviewCount ?? raw.requiredApprovingReviewCount ?? 0),
-    secretScanningEnabled: Boolean(raw.secretScanningEnabled ?? raw.secretScanning ?? false),
-    pushProtectionEnabled: Boolean(raw.pushProtectionEnabled ?? raw.secretScanningPushProtection ?? false),
-    defaultBranchStandard: ['main', 'master', 'trunk'].includes(String(repo.defaultBranch || '').toLowerCase()),
+    branchProtectionEnabled: Boolean(
+      protection.enabled ?? raw.branchProtectionEnabled ?? false,
+    ),
+    requiredReviewsEnabled: Boolean(
+      protection.requiredReviewsEnabled ??
+      (protection.requiredApprovingReviewCount ?? 0) > 0,
+    ),
+    requiredApprovingReviewCount: Number(
+      protection.requiredApprovingReviewCount ??
+        raw.requiredApprovingReviewCount ??
+        0,
+    ),
+    secretScanningEnabled: Boolean(
+      raw.secretScanningEnabled ?? raw.secretScanning ?? false,
+    ),
+    pushProtectionEnabled: Boolean(
+      raw.pushProtectionEnabled ?? raw.secretScanningPushProtection ?? false,
+    ),
+    defaultBranchStandard: ['main', 'master', 'trunk'].includes(
+      String(repo.defaultBranch || '').toLowerCase(),
+    ),
   };
 }
 
-function buildGithubSignals(organizationId: string, integrationId: string, repos: GitHubRepo[]): NormalizedSignal[] {
+function buildGithubSignals(
+  organizationId: string,
+  integrationId: string,
+  repos: GitHubRepo[],
+): NormalizedSignal[] {
   const collectedAt = nowIso();
   return repos.flatMap((repo, index) => {
     const protection = getRepoProtection(repo);
@@ -111,7 +134,10 @@ export function registerGithubIntegrationModule(registrar: {
   route(definition: {
     method: 'GET' | 'POST';
     url: string;
-    handler: (request?: { body?: unknown; params?: Record<string, string> }) => Promise<unknown>;
+    handler: (request?: {
+      body?: unknown;
+      params?: Record<string, string>;
+    }) => Promise<unknown>;
   }): void;
 }) {
   registrar.route({
@@ -121,19 +147,32 @@ export function registerGithubIntegrationModule(registrar: {
       const service = await getRiskEngineRuntimeService();
       const startedAt = nowIso();
       const completedAt = nowIso();
-      const body = (request?.body ?? {}) as { integrationId?: string; organizationId?: string; repos?: GitHubRepo[] };
+      const body = (request?.body ?? {}) as {
+        integrationId?: string;
+        organizationId?: string;
+        repos?: GitHubRepo[];
+      };
       const integrationId = body.integrationId ?? 'int_github_core';
       const organizationId = body.organizationId ?? 'org_1';
-      const repos = body.repos && body.repos.length > 0 ? body.repos : [{
-        id: 'repo_manzen_app',
-        name: 'Manzen',
-        fullName: 'vinmnit159/Manzen',
-        private: false,
-        defaultBranch: 'main',
-        visibility: 'public',
-        lastScannedAt: null,
-        rawData: { branchProtectionEnabled: false, requiredApprovingReviewCount: 0, secretScanningEnabled: false },
-      } satisfies GitHubRepo];
+      const repos =
+        body.repos && body.repos.length > 0
+          ? body.repos
+          : [
+              {
+                id: 'repo_manzen_app',
+                name: 'Manzen',
+                fullName: 'vinmnit159/Manzen',
+                private: false,
+                defaultBranch: 'main',
+                visibility: 'public',
+                lastScannedAt: null,
+                rawData: {
+                  branchProtectionEnabled: false,
+                  requiredApprovingReviewCount: 0,
+                  secretScanningEnabled: false,
+                },
+              } satisfies GitHubRepo,
+            ];
       const signals = buildGithubSignals(organizationId, integrationId, repos);
 
       const execution: IntegrationJobExecutionRecord = {
@@ -145,7 +184,10 @@ export function registerGithubIntegrationModule(registrar: {
         status: 'SUCCEEDED',
         startedAt,
         completedAt,
-        metadata: { source: 'github-scan-endpoint', repositoryCount: repos.length },
+        metadata: {
+          source: 'github-scan-endpoint',
+          repositoryCount: repos.length,
+        },
       };
 
       const scanRun: ScanRunRecord = {
@@ -161,7 +203,11 @@ export function registerGithubIntegrationModule(registrar: {
         trigger: 'manual',
       };
 
-      const outcome = await service.ingestNormalizedSignals({ execution, scanRun, signals });
+      const outcome = await service.ingestNormalizedSignals({
+        execution,
+        scanRun,
+        signals,
+      });
 
       return {
         success: true,
@@ -181,8 +227,12 @@ export function registerGithubIntegrationModule(registrar: {
     handler: async () => {
       const service = await getRiskEngineRuntimeService();
       const signals = await service.listSignals();
-      const githubSignals = signals.filter((signal) => signal.provider === 'github');
-      const risks = (await service.listRisks()).filter((risk) => githubSignals.some((signal) => signal.resourceId === risk.resourceId));
+      const githubSignals = signals.filter(
+        (signal) => signal.provider === 'github',
+      );
+      const risks = (await service.listRisks()).filter((risk) =>
+        githubSignals.some((signal) => signal.resourceId === risk.resourceId),
+      );
       return { success: true, data: { signals: githubSignals, risks } };
     },
   });

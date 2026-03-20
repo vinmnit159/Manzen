@@ -1,11 +1,11 @@
-import { apiClient, ApiResponse, PaginatedResponse } from './client';
-import { 
-  Risk, 
-  CreateRiskRequest, 
+import { apiClient, ApiResponse } from './client';
+import {
+  Risk,
+  CreateRiskRequest,
   UpdateRiskRequest,
   RiskLevel,
   RiskStatus,
-  RiskTreatment
+  RiskTreatment,
 } from './types';
 
 export class RisksService {
@@ -32,7 +32,10 @@ export class RisksService {
   }
 
   // Update risk
-  async updateRisk(id: string, riskData: UpdateRiskRequest): Promise<ApiResponse<Risk>> {
+  async updateRisk(
+    id: string,
+    riskData: UpdateRiskRequest,
+  ): Promise<ApiResponse<Risk>> {
     return apiClient.put(`/api/risks/${id}`, riskData);
   }
 
@@ -47,7 +50,11 @@ export class RisksService {
   }
 
   // Add risk treatment
-  async addRiskTreatment(riskId: string, controlId: string, notes?: string): Promise<ApiResponse<RiskTreatment>> {
+  async addRiskTreatment(
+    riskId: string,
+    controlId: string,
+    notes?: string,
+  ): Promise<ApiResponse<RiskTreatment>> {
     return apiClient.post('/api/risks/treatment', {
       riskId,
       controlId,
@@ -56,7 +63,10 @@ export class RisksService {
   }
 
   // Update risk treatment
-  async updateRiskTreatment(id: string, notes?: string): Promise<ApiResponse<RiskTreatment>> {
+  async updateRiskTreatment(
+    id: string,
+    notes?: string,
+  ): Promise<ApiResponse<RiskTreatment>> {
     return apiClient.put(`/api/risks/treatment/${id}`, { notes });
   }
 
@@ -66,37 +76,49 @@ export class RisksService {
   }
 
   // Get risk overview stats
-  async getRisksOverview(): Promise<ApiResponse<{
-    total: number;
-    open: number;
-    mitigated: number;
-    accepted: number;
-    transferred: number;
-    critical: number;
-    high: number;
-    medium: number;
-    low: number;
-    recentRisks: Risk[];
-  }>> {
+  async getRisksOverview(): Promise<
+    ApiResponse<{
+      total: number;
+      open: number;
+      mitigated: number;
+      accepted: number;
+      transferred: number;
+      critical: number;
+      high: number;
+      medium: number;
+      low: number;
+      recentRisks: Risk[];
+    }>
+  > {
     return apiClient.get('/api/risks/overview');
   }
 
   // Get risk distribution
-  async getRiskDistribution(): Promise<ApiResponse<{
-    level: RiskLevel;
-    count: number;
-    percentage: number;
-  }[]>> {
+  async getRiskDistribution(): Promise<
+    ApiResponse<
+      {
+        level: RiskLevel;
+        count: number;
+        percentage: number;
+      }[]
+    >
+  > {
     return apiClient.get('/api/risks/distribution');
   }
 
   // Get risk trends
-  async getRiskTrends(period: 'week' | 'month' | 'quarter' | 'year' = 'month'): Promise<ApiResponse<{
-    date: string;
-    open: number;
-    mitigated: number;
-    accepted: number;
-  }[]>> {
+  async getRiskTrends(
+    period: 'week' | 'month' | 'quarter' | 'year' = 'month',
+  ): Promise<
+    ApiResponse<
+      {
+        date: string;
+        open: number;
+        mitigated: number;
+        accepted: number;
+      }[]
+    >
+  > {
     return apiClient.get('/api/risks/trends', { period });
   }
 
@@ -112,29 +134,38 @@ export class RisksService {
 
   // Export risks
   async exportRisks(format: 'csv' | 'xlsx' | 'pdf' = 'csv'): Promise<Blob> {
-    const response = await fetch(`${apiClient.baseURL}/api/risks/export?format=${format}`, {
-      headers: apiClient.token ? {
-        Authorization: `Bearer ${apiClient.token}`,
-      } : {},
-    });
-    
+    const response = await fetch(
+      `${apiClient.baseURL}/api/risks/export?format=${format}`,
+      {
+        headers: apiClient.token
+          ? {
+              Authorization: `Bearer ${apiClient.token}`,
+            }
+          : {},
+      },
+    );
+
     if (!response.ok) {
       throw new Error('Failed to export risks');
     }
-    
+
     return response.blob();
   }
 
   // Bulk risk assessment
-  async bulkAssess(assessments: Array<{
-    riskId: string;
-    impact: RiskLevel;
-    likelihood: RiskLevel;
-  }>): Promise<ApiResponse<{
-    updated: number;
-    failed: number;
-    errors?: any[];
-  }>> {
+  async bulkAssess(
+    assessments: Array<{
+      riskId: string;
+      impact: RiskLevel;
+      likelihood: RiskLevel;
+    }>,
+  ): Promise<
+    ApiResponse<{
+      updated: number;
+      failed: number;
+      errors?: any[];
+    }>
+  > {
     return apiClient.post('/api/risks/bulk-assess', { assessments });
   }
 }

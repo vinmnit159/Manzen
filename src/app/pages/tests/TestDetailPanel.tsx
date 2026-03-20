@@ -38,7 +38,6 @@ import type { TestRecord } from '@/services/api/tests';
 // ─── Sub-module imports ───────────────────────────────────────────────────────
 import { dispatchScan, getProviderLabel } from './testDetail/scanRegistry';
 import {
-  STATUS_CONFIG,
   CATEGORY_COLOR,
   ADMIN_ROLES,
   AUDIT_REVIEW_ROLES,

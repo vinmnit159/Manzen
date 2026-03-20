@@ -2,9 +2,6 @@ import React from 'react';
 import { ArrowRight, Award } from 'lucide-react';
 import type { UseSecurityQuestReturn } from '../hooks/useSecurityQuest';
 import type { InteractionConfig, UserAnswer, FeedbackData } from '../lib/types';
-import { ProgressRail } from './ProgressRail';
-import { ScorePanel } from './ScorePanel';
-import { BadgeTray } from './BadgeTray';
 import { FeedbackPanel } from './FeedbackPanel';
 import { MascotHelper } from './MascotHelper';
 import { MultipleChoiceCard } from './interactions/MultipleChoiceCard';
@@ -68,14 +65,18 @@ export function QuestShell({ quest }: QuestShellProps) {
   // ── Module selection screen (between modules) ───────────────────────────
   if (!currentModule) {
     // Find the next available module
-    const nextModuleId = Object.entries(state.moduleProgress)
-      .find(([, status]) => status === 'available')?.[0];
+    const nextModuleId = Object.entries(state.moduleProgress).find(
+      ([, status]) => status === 'available',
+    )?.[0];
 
     if (!nextModuleId) {
       // All modules complete — trigger quest completion
       return (
         <div className="max-w-xl mx-auto space-y-4 py-4">
-          <MascotHelper message="All modules complete. Let's see your results." variant="success" />
+          <MascotHelper
+            message="All modules complete. Let's see your results."
+            variant="success"
+          />
           <div className="flex justify-center">
             <button
               onClick={() => completeQuest()}
@@ -148,11 +149,16 @@ export function QuestShell({ quest }: QuestShellProps) {
           <p className="text-xs font-medium text-blue-600 uppercase tracking-wider">
             {currentModule.shortTitle}
           </p>
-          <h2 className="text-lg font-bold text-gray-900">{currentModule.title}</h2>
-          <p className="text-xs text-gray-500 mt-0.5">{currentModule.objective}</p>
+          <h2 className="text-lg font-bold text-gray-900">
+            {currentModule.title}
+          </h2>
+          <p className="text-xs text-gray-500 mt-0.5">
+            {currentModule.objective}
+          </p>
         </div>
         <div className="text-xs text-gray-400 font-mono whitespace-nowrap">
-          {state.currentInteractionIndex + 1}/{currentModule.interactions.length}
+          {state.currentInteractionIndex + 1}/
+          {currentModule.interactions.length}
         </div>
       </div>
 
@@ -167,9 +173,11 @@ export function QuestShell({ quest }: QuestShellProps) {
       </div>
 
       {/* Module intro mascot (first interaction only) */}
-      {state.currentInteractionIndex === 0 && !state.feedbackShown && currentModule.mascotIntro && (
-        <MascotHelper message={currentModule.mascotIntro} />
-      )}
+      {state.currentInteractionIndex === 0 &&
+        !state.feedbackShown &&
+        currentModule.mascotIntro && (
+          <MascotHelper message={currentModule.mascotIntro} />
+        )}
 
       {/* Active interaction or feedback */}
       {state.feedbackShown && state.feedbackData ? (
@@ -192,7 +200,9 @@ export function QuestShell({ quest }: QuestShellProps) {
         <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-50 border-2 border-amber-300 shadow-lg animate-in slide-in-from-bottom-4 fade-in-0 duration-300">
           <Award className="w-6 h-6 text-amber-600" aria-hidden="true" />
           <div>
-            <p className="text-sm font-semibold text-amber-900">Badge Unlocked!</p>
+            <p className="text-sm font-semibold text-amber-900">
+              Badge Unlocked!
+            </p>
             <p className="text-xs text-amber-700">{newBadge}</p>
           </div>
         </div>

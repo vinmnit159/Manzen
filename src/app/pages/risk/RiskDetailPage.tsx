@@ -3,7 +3,12 @@ import { PageTemplate } from '@/app/components/PageTemplate';
 import { Card } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
 import { Button } from '@/app/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/tabs';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/app/components/ui/tabs';
 import {
   Dialog,
   DialogContent,
@@ -30,22 +35,20 @@ import {
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router';
-import { riskCenterService, type RiskStakeholder } from '@/services/api/riskCenter';
+import {
+  riskCenterService,
+  type RiskStakeholder,
+} from '@/services/api/riskCenter';
 import { usersService } from '@/services/api/users';
-import { riskLevelVariant, riskStatusVariant, trendLabel } from '@/services/api/riskFormatting';
+import {
+  riskLevelVariant,
+  riskStatusVariant,
+  trendLabel,
+} from '@/services/api/riskFormatting';
 import { useIsAdmin, useCurrentUser } from '@/hooks/useCurrentUser';
 import { QK } from '@/lib/queryKeys';
 import { STALE } from '@/lib/queryClient';
 import { TestDetailPanel } from '@/app/pages/tests/TestDetailPanel';
-
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-const STAKEHOLDER_ROLES: RiskStakeholder['role'][] = [
-  'Technical owner',
-  'Business owner',
-  'Control owner',
-  'Backup owner',
-];
 
 // ─── Stakeholder Edit Dialog ──────────────────────────────────────────────────
 
@@ -56,10 +59,17 @@ interface StakeholderDialogProps {
   riskId: string;
 }
 
-function EditStakeholdersDialog({ open, onClose, stakeholders, riskId }: StakeholderDialogProps) {
+function EditStakeholdersDialog({
+  open,
+  onClose,
+  stakeholders,
+  riskId,
+}: StakeholderDialogProps) {
   const qc = useQueryClient();
   const currentUser = useCurrentUser();
-  const [draft, setDraft] = useState<RiskStakeholder[]>(() => [...stakeholders]);
+  const [draft, setDraft] = useState<RiskStakeholder[]>(() => [
+    ...stakeholders,
+  ]);
   const [error, setError] = useState('');
 
   // Fetch org users for the picker dropdowns (only while dialog is open)
@@ -84,10 +94,15 @@ function EditStakeholdersDialog({ open, onClose, stakeholders, riskId }: Stakeho
       qc.invalidateQueries({ queryKey: QK.activityLog() });
       onClose();
     },
-    onError: () => setError('Failed to save stakeholder changes. Please try again.'),
+    onError: () =>
+      setError('Failed to save stakeholder changes. Please try again.'),
   });
 
-  function updateRole(index: number, field: keyof RiskStakeholder, value: string) {
+  function updateRole(
+    index: number,
+    field: keyof RiskStakeholder,
+    value: string,
+  ) {
     setDraft((prev) => {
       const next = [...prev];
       next[index] = { ...next[index], [field]: value };
@@ -100,7 +115,11 @@ function EditStakeholdersDialog({ open, onClose, stakeholders, riskId }: Stakeho
     if (!user) return;
     setDraft((prev) => {
       const next = [...prev];
-      next[index] = { ...next[index], name: user.name ?? user.email, userId: user.id };
+      next[index] = {
+        ...next[index],
+        name: user.name ?? user.email,
+        userId: user.id,
+      };
       return next;
     });
   }
@@ -129,14 +148,20 @@ function EditStakeholdersDialog({ open, onClose, stakeholders, riskId }: Stakeho
             Edit stakeholders
           </DialogTitle>
           <DialogDescription>
-            Reassign technical, business, control, or backup ownership for this risk.
+            Reassign technical, business, control, or backup ownership for this
+            risk.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
           {draft.map((person, index) => (
-            <div key={person.role} className="space-y-2 rounded-xl border border-gray-100 p-4">
-              <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{person.role}</p>
+            <div
+              key={person.role}
+              className="space-y-2 rounded-xl border border-gray-100 p-4"
+            >
+              <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                {person.role}
+              </p>
 
               {/* User picker */}
               {usersData && usersData.length > 0 ? (
@@ -182,14 +207,26 @@ function EditStakeholdersDialog({ open, onClose, stakeholders, riskId }: Stakeho
             </button>
           )}
 
-          {error && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+          {error && (
+            <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+              {error}
+            </p>
+          )}
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={mutation.isPending}>Cancel</Button>
+          <Button
+            variant="outline"
+            onClick={onClose}
+            disabled={mutation.isPending}
+          >
+            Cancel
+          </Button>
           <Button
             onClick={() => mutation.mutate()}
-            disabled={mutation.isPending || draft.some((s) => !s.name || !s.team)}
+            disabled={
+              mutation.isPending || draft.some((s) => !s.name || !s.team)
+            }
           >
             {mutation.isPending ? 'Saving...' : 'Save changes'}
           </Button>
@@ -203,13 +240,20 @@ function EditStakeholdersDialog({ open, onClose, stakeholders, riskId }: Stakeho
 
 function activityDotColor(type: string): string {
   switch (type) {
-    case 'DETECTED': return 'bg-red-500';
-    case 'STAKEHOLDER_CHANGED': return 'bg-amber-500';
-    case 'EVIDENCE': return 'bg-blue-500';
-    case 'REMEDIATION': return 'bg-purple-500';
-    case 'ACCEPTED': return 'bg-yellow-500';
-    case 'ASSIGNED': return 'bg-green-500';
-    default: return 'bg-gray-900';
+    case 'DETECTED':
+      return 'bg-red-500';
+    case 'STAKEHOLDER_CHANGED':
+      return 'bg-amber-500';
+    case 'EVIDENCE':
+      return 'bg-blue-500';
+    case 'REMEDIATION':
+      return 'bg-purple-500';
+    case 'ACCEPTED':
+      return 'bg-yellow-500';
+    case 'ASSIGNED':
+      return 'bg-green-500';
+    default:
+      return 'bg-gray-900';
   }
 }
 
@@ -233,12 +277,25 @@ export function RiskDetailPage() {
     <PageTemplate
       title="Risk Detail"
       description="Evidence, control mappings, ownership, and remediation context for a single risk record."
-      actions={<Button variant="outline" size="sm" onClick={() => navigate('/risk/risks')}><ArrowLeft className="mr-2 h-4 w-4" />Back to register</Button>}
+      actions={
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => navigate('/risk/risks')}
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to register
+        </Button>
+      }
     >
       {isLoading ? (
-        <div className="flex h-48 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-gray-400" /></div>
+        <div className="flex h-48 items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+        </div>
       ) : !data ? (
-        <Card className="p-10 text-center text-sm text-gray-500">Risk not found.</Card>
+        <Card className="p-10 text-center text-sm text-gray-500">
+          Risk not found.
+        </Card>
       ) : (
         <div className="space-y-6">
           {/* ── Header card ──────────────────────────────────────────────── */}
@@ -246,33 +303,57 @@ export function RiskDetailPage() {
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="max-w-3xl">
                 <div className="flex flex-wrap gap-2">
-                  <Badge variant={riskLevelVariant(data.risk.impact)}>{data.risk.impact}</Badge>
-                  <Badge variant={riskStatusVariant(data.risk.status)}>{data.risk.status}</Badge>
+                  <Badge variant={riskLevelVariant(data.risk.impact)}>
+                    {data.risk.impact}
+                  </Badge>
+                  <Badge variant={riskStatusVariant(data.risk.status)}>
+                    {data.risk.status}
+                  </Badge>
                   <Badge variant="outline">{data.risk.category}</Badge>
                   <Badge variant="outline">{trendLabel(data.risk.trend)}</Badge>
                 </div>
-                <h2 className="mt-4 text-2xl font-semibold text-gray-900">{data.risk.title}</h2>
-                <p className="mt-2 text-sm leading-6 text-gray-600">{data.risk.description}</p>
+                <h2 className="mt-4 text-2xl font-semibold text-gray-900">
+                  {data.risk.title}
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-gray-600">
+                  {data.risk.description}
+                </p>
                 <div className="mt-4 flex flex-wrap gap-5 text-sm text-gray-500">
                   <span>Asset: {data.risk.assetName}</span>
                   <span>Owner: {data.risk.owner.name}</span>
-                  <span>Due: {new Date(data.risk.dueDate).toLocaleDateString()}</span>
+                  <span>
+                    Due: {new Date(data.risk.dueDate).toLocaleDateString()}
+                  </span>
                   <span>Score: {data.risk.riskScore}</span>
                 </div>
               </div>
               <div className="grid min-w-[260px] gap-3 sm:grid-cols-2">
                 <Card className="gap-2 p-4">
-                  <p className="text-xs uppercase tracking-wide text-gray-500">Inherent risk</p>
-                  <p className="text-2xl font-semibold text-gray-900">{data.summary.inherentRisk}</p>
+                  <p className="text-xs uppercase tracking-wide text-gray-500">
+                    Inherent risk
+                  </p>
+                  <p className="text-2xl font-semibold text-gray-900">
+                    {data.summary.inherentRisk}
+                  </p>
                 </Card>
                 <Card className="gap-2 p-4">
-                  <p className="text-xs uppercase tracking-wide text-gray-500">Residual risk</p>
-                  <p className="text-2xl font-semibold text-gray-900">{data.summary.residualRisk}</p>
+                  <p className="text-xs uppercase tracking-wide text-gray-500">
+                    Residual risk
+                  </p>
+                  <p className="text-2xl font-semibold text-gray-900">
+                    {data.summary.residualRisk}
+                  </p>
                 </Card>
                 <Card className="gap-2 p-4 sm:col-span-2">
-                  <p className="text-xs uppercase tracking-wide text-gray-500">Blast radius</p>
-                  <p className="text-sm text-gray-700">{data.summary.blastRadius}</p>
-                  <p className="text-xs text-gray-500">{data.summary.exceptionStatus}</p>
+                  <p className="text-xs uppercase tracking-wide text-gray-500">
+                    Blast radius
+                  </p>
+                  <p className="text-sm text-gray-700">
+                    {data.summary.blastRadius}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {data.summary.exceptionStatus}
+                  </p>
                 </Card>
               </div>
             </div>
@@ -284,24 +365,42 @@ export function RiskDetailPage() {
             <Card className="p-6">
               <div className="flex items-center gap-2 text-gray-900">
                 <ShieldCheck className="h-4 w-4" />
-                <h3 className="text-base font-semibold">Control and framework mapping</h3>
+                <h3 className="text-base font-semibold">
+                  Control and framework mapping
+                </h3>
               </div>
               <div className="mt-5 space-y-5">
                 <div>
-                  <p className="text-xs uppercase tracking-wide text-gray-500">Linked controls</p>
+                  <p className="text-xs uppercase tracking-wide text-gray-500">
+                    Linked controls
+                  </p>
                   <div className="mt-3 flex flex-wrap gap-2">
-                    {data.risk.controls.map((control) => <Badge key={control} variant="secondary">{control}</Badge>)}
+                    {data.risk.controls.map((control) => (
+                      <Badge key={control} variant="secondary">
+                        {control}
+                      </Badge>
+                    ))}
                   </div>
                 </div>
                 <div>
-                  <p className="text-xs uppercase tracking-wide text-gray-500">Impacted frameworks</p>
+                  <p className="text-xs uppercase tracking-wide text-gray-500">
+                    Impacted frameworks
+                  </p>
                   <div className="mt-3 flex flex-wrap gap-2">
-                    {data.risk.frameworks.map((framework) => <Badge key={framework} variant="outline">{framework}</Badge>)}
+                    {data.risk.frameworks.map((framework) => (
+                      <Badge key={framework} variant="outline">
+                        {framework}
+                      </Badge>
+                    ))}
                   </div>
                 </div>
                 <div>
-                  <p className="text-xs uppercase tracking-wide text-gray-500">Treatment posture</p>
-                  <p className="mt-2 text-sm text-gray-700">{data.risk.treatment}</p>
+                  <p className="text-xs uppercase tracking-wide text-gray-500">
+                    Treatment posture
+                  </p>
+                  <p className="mt-2 text-sm text-gray-700">
+                    {data.risk.treatment}
+                  </p>
                 </div>
               </div>
             </Card>
@@ -327,10 +426,18 @@ export function RiskDetailPage() {
               <div className="mt-5 grid gap-3 md:grid-cols-2">
                 {data.stakeholders.map((person) => (
                   <div key={person.role} className="rounded-xl bg-gray-50 p-4">
-                    <p className="text-xs uppercase tracking-wide text-gray-500">{person.role}</p>
-                    <p className="mt-2 font-medium text-gray-900">{person.name}</p>
+                    <p className="text-xs uppercase tracking-wide text-gray-500">
+                      {person.role}
+                    </p>
+                    <p className="mt-2 font-medium text-gray-900">
+                      {person.name}
+                    </p>
                     <p className="mt-1 text-sm text-gray-500">{person.team}</p>
-                    {person.userId && <p className="mt-1 text-xs text-gray-400">ID: {person.userId}</p>}
+                    {person.userId && (
+                      <p className="mt-1 text-xs text-gray-400">
+                        ID: {person.userId}
+                      </p>
+                    )}
                   </div>
                 ))}
               </div>
@@ -354,16 +461,25 @@ export function RiskDetailPage() {
                 </div>
                 <div className="mt-5 space-y-4">
                   {data.evidence.map((item) => (
-                    <div key={item.id} className="rounded-xl border border-gray-100 p-4">
+                    <div
+                      key={item.id}
+                      className="rounded-xl border border-gray-100 p-4"
+                    >
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div>
-                          <p className="font-medium text-gray-900">{item.title}</p>
-                          <p className="mt-1 text-sm text-gray-500">{item.summary}</p>
+                          <p className="font-medium text-gray-900">
+                            {item.title}
+                          </p>
+                          <p className="mt-1 text-sm text-gray-500">
+                            {item.summary}
+                          </p>
                         </div>
                         <Badge variant="outline">{item.provider}</Badge>
                       </div>
                       <div className="mt-3 flex flex-wrap gap-5 text-xs text-gray-500">
-                        <span>Captured {new Date(item.capturedAt).toLocaleString()}</span>
+                        <span>
+                          Captured {new Date(item.capturedAt).toLocaleString()}
+                        </span>
                         <span>{item.hash}</span>
                       </div>
                     </div>
@@ -381,25 +497,41 @@ export function RiskDetailPage() {
                 </div>
                 <div className="mt-5 space-y-4">
                   {data.activities.map((item) => (
-                    <div key={item.id} className="flex gap-4 rounded-xl border border-gray-100 p-4">
-                      <div className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${activityDotColor(item.type)}`} />
+                    <div
+                      key={item.id}
+                      className="flex gap-4 rounded-xl border border-gray-100 p-4"
+                    >
+                      <div
+                        className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${activityDotColor(item.type)}`}
+                      />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <p className="font-medium text-gray-900">{item.title}</p>
+                          <p className="font-medium text-gray-900">
+                            {item.title}
+                          </p>
                           {item.type === 'STAKEHOLDER_CHANGED' && (
-                            <Badge variant="outline" className="text-xs">Ownership</Badge>
+                            <Badge variant="outline" className="text-xs">
+                              Ownership
+                            </Badge>
                           )}
                         </div>
                         <p className="mt-1 text-sm text-gray-500">
-                          {item.actor} &middot; {new Date(item.timestamp).toLocaleString()}
+                          {item.actor} &middot;{' '}
+                          {new Date(item.timestamp).toLocaleString()}
                         </p>
                         {/* Audit detail for stakeholder changes */}
                         {item.meta && (
                           <div className="mt-2 rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-600">
-                            <span className="font-medium">{item.meta.field}:</span>{' '}
-                            <span className="line-through text-red-600">{item.meta.oldValue}</span>{' '}
+                            <span className="font-medium">
+                              {item.meta.field}:
+                            </span>{' '}
+                            <span className="line-through text-red-600">
+                              {item.meta.oldValue}
+                            </span>{' '}
                             <ArrowRight className="inline h-3 w-3 text-gray-400" />{' '}
-                            <span className="text-green-700">{item.meta.newValue}</span>
+                            <span className="text-green-700">
+                              {item.meta.newValue}
+                            </span>
                           </div>
                         )}
                       </div>
@@ -419,30 +551,53 @@ export function RiskDetailPage() {
                     <h3 className="text-base font-semibold">Generated from</h3>
                   </div>
                   <p className="mt-1 text-sm text-gray-500">
-                    This risk was created by the risk engine from a failing control test.
+                    This risk was created by the risk engine from a failing
+                    control test.
                   </p>
                   <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     <div className="rounded-xl border border-gray-100 p-4">
-                      <p className="text-xs uppercase tracking-wide text-gray-500">Test name</p>
-                      <p className="mt-1 text-sm font-medium text-gray-900">{data.origin.testName}</p>
-                      <p className="mt-0.5 text-xs text-gray-400">ID: {data.origin.testId}</p>
+                      <p className="text-xs uppercase tracking-wide text-gray-500">
+                        Test name
+                      </p>
+                      <p className="mt-1 text-sm font-medium text-gray-900">
+                        {data.origin.testName}
+                      </p>
+                      <p className="mt-0.5 text-xs text-gray-400">
+                        ID: {data.origin.testId}
+                      </p>
                     </div>
                     <div className="rounded-xl border border-gray-100 p-4">
-                      <p className="text-xs uppercase tracking-wide text-gray-500">Control</p>
-                      <p className="mt-1 text-sm font-medium text-gray-900">{data.origin.controlName}</p>
-                      <p className="mt-0.5 text-xs text-gray-400">ID: {data.origin.controlId}</p>
+                      <p className="text-xs uppercase tracking-wide text-gray-500">
+                        Control
+                      </p>
+                      <p className="mt-1 text-sm font-medium text-gray-900">
+                        {data.origin.controlName}
+                      </p>
+                      <p className="mt-0.5 text-xs text-gray-400">
+                        ID: {data.origin.controlId}
+                      </p>
                     </div>
                     <div className="rounded-xl border border-gray-100 p-4">
-                      <p className="text-xs uppercase tracking-wide text-gray-500">Provider / Integration</p>
-                      <p className="mt-1 text-sm font-medium text-gray-900">{data.origin.provider}</p>
-                      <p className="mt-0.5 text-xs text-gray-400">Signal: {data.origin.signalId}</p>
+                      <p className="text-xs uppercase tracking-wide text-gray-500">
+                        Provider / Integration
+                      </p>
+                      <p className="mt-1 text-sm font-medium text-gray-900">
+                        {data.origin.provider}
+                      </p>
+                      <p className="mt-0.5 text-xs text-gray-400">
+                        Signal: {data.origin.signalId}
+                      </p>
                     </div>
                     <div className="rounded-xl border border-gray-100 p-4 sm:col-span-2 lg:col-span-3">
-                      <p className="text-xs uppercase tracking-wide text-gray-500">Last failing execution</p>
+                      <p className="text-xs uppercase tracking-wide text-gray-500">
+                        Last failing execution
+                      </p>
                       <p className="mt-1 text-sm text-gray-700">
                         {new Date(data.origin.lastFailedAt).toLocaleString()}
                       </p>
-                      <p className="mt-1 text-sm text-red-600">{data.origin.failureReason}</p>
+                      <p className="mt-1 text-sm text-red-600">
+                        {data.origin.failureReason}
+                      </p>
                     </div>
                   </div>
                   <div className="mt-4 flex flex-wrap gap-2">
@@ -469,17 +624,24 @@ export function RiskDetailPage() {
                 <Card className="p-6">
                   <div className="flex items-center gap-2 text-gray-900">
                     <Workflow className="h-4 w-4" />
-                    <h3 className="text-base font-semibold">Remediation workflow</h3>
+                    <h3 className="text-base font-semibold">
+                      Remediation workflow
+                    </h3>
                   </div>
                   <div className="mt-5 space-y-4">
                     {data.enrichedRemediationSteps.map((step, index) => (
-                      <div key={step.label} className="rounded-xl border border-gray-100 p-4">
+                      <div
+                        key={step.label}
+                        className="rounded-xl border border-gray-100 p-4"
+                      >
                         <div className="flex gap-4">
                           <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gray-900 text-xs font-semibold text-white">
                             {index + 1}
                           </div>
                           <div className="min-w-0 flex-1 space-y-2">
-                            <p className="text-sm font-medium text-gray-900">{step.label}</p>
+                            <p className="text-sm font-medium text-gray-900">
+                              {step.label}
+                            </p>
 
                             {/* Linked test/control */}
                             {(step.linkedTestId || step.linkedControlName) && (
@@ -510,7 +672,10 @@ export function RiskDetailPage() {
                             {/* Affected resource */}
                             {step.affectedResource && (
                               <p className="text-xs text-gray-500">
-                                Affected resource: <span className="font-medium text-gray-700">{step.affectedResource}</span>
+                                Affected resource:{' '}
+                                <span className="font-medium text-gray-700">
+                                  {step.affectedResource}
+                                </span>
                               </p>
                             )}
 
@@ -524,7 +689,8 @@ export function RiskDetailPage() {
                             {/* Evidence snapshot */}
                             {step.evidenceSummary && (
                               <div className="rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-600">
-                                <span className="font-medium">Evidence:</span> {step.evidenceSummary}
+                                <span className="font-medium">Evidence:</span>{' '}
+                                {step.evidenceSummary}
                               </div>
                             )}
 
@@ -535,7 +701,9 @@ export function RiskDetailPage() {
                                   variant="outline"
                                   size="sm"
                                   className="h-7 text-xs"
-                                  onClick={() => setSelectedTestId(step.linkedTestId)}
+                                  onClick={() =>
+                                    setSelectedTestId(step.linkedTestId)
+                                  }
                                 >
                                   <Eye className="mr-1 h-3 w-3" />
                                   View test result

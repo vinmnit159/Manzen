@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { ColumnConfig, DEFAULT_COLUMNS } from './types';
+import { ColumnConfig } from './types';
 
 interface ColumnSelectorProps {
   columns: ColumnConfig[];
   onColumnToggle: (columnId: string) => void;
 }
 
-export function ColumnSelector({ columns, onColumnToggle }: ColumnSelectorProps) {
+export function ColumnSelector({
+  columns,
+  onColumnToggle,
+}: ColumnSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   const handleToggle = (columnId: string) => {
@@ -35,12 +38,32 @@ export function ColumnSelector({ columns, onColumnToggle }: ColumnSelectorProps)
         aria-label="Select columns"
         aria-expanded={isOpen}
       >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+        <svg
+          className="w-4 h-4"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
+          />
         </svg>
         <span className="font-medium">Columns</span>
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        <svg
+          className="w-4 h-4"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M19 9l-7 7-7-7"
+          />
         </svg>
       </button>
 
@@ -52,7 +75,9 @@ export function ColumnSelector({ columns, onColumnToggle }: ColumnSelectorProps)
           />
           <div className="absolute right-0 top-full mt-2 w-72 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
             <div className="p-6">
-              <h3 className="text-base font-semibold text-gray-900 mb-4">Select Columns</h3>
+              <h3 className="text-base font-semibold text-gray-900 mb-4">
+                Select Columns
+              </h3>
               <div className="space-y-3">
                 {columns.map((column) => (
                   <label
@@ -65,7 +90,9 @@ export function ColumnSelector({ columns, onColumnToggle }: ColumnSelectorProps)
                       onChange={() => handleToggle(column.id)}
                       className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
                     />
-                    <span className="text-sm font-medium text-gray-700">{column.label}</span>
+                    <span className="text-sm font-medium text-gray-700">
+                      {column.label}
+                    </span>
                   </label>
                 ))}
               </div>

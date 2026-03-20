@@ -141,7 +141,7 @@ function RemediationPanel({
     },
   });
 
-  async function doAction(fn: () => Promise<void>, successMessage?: string) {
+  async function doAction(fn: () => Promise<void>, _successMessage?: string) {
     setActionError(null);
     try {
       await fn();

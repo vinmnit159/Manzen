@@ -1,27 +1,26 @@
 import { riskEngineContracts } from './contracts';
 
+type HandlerName =
+  | 'getSnapshot'
+  | 'listSignals'
+  | 'listTestResults'
+  | 'listEvidence'
+  | 'listGeneratedRisks'
+  | 'listProviderStatuses'
+  | 'listScanRuns'
+  | 'listEvents'
+  | 'runEvaluation'
+  | 'updateStakeholders';
+
 export interface EndpointRouteDefinition {
   method: 'GET' | 'POST' | 'PATCH';
   url: string;
-  handlerName: keyof typeof riskEngineContractsToHandlers;
+  handlerName: HandlerName;
   schema: {
     body?: unknown;
     response: unknown;
   };
 }
-
-const riskEngineContractsToHandlers = {
-  getSnapshot: 'getSnapshot',
-  listSignals: 'listSignals',
-  listTestResults: 'listTestResults',
-  listEvidence: 'listEvidence',
-  listGeneratedRisks: 'listGeneratedRisks',
-  listProviderStatuses: 'listProviderStatuses',
-  listScanRuns: 'listScanRuns',
-  listEvents: 'listEvents',
-  runEvaluation: 'runEvaluation',
-  updateStakeholders: 'updateStakeholders',
-} as const;
 
 export const riskEngineRoutes: EndpointRouteDefinition[] = [
   {

@@ -1,4 +1,4 @@
-import { apiClient, ApiResponse, PaginatedResponse } from './client';
+import { apiClient, ApiResponse } from './client';
 
 // ─── Enums ────────────────────────────────────────────────────────────────────
 export type TestCategory =

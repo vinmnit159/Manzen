@@ -1,10 +1,6 @@
-import { apiClient, ApiResponse } from './client';
+import { apiClient, ApiResponse, API_BASE_URL } from './client';
 import { getAuthToken } from '@/services/authStorage';
 import { Policy } from './types';
-
-const API_BASE_URL =
-  (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env?.VITE_API_URL ||
-  'https://api.cloudanzen.com';
 
 export interface PolicyTemplate {
   name: string;
@@ -36,10 +32,11 @@ export class PoliciesService {
     const cleanParams: Record<string, string> = {};
     if (params?.search) cleanParams.search = params.search;
     if (params?.status) cleanParams.status = params.status;
-    if (params?.frameworkSlugs?.length) cleanParams.frameworkSlugs = params.frameworkSlugs.join(',');
+    if (params?.frameworkSlugs?.length)
+      cleanParams.frameworkSlugs = params.frameworkSlugs.join(',');
     return apiClient.get(
       '/api/policies',
-      Object.keys(cleanParams).length ? cleanParams : undefined
+      Object.keys(cleanParams).length ? cleanParams : undefined,
     );
   }
 
@@ -54,7 +51,10 @@ export class PoliciesService {
   }
 
   // Update policy
-  async updatePolicy(id: string, data: UpdatePolicyRequest): Promise<ApiResponse<Policy>> {
+  async updatePolicy(
+    id: string,
+    data: UpdatePolicyRequest,
+  ): Promise<ApiResponse<Policy>> {
     return apiClient.put(`/api/policies/${id}`, data);
   }
 
@@ -67,16 +67,32 @@ export class PoliciesService {
    * Upload a document file for a policy.
    * Sends multipart/form-data with a single "file" field.
    */
-  async uploadPolicyDocument(policyId: string, file: File): Promise<ApiResponse<{ policy: Policy; file: { fileName: string; fileUrl: string; size: number; mimeType: string } }>> {
+  async uploadPolicyDocument(
+    policyId: string,
+    file: File,
+  ): Promise<
+    ApiResponse<{
+      policy: Policy;
+      file: {
+        fileName: string;
+        fileUrl: string;
+        size: number;
+        mimeType: string;
+      };
+    }>
+  > {
     const formData = new FormData();
     formData.append('file', file);
 
     const token = getAuthToken();
-    const response = await fetch(`${API_BASE_URL}/api/policies/${policyId}/upload`, {
-      method: 'POST',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-      body: formData,
-    });
+    const response = await fetch(
+      `${API_BASE_URL}/api/policies/${policyId}/upload`,
+      {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
+      },
+    );
     const data = await response.json();
     if (!response.ok) throw data;
     return data;
@@ -104,11 +120,17 @@ export class PoliciesService {
     return apiClient.post('/api/policies/from-template', data);
   }
 
-  async downloadPolicyDocument(policyId: string, fileName: string): Promise<void> {
+  async downloadPolicyDocument(
+    policyId: string,
+    fileName: string,
+  ): Promise<void> {
     const token = getAuthToken();
-    const response = await fetch(`${API_BASE_URL}/api/policies/${policyId}/download`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
+    const response = await fetch(
+      `${API_BASE_URL}/api/policies/${policyId}/download`,
+      {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      },
+    );
     if (!response.ok) throw new Error('Download failed');
     const blob = await response.blob();
     const url = URL.createObjectURL(blob);

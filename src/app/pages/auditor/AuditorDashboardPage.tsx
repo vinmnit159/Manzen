@@ -8,13 +8,24 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import {
-  Shield, Clock, CheckCircle2, AlertTriangle, AlertCircle,
-  Eye, ClipboardList,
-  Link as LinkIcon, FlaskConical, Lock,
+  Shield,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  Eye,
+  ClipboardList,
+  Link as LinkIcon,
+  FlaskConical,
+  Lock,
 } from 'lucide-react';
-import { auditsService, AuditRecord, AuditControlRecord, AuditControlStatus } from '@/services/api/audits';
+import {
+  auditsService,
+  AuditRecord,
+  AuditControlRecord,
+  AuditControlStatus,
+} from '@/services/api/audits';
 import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { PageTemplate } from '@/app/components/PageTemplate';
@@ -26,41 +37,53 @@ import { ControlReviewPanel } from './auditorDashboard/ControlReviewPanel';
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export function AuditorDashboardPage() {
-  const qc       = useQueryClient();
   const navigate = useNavigate();
-  const [selectedControl, setSelectedControl] = useState<AuditControlRecord | null>(null);
-  const [statusFilter,    setStatusFilter]    = useState<'' | AuditControlStatus>('');
+  const [selectedControl, setSelectedControl] =
+    useState<AuditControlRecord | null>(null);
+  const [statusFilter, setStatusFilter] = useState<'' | AuditControlStatus>('');
 
   // Fetch audits (backend filters to only assigned audits for AUDITOR role)
-  const { data: auditsData, isLoading: auditsLoading } = useQuery<{ success: boolean; data: AuditRecord[] }>({
+  const { data: auditsData, isLoading: auditsLoading } = useQuery<{
+    success: boolean;
+    data: AuditRecord[];
+  }>({
     queryKey: ['auditor-audits'],
-    queryFn:  () => auditsService.list(),
+    queryFn: () => auditsService.list(),
   });
 
   const audits = auditsData?.data ?? [];
   // Pick the most recent IN_PROGRESS audit, fall back to PLANNED, then first
-  const audit = audits.find(a => a.status === 'IN_PROGRESS')
-    ?? audits.find(a => a.status === 'PLANNED')
-    ?? audits[0]
-    ?? null;
+  const audit =
+    audits.find((a) => a.status === 'IN_PROGRESS') ??
+    audits.find((a) => a.status === 'PLANNED') ??
+    audits[0] ??
+    null;
 
   // Fetch controls for the active audit
-  const { data: controlsData, isLoading: controlsLoading, refetch: refetchControls } = useQuery<{ success: boolean; data: AuditControlRecord[] }>({
+  const {
+    data: controlsData,
+    isLoading: controlsLoading,
+    refetch: refetchControls,
+  } = useQuery<{ success: boolean; data: AuditControlRecord[] }>({
     queryKey: ['auditor-controls', audit?.id],
-    queryFn:  () => auditsService.listControls(audit!.id),
-    enabled:  !!audit,
+    queryFn: () => auditsService.listControls(audit!.id),
+    enabled: !!audit,
   });
 
   const auditControls = controlsData?.data ?? [];
 
   // ── KPI computations ──────────────────────────────────────────────────────
-  const totalControls   = auditControls.length;
-  const reviewed        = auditControls.filter(c => c.reviewStatus !== 'PENDING').length;
-  const openFindings    = (audit?.findings ?? []).filter(f => f.status === 'OPEN').length;
-  const days            = daysRemaining(audit?.endDate);
+  const totalControls = auditControls.length;
+  const reviewed = auditControls.filter(
+    (c) => c.reviewStatus !== 'PENDING',
+  ).length;
+  const openFindings = (audit?.findings ?? []).filter(
+    (f) => f.status === 'OPEN',
+  ).length;
+  const days = daysRemaining(audit?.endDate);
 
   const filtered = statusFilter
-    ? auditControls.filter(c => c.reviewStatus === statusFilter)
+    ? auditControls.filter((c) => c.reviewStatus === statusFilter)
     : auditControls;
 
   if (auditsLoading) {
@@ -76,27 +99,36 @@ export function AuditorDashboardPage() {
       <PageTemplate title="Auditor Dashboard">
         <div className="py-20 text-center">
           <Shield className="w-12 h-12 mx-auto mb-4 text-gray-200" />
-          <p className="text-base font-medium text-gray-600">No audits assigned</p>
-          <p className="text-sm text-gray-400 mt-1">An admin will assign an audit to you. Check back soon.</p>
+          <p className="text-base font-medium text-gray-600">
+            No audits assigned
+          </p>
+          <p className="text-sm text-gray-400 mt-1">
+            An admin will assign an audit to you. Check back soon.
+          </p>
         </div>
       </PageTemplate>
     );
   }
 
   return (
-    <PageTemplate
-      title="Auditor Dashboard"
-      description={audit.name}
-    >
+    <PageTemplate title="Auditor Dashboard" description={audit.name}>
       {/* Audit meta banner */}
       <div className="flex flex-wrap items-center gap-3 mb-5 p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm text-gray-600">
         <span className="font-medium text-gray-900">{audit.name}</span>
-        {audit.frameworkName && <span className="text-gray-400">· {audit.frameworkName}</span>}
-        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-          audit.status === 'IN_PROGRESS' ? 'bg-amber-50 text-amber-700' :
-          audit.status === 'COMPLETED'   ? 'bg-green-50 text-green-700' :
-          'bg-blue-50 text-blue-700'
-        }`}>{audit.status.replace('_', ' ')}</span>
+        {audit.frameworkName && (
+          <span className="text-gray-400">· {audit.frameworkName}</span>
+        )}
+        <span
+          className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+            audit.status === 'IN_PROGRESS'
+              ? 'bg-amber-50 text-amber-700'
+              : audit.status === 'COMPLETED'
+                ? 'bg-green-50 text-green-700'
+                : 'bg-blue-50 text-blue-700'
+          }`}
+        >
+          {audit.status.replace('_', ' ')}
+        </span>
         {(audit as any).isLocked && (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
             <Lock className="w-3 h-3" /> Locked
@@ -110,11 +142,17 @@ export function AuditorDashboardPage() {
           <Button
             size="sm"
             variant={audit.status === 'COMPLETED' ? 'default' : 'outline'}
-            className={audit.status === 'COMPLETED' ? 'bg-green-700 hover:bg-green-600 text-white' : ''}
+            className={
+              audit.status === 'COMPLETED'
+                ? 'bg-green-700 hover:bg-green-600 text-white'
+                : ''
+            }
             onClick={() => navigate(`/auditor/audits/${audit.id}/final-report`)}
           >
             <ClipboardList className="w-4 h-4 mr-1" />
-            {audit.status === 'COMPLETED' ? 'View Final Report' : 'Final Report'}
+            {audit.status === 'COMPLETED'
+              ? 'View Final Report'
+              : 'Final Report'}
           </Button>
         )}
       </div>
@@ -129,7 +167,11 @@ export function AuditorDashboardPage() {
         <KpiCard
           label="Controls Reviewed"
           value={`${reviewed} / ${totalControls}`}
-          sub={totalControls > 0 ? `${Math.round((reviewed / totalControls) * 100)}% complete` : undefined}
+          sub={
+            totalControls > 0
+              ? `${Math.round((reviewed / totalControls) * 100)}% complete`
+              : undefined
+          }
           icon={<CheckCircle2 className="w-5 h-5" />}
           color="text-green-700"
         />
@@ -144,19 +186,27 @@ export function AuditorDashboardPage() {
           value={days === null ? '—' : days < 0 ? 'Overdue' : `${days}d`}
           sub={audit.endDate ? `Due ${fmt(audit.endDate)}` : undefined}
           icon={<Clock className="w-5 h-5" />}
-          color={days !== null && days < 0 ? 'text-red-600' : days !== null && days <= 7 ? 'text-amber-600' : 'text-gray-900'}
+          color={
+            days !== null && days < 0
+              ? 'text-red-600'
+              : days !== null && days <= 7
+                ? 'text-amber-600'
+                : 'text-gray-900'
+          }
         />
       </div>
 
       {/* Status filter pills */}
       <div className="flex flex-wrap gap-1.5 mb-4">
-        {([
-          { value: '',               label: 'All' },
-          { value: 'PENDING',        label: 'Pending' },
-          { value: 'COMPLIANT',      label: 'Compliant' },
-          { value: 'NON_COMPLIANT',  label: 'Non-Compliant' },
-          { value: 'NOT_APPLICABLE', label: 'Not Applicable' },
-        ] as const).map(f => (
+        {(
+          [
+            { value: '', label: 'All' },
+            { value: 'PENDING', label: 'Pending' },
+            { value: 'COMPLIANT', label: 'Compliant' },
+            { value: 'NON_COMPLIANT', label: 'Non-Compliant' },
+            { value: 'NOT_APPLICABLE', label: 'Not Applicable' },
+          ] as const
+        ).map((f) => (
           <button
             key={f.value}
             onClick={() => setStatusFilter(f.value)}
@@ -169,7 +219,9 @@ export function AuditorDashboardPage() {
             {f.label}
             {f.value !== '' && (
               <span className="ml-1.5 text-xs opacity-70">
-                ({auditControls.filter(c => c.reviewStatus === f.value).length})
+                (
+                {auditControls.filter((c) => c.reviewStatus === f.value).length}
+                )
               </span>
             )}
           </button>
@@ -179,26 +231,41 @@ export function AuditorDashboardPage() {
       {/* Controls review table */}
       <Card className="overflow-hidden">
         {controlsLoading ? (
-          <div className="p-8 text-center text-sm text-gray-400">Loading controls…</div>
+          <div className="p-8 text-center text-sm text-gray-400">
+            Loading controls…
+          </div>
         ) : filtered.length === 0 ? (
-          <div className="p-10 text-center text-sm text-gray-400">No controls match this filter.</div>
+          <div className="p-10 text-center text-sm text-gray-400">
+            No controls match this filter.
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b border-gray-100">
                 <tr>
-                  {['Control', 'Title', 'Evidence', 'Tests', 'Review Status', 'Findings', 'Action'].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
+                  {[
+                    'Control',
+                    'Title',
+                    'Evidence',
+                    'Tests',
+                    'Review Status',
+                    'Findings',
+                    'Action',
+                  ].map((h) => (
+                    <th
+                      key={h}
+                      className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide"
+                    >
                       {h}
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {filtered.map(ac => {
+                {filtered.map((ac) => {
                   const evidenceCount = ac.control.evidence?.length ?? 0;
-                  const testCount     = ac.control.testMappings?.length ?? 0;
-                  const findingCount  = ac.control.findings?.length ?? 0;
+                  const testCount = ac.control.testMappings?.length ?? 0;
+                  const findingCount = ac.control.findings?.length ?? 0;
 
                   return (
                     <tr key={ac.id} className="hover:bg-gray-50">
@@ -208,16 +275,22 @@ export function AuditorDashboardPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-gray-700 max-w-[220px]">
-                        <span className="line-clamp-2 text-xs leading-snug">{ac.control.title}</span>
+                        <span className="line-clamp-2 text-xs leading-snug">
+                          {ac.control.title}
+                        </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`flex items-center gap-1 text-xs ${evidenceCount > 0 ? 'text-green-700' : 'text-gray-400'}`}>
+                        <span
+                          className={`flex items-center gap-1 text-xs ${evidenceCount > 0 ? 'text-green-700' : 'text-gray-400'}`}
+                        >
                           <LinkIcon className="w-3 h-3" />
                           {evidenceCount}
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`flex items-center gap-1 text-xs ${testCount > 0 ? 'text-blue-700' : 'text-gray-400'}`}>
+                        <span
+                          className={`flex items-center gap-1 text-xs ${testCount > 0 ? 'text-blue-700' : 'text-gray-400'}`}
+                        >
                           <FlaskConical className="w-3 h-3" />
                           {testCount}
                         </span>

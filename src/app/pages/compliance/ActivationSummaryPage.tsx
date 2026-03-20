@@ -8,12 +8,7 @@
 
 import { useLocation, useNavigate, useParams } from 'react-router';
 import { PageTemplate } from '@/app/components/PageTemplate';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/app/components/ui/card';
+import { Card, CardContent } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
 import { Button } from '@/app/components/ui/button';
 import { Separator } from '@/app/components/ui/separator';

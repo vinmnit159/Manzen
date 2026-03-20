@@ -213,7 +213,11 @@ function Task1Policies({
                 onChange={(e) => {
                   setChecked((prev) => {
                     const next = new Set(prev);
-                    e.target.checked ? next.add(p.id) : next.delete(p.id);
+                    if (e.target.checked) {
+                      next.add(p.id);
+                    } else {
+                      next.delete(p.id);
+                    }
                     return next;
                   });
                 }}

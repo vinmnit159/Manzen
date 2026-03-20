@@ -1,8 +1,15 @@
 import React, { useState } from 'react';
-import { X, CheckCircle2, Loader2, UserPlus, AlertCircle, Mail } from 'lucide-react';
+import {
+  X,
+  CheckCircle2,
+  Loader2,
+  UserPlus,
+  AlertCircle,
+  Mail,
+} from 'lucide-react';
 import { apiClient } from '@/services/api/client';
 import { Role } from '@/services/api/types';
-import { ROLE_LABELS, ROLE_CONFIG, AppRole } from '@/lib/rbac/permissions';
+import { ROLE_LABELS, ROLE_CONFIG } from '@/lib/rbac/permissions';
 import { ALL_ROLES } from './helpers';
 
 // ── Invite User Modal ──────────────────────────────────────────────────────────
@@ -31,14 +38,29 @@ export function InviteUserModal({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between mb-5">
           <div>
-            <h2 className="text-base font-semibold text-gray-900">Invite User</h2>
-            <p className="text-xs text-gray-500 mt-0.5">An email invitation will be sent with a secure signup link.</p>
+            <h2 className="text-base font-semibold text-gray-900">
+              Invite User
+            </h2>
+            <p className="text-xs text-gray-500 mt-0.5">
+              An email invitation will be sent with a secure signup link.
+            </p>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"><X className="w-4 h-4" /></button>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
 
         {sent ? (
@@ -46,20 +68,31 @@ export function InviteUserModal({ onClose }: { onClose: () => void }) {
             <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
               <CheckCircle2 className="w-6 h-6 text-green-600" />
             </div>
-            <p className="text-sm font-semibold text-gray-900">Invitation sent!</p>
-            <p className="text-xs text-gray-500 text-center">An email was sent to <strong>{email}</strong> with a signup link.</p>
-            <button onClick={onClose} className="mt-2 px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium">Done</button>
+            <p className="text-sm font-semibold text-gray-900">
+              Invitation sent!
+            </p>
+            <p className="text-xs text-gray-500 text-center">
+              An email was sent to <strong>{email}</strong> with a signup link.
+            </p>
+            <button
+              onClick={onClose}
+              className="mt-2 px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium"
+            >
+              Done
+            </button>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Work Email *</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                Work Email *
+              </label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
                   type="email"
                   value={email}
-                  onChange={e => setEmail(e.target.value)}
+                  onChange={(e) => setEmail(e.target.value)}
                   placeholder="colleague@company.com"
                   className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
@@ -68,9 +101,11 @@ export function InviteUserModal({ onClose }: { onClose: () => void }) {
               </div>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1.5">Assign Role</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                Assign Role
+              </label>
               <div className="grid grid-cols-2 gap-2">
-                {ALL_ROLES.filter(r => r !== 'SUPER_ADMIN').map(r => {
+                {ALL_ROLES.filter((r) => r !== 'SUPER_ADMIN').map((r) => {
                   const rc = ROLE_CONFIG[r];
                   return (
                     <button
@@ -83,7 +118,9 @@ export function InviteUserModal({ onClose }: { onClose: () => void }) {
                           : 'border-gray-200 hover:border-gray-300 text-gray-700 bg-white'
                       }`}
                     >
-                      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${rc.dot}`} />
+                      <span
+                        className={`w-2 h-2 rounded-full flex-shrink-0 ${rc.dot}`}
+                      />
                       <span className="font-medium">{ROLE_LABELS[r]}</span>
                     </button>
                   );
@@ -98,13 +135,23 @@ export function InviteUserModal({ onClose }: { onClose: () => void }) {
             )}
 
             <div className="flex gap-3 pt-2">
-              <button type="button" onClick={onClose} className="flex-1 px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
               <button
                 type="submit"
                 disabled={!email || sending}
                 className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white text-sm font-medium"
               >
-                {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
+                {sending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <UserPlus className="w-4 h-4" />
+                )}
                 {sending ? 'Sending…' : 'Send Invite'}
               </button>
             </div>

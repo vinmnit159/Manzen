@@ -1,71 +1,135 @@
-import { useMemo, useState } from "react";
-import { useQuery, useQueries, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router";
-import type { ActivationSummaryDto } from "@/services/api/frameworks";
-import { PageTemplate } from "@/app/components/PageTemplate";
-import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
-import { Badge } from "@/app/components/ui/badge";
-import { Button } from "@/app/components/ui/button";
-import { Progress } from "@/app/components/ui/progress";
-import { Separator } from "@/app/components/ui/separator";
+import { useMemo, useState } from 'react';
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
-} from "@/app/components/ui/dialog";
-import { Textarea } from "@/app/components/ui/textarea";
-import { Label } from "@/app/components/ui/label";
+  useQuery,
+  useQueries,
+  useMutation,
+  useQueryClient,
+} from '@tanstack/react-query';
+import { useNavigate } from 'react-router';
+
+import { PageTemplate } from '@/app/components/PageTemplate';
 import {
-  ShieldCheck, Target, Activity, ClipboardList, Plus, ArrowRight,
-  Loader2, Lock, AlertTriangle, CheckCircle2, Archive, BookOpen, Eye,
-} from "lucide-react";
-import { frameworksService, type OrgFrameworkDto, type FrameworkDto } from "@/services/api/frameworks";
-import { authService } from "@/services/api/auth";
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@/app/components/ui/card';
+import { Badge } from '@/app/components/ui/badge';
+import { Button } from '@/app/components/ui/button';
+import { Progress } from '@/app/components/ui/progress';
+import { Separator } from '@/app/components/ui/separator';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/app/components/ui/dialog';
+import { Textarea } from '@/app/components/ui/textarea';
+import { Label } from '@/app/components/ui/label';
+import {
+  ShieldCheck,
+  Target,
+  Activity,
+  ClipboardList,
+  Plus,
+  ArrowRight,
+  Loader2,
+  Lock,
+  AlertTriangle,
+  CheckCircle2,
+  Archive,
+  BookOpen,
+  Eye,
+} from 'lucide-react';
+import {
+  frameworksService,
+  type OrgFrameworkDto,
+  type FrameworkDto,
+} from '@/services/api/frameworks';
+import { authService } from '@/services/api/auth';
 
 // ── Framework icon / color catalog (static metadata) ─────────────────────────
-const FRAMEWORK_META: Record<string, { icon: React.ElementType; color: string; description: string; requirementCount: number }> = {
+const FRAMEWORK_META: Record<
+  string,
+  {
+    icon: React.ElementType;
+    color: string;
+    description: string;
+    requirementCount: number;
+  }
+> = {
   'iso-27001': {
     icon: ShieldCheck,
-    color: "bg-blue-600",
-    description: "International standard for information security management systems (ISMS). 93 Annex A controls across 4 themes.",
+    color: 'bg-blue-600',
+    description:
+      'International standard for information security management systems (ISMS). 93 Annex A controls across 4 themes.',
     requirementCount: 93,
   },
   'soc-2': {
     icon: Target,
-    color: "bg-violet-600",
-    description: "AICPA Trust Services Criteria for security, availability, processing integrity, confidentiality, and privacy.",
+    color: 'bg-violet-600',
+    description:
+      'AICPA Trust Services Criteria for security, availability, processing integrity, confidentiality, and privacy.',
     requirementCount: 32,
   },
   'nist-csf': {
     icon: Activity,
-    color: "bg-emerald-600",
-    description: "NIST Cybersecurity Framework 2.0 — 6 functions, 22 categories, 106 subcategories.",
+    color: 'bg-emerald-600',
+    description:
+      'NIST Cybersecurity Framework 2.0 — 6 functions, 22 categories, 106 subcategories.',
     requirementCount: 106,
   },
-  'hipaa': {
+  hipaa: {
     icon: ClipboardList,
-    color: "bg-rose-600",
-    description: "HIPAA Security Rule safeguards for electronic protected health information (ePHI).",
+    color: 'bg-rose-600',
+    description:
+      'HIPAA Security Rule safeguards for electronic protected health information (ePHI).',
     requirementCount: 20,
   },
 };
 
 function getFrameworkMeta(slug: string) {
-  return FRAMEWORK_META[slug] ?? {
-    icon: BookOpen,
-    color: "bg-gray-600",
-    description: "Compliance framework",
-    requirementCount: 0,
-  };
+  return (
+    FRAMEWORK_META[slug] ?? {
+      icon: BookOpen,
+      color: 'bg-gray-600',
+      description: 'Compliance framework',
+      requirementCount: 0,
+    }
+  );
 }
 
 // ── Status badge helper ───────────────────────────────────────────────────────
 function statusBadge(status: OrgFrameworkDto['status']) {
-  if (status === 'active') return <Badge className="bg-green-100 text-green-700 border-green-200">Active</Badge>;
-  if (status === 'setup_in_progress') return <Badge className="bg-amber-100 text-amber-700 border-amber-200">Setting up</Badge>;
-  return <Badge variant="outline" className="text-gray-500">Archived</Badge>;
+  if (status === 'active')
+    return (
+      <Badge className="bg-green-100 text-green-700 border-green-200">
+        Active
+      </Badge>
+    );
+  if (status === 'setup_in_progress')
+    return (
+      <Badge className="bg-amber-100 text-amber-700 border-amber-200">
+        Setting up
+      </Badge>
+    );
+  return (
+    <Badge variant="outline" className="text-gray-500">
+      Archived
+    </Badge>
+  );
 }
 
 // ── Active framework card ─────────────────────────────────────────────────────
-function ActiveFrameworkCard({ orgFw, entitled, canManageScope, onRemove, onUpgrade }: {
+function ActiveFrameworkCard({
+  orgFw,
+  entitled,
+  canManageScope,
+  onRemove,
+  onUpgrade,
+}: {
   orgFw: OrgFrameworkDto;
   entitled: boolean;
   canManageScope: boolean;
@@ -81,16 +145,29 @@ function ActiveFrameworkCard({ orgFw, entitled, canManageScope, onRemove, onUpgr
       <CardHeader className="pb-3 bg-gradient-to-br from-slate-50 to-white">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className={`w-11 h-11 rounded-xl ${meta.color} flex items-center justify-center flex-shrink-0`}>
+            <div
+              className={`w-11 h-11 rounded-xl ${meta.color} flex items-center justify-center flex-shrink-0`}
+            >
               <Icon className="w-6 h-6 text-white" />
             </div>
             <div>
-              <CardTitle className="text-base leading-tight">{orgFw.frameworkName}</CardTitle>
-              <p className="text-xs text-gray-500 mt-0.5">v{orgFw.frameworkVersion}</p>
+              <CardTitle className="text-base leading-tight">
+                {orgFw.frameworkName}
+              </CardTitle>
+              <p className="text-xs text-gray-500 mt-0.5">
+                v{orgFw.frameworkVersion}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {!entitled && <Badge variant="outline" className="text-amber-700 border-amber-300">View only</Badge>}
+            {!entitled && (
+              <Badge
+                variant="outline"
+                className="text-amber-700 border-amber-300"
+              >
+                View only
+              </Badge>
+            )}
             {statusBadge(orgFw.status)}
           </div>
         </div>
@@ -100,15 +177,21 @@ function ActiveFrameworkCard({ orgFw, entitled, canManageScope, onRemove, onUpgr
           <div className="flex justify-between text-xs text-gray-500 mb-1.5">
             <span>Coverage</span>
             <span className="font-semibold text-gray-900">
-              {orgFw.controlCoveragePct != null ? `${orgFw.controlCoveragePct}%` : '—%'}
+              {orgFw.controlCoveragePct != null
+                ? `${orgFw.controlCoveragePct}%`
+                : '—%'}
             </span>
           </div>
           <Progress value={orgFw.controlCoveragePct ?? 0} className="h-2" />
           {orgFw.openGaps != null && orgFw.openGaps > 0 && (
-            <p className="text-[11px] text-amber-600 mt-1">{orgFw.openGaps} open gaps</p>
+            <p className="text-[11px] text-amber-600 mt-1">
+              {orgFw.openGaps} open gaps
+            </p>
           )}
           {orgFw.controlCoveragePct == null && (
-            <p className="text-[11px] text-gray-400 mt-1">No coverage snapshot yet</p>
+            <p className="text-[11px] text-gray-400 mt-1">
+              No coverage snapshot yet
+            </p>
           )}
         </div>
         {orgFw.activatedAt && (
@@ -122,7 +205,9 @@ function ActiveFrameworkCard({ orgFw, entitled, canManageScope, onRemove, onUpgr
             size="sm"
             variant="outline"
             className="flex-1"
-            onClick={() => navigate(`/compliance/frameworks/${orgFw.frameworkSlug}`)}
+            onClick={() =>
+              navigate(`/compliance/frameworks/${orgFw.frameworkSlug}`)
+            }
           >
             View readiness <ArrowRight className="w-3.5 h-3.5 ml-1" />
           </Button>
@@ -131,10 +216,18 @@ function ActiveFrameworkCard({ orgFw, entitled, canManageScope, onRemove, onUpgr
               size="sm"
               variant="ghost"
               className="text-gray-400 hover:text-red-600"
-              onClick={() => entitled ? onRemove(orgFw) : onUpgrade(orgFw)}
-              title={entitled ? 'Remove from active scope' : 'Upgrade to manage scope'}
+              onClick={() => (entitled ? onRemove(orgFw) : onUpgrade(orgFw))}
+              title={
+                entitled
+                  ? 'Remove from active scope'
+                  : 'Upgrade to manage scope'
+              }
             >
-              {entitled ? <Archive className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+              {entitled ? (
+                <Archive className="w-4 h-4" />
+              ) : (
+                <Lock className="w-4 h-4" />
+              )}
             </Button>
           ) : null}
         </div>
@@ -144,7 +237,14 @@ function ActiveFrameworkCard({ orgFw, entitled, canManageScope, onRemove, onUpgr
 }
 
 // ── Available framework card ──────────────────────────────────────────────────
-function AvailableFrameworkCard({ fw, entitled, canManageScope, onActivate, onUpgrade, activating }: {
+function AvailableFrameworkCard({
+  fw,
+  entitled,
+  canManageScope,
+  onActivate,
+  onUpgrade,
+  activating,
+}: {
   fw: FrameworkDto;
   entitled: boolean;
   canManageScope: boolean;
@@ -159,21 +259,29 @@ function AvailableFrameworkCard({ fw, entitled, canManageScope, onActivate, onUp
     <Card className="border-gray-200 shadow-sm opacity-90">
       <CardHeader className="pb-3">
         <div className="flex items-start gap-3">
-          <div className={`w-10 h-10 rounded-xl ${meta.color} flex items-center justify-center flex-shrink-0`}>
+          <div
+            className={`w-10 h-10 rounded-xl ${meta.color} flex items-center justify-center flex-shrink-0`}
+          >
             <Icon className="w-5 h-5 text-white" />
           </div>
           <div className="flex-1 min-w-0">
             <CardTitle className="text-sm leading-tight">{fw.name}</CardTitle>
-            <p className="text-xs text-gray-400 mt-0.5">v{fw.version} · {meta.requirementCount} requirements</p>
+            <p className="text-xs text-gray-400 mt-0.5">
+              v{fw.version} · {meta.requirementCount} requirements
+            </p>
           </div>
-          {!entitled && <Lock className="w-4 h-4 text-gray-300 flex-shrink-0 mt-1" />}
+          {!entitled && (
+            <Lock className="w-4 h-4 text-gray-300 flex-shrink-0 mt-1" />
+          )}
         </div>
       </CardHeader>
       <CardContent className="pt-0 space-y-3">
-        <p className="text-xs text-gray-500 leading-relaxed">{fw.description ?? meta.description}</p>
+        <p className="text-xs text-gray-500 leading-relaxed">
+          {fw.description ?? meta.description}
+        </p>
         <Button
           size="sm"
-          variant={entitled && canManageScope ? "default" : "outline"}
+          variant={entitled && canManageScope ? 'default' : 'outline'}
           className="w-full"
           disabled={activating || (!canManageScope && entitled)}
           onClick={() => {
@@ -183,13 +291,22 @@ function AvailableFrameworkCard({ fw, entitled, canManageScope, onActivate, onUp
           }}
         >
           {activating ? (
-            <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Activating…</>
+            <>
+              <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />{' '}
+              Activating…
+            </>
           ) : !canManageScope ? (
-            <><Eye className="w-3.5 h-3.5 mr-1.5" /> Contact admin</>
+            <>
+              <Eye className="w-3.5 h-3.5 mr-1.5" /> Contact admin
+            </>
           ) : entitled ? (
-            <><Plus className="w-3.5 h-3.5 mr-1.5" /> Add to scope</>
+            <>
+              <Plus className="w-3.5 h-3.5 mr-1.5" /> Add to scope
+            </>
           ) : (
-            <><Lock className="w-3.5 h-3.5 mr-1.5" /> Upgrade to add</>
+            <>
+              <Lock className="w-3.5 h-3.5 mr-1.5" /> Upgrade to add
+            </>
           )}
         </Button>
       </CardContent>
@@ -202,7 +319,10 @@ function EntitlementDialog({
   canManageScope,
   onClose,
 }: {
-  framework: Pick<FrameworkDto, 'name' | 'slug'> | Pick<OrgFrameworkDto, 'frameworkName' | 'frameworkSlug'> | null;
+  framework:
+    | Pick<FrameworkDto, 'name' | 'slug'>
+    | Pick<OrgFrameworkDto, 'frameworkName' | 'frameworkSlug'>
+    | null;
   canManageScope: boolean;
   onClose: () => void;
 }) {
@@ -229,7 +349,9 @@ function EntitlementDialog({
           <span className="text-amber-600"> ({slug})</span>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Close</Button>
+          <Button variant="outline" onClick={onClose}>
+            Close
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -237,7 +359,12 @@ function EntitlementDialog({
 }
 
 // ── Remove-from-scope dialog ──────────────────────────────────────────────────
-function RemoveDialog({ orgFw, onClose, onConfirm, loading }: {
+function RemoveDialog({
+  orgFw,
+  onClose,
+  onConfirm,
+  loading,
+}: {
   orgFw: OrgFrameworkDto | null;
   onClose: () => void;
   onConfirm: (reason: string) => void;
@@ -255,28 +382,34 @@ function RemoveDialog({ orgFw, onClose, onConfirm, loading }: {
           </DialogTitle>
           <DialogDescription className="text-sm text-gray-600 pt-1">
             <strong>{orgFw.frameworkName}</strong> will be moved to Archived.
-            All controls, tests, policies, evidence, and historical reports will be preserved.
-            This framework can be re-added at any time.
+            All controls, tests, policies, evidence, and historical reports will
+            be preserved. This framework can be re-added at any time.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-2 pt-1">
-          <Label htmlFor="reason" className="text-sm font-medium">Reason (optional)</Label>
+          <Label htmlFor="reason" className="text-sm font-medium">
+            Reason (optional)
+          </Label>
           <Textarea
             id="reason"
             placeholder="e.g. Pausing audit cycle for this quarter…"
             value={reason}
-            onChange={e => setReason(e.target.value)}
+            onChange={(e) => setReason(e.target.value)}
             rows={3}
           />
         </div>
         <DialogFooter className="gap-2 pt-2">
-          <Button variant="outline" onClick={onClose} disabled={loading}>Cancel</Button>
+          <Button variant="outline" onClick={onClose} disabled={loading}>
+            Cancel
+          </Button>
           <Button
             variant="destructive"
             onClick={() => onConfirm(reason)}
             disabled={loading}
           >
-            {loading ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : null}
+            {loading ? (
+              <Loader2 className="w-4 h-4 animate-spin mr-1.5" />
+            ) : null}
             Remove from active scope
           </Button>
         </DialogFooter>
@@ -290,10 +423,13 @@ export function FrameworksPage() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const cachedUser = authService.getCachedUser();
-  const canManageScope = cachedUser?.role === 'ORG_ADMIN' || cachedUser?.role === 'SUPER_ADMIN';
+  const canManageScope =
+    cachedUser?.role === 'ORG_ADMIN' || cachedUser?.role === 'SUPER_ADMIN';
   const [removingFw, setRemovingFw] = useState<OrgFrameworkDto | null>(null);
   const [activatingSlug, setActivatingSlug] = useState<string | null>(null);
-  const [upgradeTarget, setUpgradeTarget] = useState<FrameworkDto | OrgFrameworkDto | null>(null);
+  const [upgradeTarget, setUpgradeTarget] = useState<
+    FrameworkDto | OrgFrameworkDto | null
+  >(null);
 
   const { data: catalogRes, isLoading: catalogLoading } = useQuery({
     queryKey: ['frameworks', 'catalog'],
@@ -305,11 +441,20 @@ export function FrameworksPage() {
     queryFn: () => frameworksService.listOrgFrameworks(),
   });
 
-  const catalog: FrameworkDto[] = catalogRes?.data ?? [];
-  const orgFrameworks: OrgFrameworkDto[] = orgFwRes?.data ?? [];
+  const catalog: FrameworkDto[] = useMemo(
+    () => catalogRes?.data ?? [],
+    [catalogRes?.data],
+  );
+  const orgFrameworks: OrgFrameworkDto[] = useMemo(
+    () => orgFwRes?.data ?? [],
+    [orgFwRes?.data],
+  );
 
   const entitlementQueries = useQueries({
-    queries: [...catalog, ...orgFrameworks.map((fw) => ({ slug: fw.frameworkSlug }))].map((fw) => ({
+    queries: [
+      ...catalog,
+      ...orgFrameworks.map((fw) => ({ slug: fw.frameworkSlug })),
+    ].map((fw) => ({
       queryKey: ['frameworks', 'entitlement', fw.slug],
       queryFn: () => frameworksService.checkEntitlement(fw.slug),
       staleTime: 60_000,
@@ -318,21 +463,28 @@ export function FrameworksPage() {
   });
 
   const entitlementMap = useMemo(() => {
-    const entries = [...catalog, ...orgFrameworks.map((fw) => ({ slug: fw.frameworkSlug }))].map((fw, index) => [
-      fw.slug,
-      entitlementQueries[index]?.data?.data?.entitled ?? true,
-    ] as const);
+    const entries = [
+      ...catalog,
+      ...orgFrameworks.map((fw) => ({ slug: fw.frameworkSlug })),
+    ].map(
+      (fw, index) =>
+        [
+          fw.slug,
+          entitlementQueries[index]?.data?.data?.entitled ?? true,
+        ] as const,
+    );
     return Object.fromEntries(entries);
   }, [catalog, entitlementQueries, orgFrameworks]);
 
   // Slugs already active for this org
-  const activeSlugSet = new Set(orgFrameworks.map(f => f.frameworkSlug));
+  const activeSlugSet = new Set(orgFrameworks.map((f) => f.frameworkSlug));
 
   // Available = in catalog but not yet active for this org
-  const available = catalog.filter(fw => !activeSlugSet.has(fw.slug));
+  const available = catalog.filter((fw) => !activeSlugSet.has(fw.slug));
 
   const activateMutation = useMutation({
-    mutationFn: (fw: FrameworkDto) => frameworksService.activateFramework({ frameworkSlug: fw.slug }),
+    mutationFn: (fw: FrameworkDto) =>
+      frameworksService.activateFramework({ frameworkSlug: fw.slug }),
     onMutate: (fw) => setActivatingSlug(fw.slug),
     onSuccess: (res, fw) => {
       qc.invalidateQueries({ queryKey: ['frameworks', 'org'] });
@@ -387,11 +539,14 @@ export function FrameworksPage() {
                   <CheckCircle2 className="w-4 h-4 text-green-600" />
                   Active Frameworks
                   {orgFrameworks.length > 0 && (
-                    <Badge variant="secondary" className="ml-1">{orgFrameworks.length}</Badge>
+                    <Badge variant="secondary" className="ml-1">
+                      {orgFrameworks.length}
+                    </Badge>
                   )}
                 </h2>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  Frameworks currently in scope. Dashboards, filters, and reports are built around these.
+                  Frameworks currently in scope. Dashboards, filters, and
+                  reports are built around these.
                 </p>
               </div>
             </div>
@@ -400,13 +555,18 @@ export function FrameworksPage() {
               <Card className="border-dashed border-gray-300 bg-gray-50">
                 <CardContent className="py-12 text-center">
                   <ShieldCheck className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-                  <p className="text-sm font-medium text-gray-600">No frameworks in scope yet</p>
-                  <p className="text-xs text-gray-400 mt-1">Add a framework from the Available section below to get started.</p>
+                  <p className="text-sm font-medium text-gray-600">
+                    No frameworks in scope yet
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Add a framework from the Available section below to get
+                    started.
+                  </p>
                 </CardContent>
               </Card>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-                {orgFrameworks.map(fw => (
+                {orgFrameworks.map((fw) => (
                   <ActiveFrameworkCard
                     key={fw.id}
                     orgFw={fw}
@@ -429,11 +589,12 @@ export function FrameworksPage() {
                   Available Frameworks
                 </h2>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  Add a framework to start tracking requirements, mappings, and coverage.
+                  Add a framework to start tracking requirements, mappings, and
+                  coverage.
                 </p>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-                {available.map(fw => (
+                {available.map((fw) => (
                   <AvailableFrameworkCard
                     key={fw.id}
                     fw={fw}
@@ -454,7 +615,10 @@ export function FrameworksPage() {
       <RemoveDialog
         orgFw={removingFw}
         onClose={() => setRemovingFw(null)}
-        onConfirm={(reason) => removingFw && removeMutation.mutate({ slug: removingFw.frameworkSlug, reason })}
+        onConfirm={(reason) =>
+          removingFw &&
+          removeMutation.mutate({ slug: removingFw.frameworkSlug, reason })
+        }
         loading={removeMutation.isPending}
       />
 

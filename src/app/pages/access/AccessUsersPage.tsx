@@ -13,18 +13,27 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  Users, Plus, RefreshCw, Search, X, Shield,
-  ChevronRight, CheckCircle2, Clock, Circle, Github,
-  Loader2, UserPlus, Trash2,
+  RefreshCw,
+  Search,
+  X,
+  ChevronRight,
+  CheckCircle2,
+  Clock,
+  Circle,
+  Github,
+  Loader2,
+  UserPlus,
+  Trash2,
 } from 'lucide-react';
 import { QK } from '@/lib/queryKeys';
 import { STALE } from '@/lib/queryClient';
 import { usersService, UserWithGit } from '@/services/api/users';
-import { onboardingService, UserOnboardingSummary } from '@/services/api/onboarding';
-import { Role } from '@/services/api/types';
 import {
-  ROLE_LABELS, ROLE_CONFIG, AppRole,
-} from '@/lib/rbac/permissions';
+  onboardingService,
+  UserOnboardingSummary,
+} from '@/services/api/onboarding';
+import { Role } from '@/services/api/types';
+import { ROLE_LABELS, ROLE_CONFIG, AppRole } from '@/lib/rbac/permissions';
 import { RoleBadge } from '@/app/components/rbac/RequirePermission';
 import { PERMISSIONS } from '@/lib/rbac/permissions';
 import { useCurrentUser, useHasPermission } from '@/hooks/useCurrentUser';
@@ -47,7 +56,12 @@ export function AccessUsersPage() {
   const [selectedUser, setSelectedUser] = useState<UserWithGit | null>(null);
   const [showInvite, setShowInvite] = useState(false);
 
-  const { data: usersData, isLoading, isFetching, error } = useQuery({
+  const {
+    data: usersData,
+    isLoading,
+    isFetching,
+    error,
+  } = useQuery({
     queryKey: QK.users(),
     queryFn: async () => {
       return usersService.listUsers();
@@ -64,11 +78,6 @@ export function AccessUsersPage() {
     staleTime: STALE.USERS,
   });
 
-  const roleUpdateMutation = useMutation({
-    mutationFn: ({ id, role }: { id: string; role: Role }) => usersService.updateUser(id, { role }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: QK.users() }),
-  });
-
   const deleteMutation = useMutation({
     mutationFn: (id: string) => usersService.deleteUser(id),
     onSuccess: () => {
@@ -82,34 +91,48 @@ export function AccessUsersPage() {
   for (const u of onboardingData ?? []) onboardingMap.set(u.id, u);
 
   // Filtered + searched users
-  const filtered = users.filter(u => {
-    const matchSearch = !search || u.email.toLowerCase().includes(search.toLowerCase()) || (u.name ?? '').toLowerCase().includes(search.toLowerCase());
+  const filtered = users.filter((u) => {
+    const matchSearch =
+      !search ||
+      u.email.toLowerCase().includes(search.toLowerCase()) ||
+      (u.name ?? '').toLowerCase().includes(search.toLowerCase());
     const matchRole = !roleFilter || u.role === roleFilter;
     return matchSearch && matchRole;
   });
 
   // KPIs
   const totalUsers = users.length;
-  const adminCount = users.filter(u => ['SUPER_ADMIN', 'ORG_ADMIN', 'SECURITY_OWNER'].includes(u.role)).length;
-  const onboardedCount = Array.from(onboardingMap.values()).filter(u => u.onboarding.allComplete).length;
-  const roleBreakdown = ALL_ROLES.map(r => ({ role: r, count: users.filter(u => u.role === r).length })).filter(x => x.count > 0);
+  const adminCount = users.filter((u) =>
+    ['SUPER_ADMIN', 'ORG_ADMIN', 'SECURITY_OWNER'].includes(u.role),
+  ).length;
+  const onboardedCount = Array.from(onboardingMap.values()).filter(
+    (u) => u.onboarding.allComplete,
+  ).length;
+  const roleBreakdown = ALL_ROLES.map((r) => ({
+    role: r,
+    count: users.filter((u) => u.role === r).length,
+  })).filter((x) => x.count > 0);
 
   const handleRoleUpdated = (userId: string, newRole: Role) => {
     qc.invalidateQueries({ queryKey: QK.users() });
     // Update selected user if it's the one being edited
     if (selectedUser?.id === userId) {
-      setSelectedUser(prev => prev ? { ...prev, role: newRole } : null);
+      setSelectedUser((prev) => (prev ? { ...prev, role: newRole } : null));
     }
   };
 
   const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`Remove ${name || 'this user'} from the organisation? This cannot be undone.`)) return;
+    if (
+      !confirm(
+        `Remove ${name || 'this user'} from the organisation? This cannot be undone.`,
+      )
+    )
+      return;
     deleteMutation.mutate(id);
   };
 
   return (
     <div className="flex flex-col bg-gray-50">
-
       {/* Detail panel */}
       {selectedUser && (
         <UserDetailPanel
@@ -126,16 +149,24 @@ export function AccessUsersPage() {
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900 tracking-tight">User Management</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Manage users, roles, and access across your organisation.</p>
+          <h1 className="text-xl font-semibold text-gray-900 tracking-tight">
+            User Management
+          </h1>
+          <p className="text-sm text-gray-500 mt-0.5">
+            Manage users, roles, and access across your organisation.
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => { qc.invalidateQueries({ queryKey: QK.users() }); }}
+            onClick={() => {
+              qc.invalidateQueries({ queryKey: QK.users() });
+            }}
             disabled={isFetching}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 disabled:opacity-50 transition-colors"
           >
-            <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`}
+            />
             Refresh
           </button>
           {canManageUsers && (
@@ -151,22 +182,37 @@ export function AccessUsersPage() {
       </div>
 
       <div className="px-6 py-5 space-y-5">
-
         {/* KPI row */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <KpiCard label="Total Users" value={totalUsers} />
-          <KpiCard label="Privileged Users" value={adminCount} sub="Admin / Security Owner" color="text-orange-600" />
-          <KpiCard label="Fully Onboarded" value={onboardedCount} sub={`${totalUsers > 0 ? Math.round((onboardedCount / totalUsers) * 100) : 0}% complete`} color="text-green-600" />
-          <KpiCard label="Roles In Use" value={roleBreakdown.length} sub={roleBreakdown.map(r => ROLE_LABELS[r.role]).join(', ')} />
+          <KpiCard
+            label="Privileged Users"
+            value={adminCount}
+            sub="Admin / Security Owner"
+            color="text-orange-600"
+          />
+          <KpiCard
+            label="Fully Onboarded"
+            value={onboardedCount}
+            sub={`${totalUsers > 0 ? Math.round((onboardedCount / totalUsers) * 100) : 0}% complete`}
+            color="text-green-600"
+          />
+          <KpiCard
+            label="Roles In Use"
+            value={roleBreakdown.length}
+            sub={roleBreakdown.map((r) => ROLE_LABELS[r.role]).join(', ')}
+          />
         </div>
 
         {/* Role distribution mini-bar */}
         {users.length > 0 && (
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-4">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Role Distribution</p>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+              Role Distribution
+            </p>
             <div className="flex gap-3 flex-wrap">
-              {ALL_ROLES.map(r => {
-                const count = users.filter(u => u.role === r).length;
+              {ALL_ROLES.map((r) => {
+                const count = users.filter((u) => u.role === r).length;
                 if (!count) return null;
                 const rc = ROLE_CONFIG[r];
                 return (
@@ -174,7 +220,9 @@ export function AccessUsersPage() {
                     key={r}
                     onClick={() => setRoleFilter(roleFilter === r ? '' : r)}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
-                      roleFilter === r ? `${rc.bg} ${rc.text} ${rc.border} ring-2 ring-current ring-offset-1` : `bg-white border-gray-200 text-gray-600 hover:${rc.bg}`
+                      roleFilter === r
+                        ? `${rc.bg} ${rc.text} ${rc.border} ring-2 ring-current ring-offset-1`
+                        : `bg-white border-gray-200 text-gray-600 hover:${rc.bg}`
                     }`}
                   >
                     <span className={`w-2 h-2 rounded-full ${rc.dot}`} />
@@ -183,7 +231,10 @@ export function AccessUsersPage() {
                 );
               })}
               {roleFilter && (
-                <button onClick={() => setRoleFilter('')} className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs text-gray-500 border border-gray-200 hover:bg-gray-50">
+                <button
+                  onClick={() => setRoleFilter('')}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs text-gray-500 border border-gray-200 hover:bg-gray-50"
+                >
                   <X className="w-3 h-3" /> Clear filter
                 </button>
               )}
@@ -200,12 +251,15 @@ export function AccessUsersPage() {
               <input
                 type="text"
                 value={search}
-                onChange={e => setSearch(e.target.value)}
+                onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search by name or email…"
                 className="w-full pl-9 pr-8 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
               />
               {search && (
-                <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                <button
+                  onClick={() => setSearch('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
                   <X className="w-3.5 h-3.5" />
                 </button>
               )}
@@ -216,123 +270,201 @@ export function AccessUsersPage() {
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">User</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Role</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Onboarding</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">GitHub</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Joined</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    User
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Role
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Onboarding
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    GitHub
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Joined
+                  </th>
                   {(canManageUsers || canAssignRoles) && (
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
                   )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {isLoading ? (
-                  <tr><td colSpan={6} className="px-4 py-10 text-center text-sm text-gray-400"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></td></tr>
-                ) : error ? (
-                  <tr><td colSpan={6} className="px-4 py-10 text-center text-sm text-red-500">{(error as any)?.message ?? 'Failed to load users'}</td></tr>
-                ) : filtered.length === 0 ? (
-                  <tr><td colSpan={6} className="px-4 py-10 text-center text-sm text-gray-400">No users match your search.</td></tr>
-                ) : filtered.map(user => {
-                  const ob = onboardingMap.get(user.id);
-                  const isMe = currentUser?.id === user.id;
-                  return (
-                    <tr
-                      key={user.id}
-                      className="hover:bg-blue-50/30 transition-colors group cursor-pointer"
-                      onClick={() => setSelectedUser(user)}
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="px-4 py-10 text-center text-sm text-gray-400"
                     >
-                      {/* User */}
-                      <td className="px-4 py-3.5">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold flex-shrink-0 ${ROLE_CONFIG[user.role as AppRole]?.bg ?? 'bg-gray-100'} ${ROLE_CONFIG[user.role as AppRole]?.text ?? 'text-gray-600'}`}>
-                            {initials(user.name, user.email)}
-                          </div>
-                          <div>
-                            <p className="font-medium text-gray-900">
-                              {user.name ?? <span className="italic text-gray-400">No name</span>}
-                              {isMe && <span className="ml-1.5 text-xs text-blue-500 font-normal">(you)</span>}
-                            </p>
-                            <p className="text-xs text-gray-500">{user.email}</p>
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Role */}
-                      <td className="px-4 py-3.5" onClick={e => e.stopPropagation()}>
-                        {canAssignRoles && !isMe ? (
-                          <select
-                            value={user.role}
-                            onChange={async (e) => {
-                              const newRole = e.target.value as Role;
-                              await usersService.updateUser(user.id, { role: newRole });
-                              qc.invalidateQueries({ queryKey: QK.users() });
-                            }}
-                            className="text-xs font-medium px-2.5 py-1 rounded-full border cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                            style={{ borderColor: ROLE_CONFIG[user.role as AppRole]?.border.replace('border-', '') }}
-                            title="Change role"
-                          >
-                            {ALL_ROLES.map(r => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
-                          </select>
-                        ) : (
-                          <RoleBadge role={user.role as AppRole} />
-                        )}
-                      </td>
-
-                      {/* Onboarding */}
-                      <td className="px-4 py-3.5">
-                        {ob ? (
-                          <div className="flex items-center gap-1.5">
-                            {ob.onboarding.allComplete
-                              ? <CheckCircle2 className="w-4 h-4 text-green-500" />
-                              : ob.onboarding.completedCount > 0
-                                ? <Clock className="w-4 h-4 text-amber-500" />
-                                : <Circle className="w-4 h-4 text-gray-300" />
-                            }
-                            <span className="text-xs text-gray-600 font-medium">{ob.onboarding.completedCount}/{ob.onboarding.totalCount}</span>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-gray-300">—</span>
-                        )}
-                      </td>
-
-                      {/* GitHub */}
-                      <td className="px-4 py-3.5">
-                        {user.gitAccounts.length > 0
-                          ? <span className="flex items-center gap-1 text-xs text-gray-600"><Github className="w-3.5 h-3.5" />{user.gitAccounts.length}</span>
-                          : <span className="text-xs text-gray-300">—</span>
-                        }
-                      </td>
-
-                      {/* Joined */}
-                      <td className="px-4 py-3.5 text-xs text-gray-500">{fmtDate(user.createdAt)}</td>
-
-                      {/* Actions */}
-                      {(canManageUsers || canAssignRoles) && (
-                        <td className="px-4 py-3.5 text-center" onClick={e => e.stopPropagation()}>
-                          <div className="flex items-center justify-center gap-1">
-                            <button
-                              onClick={() => setSelectedUser(user)}
-                              className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-                              title="View details"
+                      <Loader2 className="w-5 h-5 animate-spin mx-auto" />
+                    </td>
+                  </tr>
+                ) : error ? (
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="px-4 py-10 text-center text-sm text-red-500"
+                    >
+                      {(error as any)?.message ?? 'Failed to load users'}
+                    </td>
+                  </tr>
+                ) : filtered.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="px-4 py-10 text-center text-sm text-gray-400"
+                    >
+                      No users match your search.
+                    </td>
+                  </tr>
+                ) : (
+                  filtered.map((user) => {
+                    const ob = onboardingMap.get(user.id);
+                    const isMe = currentUser?.id === user.id;
+                    return (
+                      <tr
+                        key={user.id}
+                        className="hover:bg-blue-50/30 transition-colors group cursor-pointer"
+                        onClick={() => setSelectedUser(user)}
+                      >
+                        {/* User */}
+                        <td className="px-4 py-3.5">
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold flex-shrink-0 ${ROLE_CONFIG[user.role as AppRole]?.bg ?? 'bg-gray-100'} ${ROLE_CONFIG[user.role as AppRole]?.text ?? 'text-gray-600'}`}
                             >
-                              <ChevronRight className="w-4 h-4" />
-                            </button>
-                            {canManageUsers && !isMe && (
-                              <button
-                                onClick={() => handleDelete(user.id, user.name ?? user.email)}
-                                className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                                title="Remove user"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            )}
+                              {initials(user.name, user.email)}
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-900">
+                                {user.name ?? (
+                                  <span className="italic text-gray-400">
+                                    No name
+                                  </span>
+                                )}
+                                {isMe && (
+                                  <span className="ml-1.5 text-xs text-blue-500 font-normal">
+                                    (you)
+                                  </span>
+                                )}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {user.email}
+                              </p>
+                            </div>
                           </div>
                         </td>
-                      )}
-                    </tr>
-                  );
-                })}
+
+                        {/* Role */}
+                        <td
+                          className="px-4 py-3.5"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {canAssignRoles && !isMe ? (
+                            <select
+                              value={user.role}
+                              onChange={async (e) => {
+                                const newRole = e.target.value as Role;
+                                await usersService.updateUser(user.id, {
+                                  role: newRole,
+                                });
+                                qc.invalidateQueries({ queryKey: QK.users() });
+                              }}
+                              className="text-xs font-medium px-2.5 py-1 rounded-full border cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                              style={{
+                                borderColor: ROLE_CONFIG[
+                                  user.role as AppRole
+                                ]?.border.replace('border-', ''),
+                              }}
+                              title="Change role"
+                            >
+                              {ALL_ROLES.map((r) => (
+                                <option key={r} value={r}>
+                                  {ROLE_LABELS[r]}
+                                </option>
+                              ))}
+                            </select>
+                          ) : (
+                            <RoleBadge role={user.role as AppRole} />
+                          )}
+                        </td>
+
+                        {/* Onboarding */}
+                        <td className="px-4 py-3.5">
+                          {ob ? (
+                            <div className="flex items-center gap-1.5">
+                              {ob.onboarding.allComplete ? (
+                                <CheckCircle2 className="w-4 h-4 text-green-500" />
+                              ) : ob.onboarding.completedCount > 0 ? (
+                                <Clock className="w-4 h-4 text-amber-500" />
+                              ) : (
+                                <Circle className="w-4 h-4 text-gray-300" />
+                              )}
+                              <span className="text-xs text-gray-600 font-medium">
+                                {ob.onboarding.completedCount}/
+                                {ob.onboarding.totalCount}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-gray-300">—</span>
+                          )}
+                        </td>
+
+                        {/* GitHub */}
+                        <td className="px-4 py-3.5">
+                          {user.gitAccounts.length > 0 ? (
+                            <span className="flex items-center gap-1 text-xs text-gray-600">
+                              <Github className="w-3.5 h-3.5" />
+                              {user.gitAccounts.length}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-gray-300">—</span>
+                          )}
+                        </td>
+
+                        {/* Joined */}
+                        <td className="px-4 py-3.5 text-xs text-gray-500">
+                          {fmtDate(user.createdAt)}
+                        </td>
+
+                        {/* Actions */}
+                        {(canManageUsers || canAssignRoles) && (
+                          <td
+                            className="px-4 py-3.5 text-center"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <div className="flex items-center justify-center gap-1">
+                              <button
+                                onClick={() => setSelectedUser(user)}
+                                className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                                title="View details"
+                              >
+                                <ChevronRight className="w-4 h-4" />
+                              </button>
+                              {canManageUsers && !isMe && (
+                                <button
+                                  onClick={() =>
+                                    handleDelete(
+                                      user.id,
+                                      user.name ?? user.email,
+                                    )
+                                  }
+                                  className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                  title="Remove user"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>
@@ -340,7 +472,11 @@ export function AccessUsersPage() {
           {!isLoading && users.length > 0 && (
             <div className="px-4 py-2.5 bg-gray-50 border-t border-gray-100 text-xs text-gray-500">
               Showing {filtered.length} of {users.length} users
-              {roleFilter && <span className="ml-1 text-gray-400">· filtered by {ROLE_LABELS[roleFilter]}</span>}
+              {roleFilter && (
+                <span className="ml-1 text-gray-400">
+                  · filtered by {ROLE_LABELS[roleFilter]}
+                </span>
+              )}
             </div>
           )}
         </div>
