@@ -1,4 +1,4 @@
-import { apiClient, ApiResponse } from './client';
+import { apiClient, ApiResponse, API_BASE_URL } from './client';
 import { getAuthToken } from '@/services/authStorage';
 import {
   Control,
@@ -139,9 +139,7 @@ export class ControlsService {
   // Export controls
   async exportControls(format: 'csv' | 'xlsx' | 'pdf' = 'csv'): Promise<Blob> {
     const token = getAuthToken();
-    const baseURL =
-      (apiClient as any).baseURL ||
-      'https://isms-backend-production.up.railway.app';
+    const baseURL = API_BASE_URL;
     const response = await fetch(
       `${baseURL}/api/controls/export?format=${format}`,
       {

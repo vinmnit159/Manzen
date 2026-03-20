@@ -3,7 +3,7 @@ import { PageTemplate } from '@/app/components/PageTemplate';
 import { Card } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
 import { Loader2, ShieldAlert } from 'lucide-react';
-import { apiClient } from '@/services/api/client';
+import { risksService } from '@/services/api/risks';
 
 // We surface risks from GitHub scan as "vulnerabilities"
 interface Vuln {
@@ -26,7 +26,7 @@ export function VulnerabilitiesPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    apiClient.get<any>('/api/risks')
+    risksService.getRisks()
       .then((res) => {
         const risks = res?.data ?? [];
         setVulns(

@@ -26,7 +26,7 @@ import {
   FormMessage,
 } from "@/app/components/ui/form";
 import { authService } from "@/services/api/auth";
-import { apiClient } from "@/services/api/client";
+import { ApiError } from "@/services/api/client";
 
 // ─── Schemas ────────────────────────────────────────────────────────────────
 
@@ -94,25 +94,24 @@ export function AccountSettingsPage() {
 
   const onProfileSubmit = async (data: ProfileFormData) => {
     try {
-      const response = await apiClient.put<any>("/api/auth/profile", { name: data.name });
+      const response = await authService.updateProfile(data.name);
       const updated = response.user ?? response;
       authService.cacheUser({ ...user!, ...updated });
       toast.success("Display name updated successfully.");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to update profile.");
+    } catch (err: unknown) {
+      const msg = err instanceof ApiError ? err.message : "Failed to update profile.";
+      toast.error(msg);
     }
   };
 
   const onPasswordSubmit = async (data: PasswordFormData) => {
     try {
-      await apiClient.post("/api/auth/change-password", {
-        currentPassword: data.currentPassword,
-        newPassword: data.newPassword,
-      });
+      await authService.changePassword(data.currentPassword, data.newPassword);
       toast.success("Password changed successfully.");
       passwordForm.reset();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to change password.");
+    } catch (err: unknown) {
+      const msg = err instanceof ApiError ? err.message : "Failed to change password.";
+      toast.error(msg);
     }
   };
 

@@ -15,7 +15,7 @@ import {
   Globe,
   HelpCircle,
 } from 'lucide-react';
-import { apiClient } from '@/services/api/client';
+import { assetsService } from '@/services/api/assets';
 
 const TYPE_ICONS: Record<string, React.ElementType> = {
   CLOUD: Cloud,
@@ -59,8 +59,8 @@ export function InventoryPage() {
 
   useEffect(() => {
     let cancelled = false;
-    apiClient
-      .get<{ data?: AssetItem[] }>('/api/assets')
+    assetsService
+      .getAssets()
       .then((res) => {
         if (!cancelled) {
           setAssets(res?.data ?? []);

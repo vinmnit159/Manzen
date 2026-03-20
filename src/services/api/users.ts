@@ -69,6 +69,11 @@ export const usersService = {
     return apiClient.delete(`/api/users/${id}`);
   },
 
+  /** Send an email invitation to a new user (admin only) */
+  async inviteUser(email: string, role: Role): Promise<{ success: boolean }> {
+    return apiClient.post('/api/users/invite', { email, role });
+  },
+
   // ── Git account mapping ──────────────────────────────────────────────────
 
   /** List all GitHub accounts linked to ISMS users in this org */

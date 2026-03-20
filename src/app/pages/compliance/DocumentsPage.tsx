@@ -10,7 +10,6 @@ import {
   Download,
   Plus,
 } from 'lucide-react';
-import { apiClient } from '@/services/api/client';
 import { evidenceService } from '@/services/api/evidence';
 import { controlsService } from '@/services/api/controls';
 import { FrameworkFilter } from '@/app/components/compliance/FrameworkFilter';
@@ -84,10 +83,8 @@ export function DocumentsPage() {
     let cancelled = false;
     setLoading(true);
     Promise.all([
-      apiClient.get<{ data?: EvidenceItem[] }>('/api/evidence'),
-      apiClient.get<{
-        data?: { total: number; automated: number; manual: number };
-      }>('/api/evidence/stats'),
+      evidenceService.getEvidence(),
+      evidenceService.getEvidenceStats(),
       controlsService.getControls({ limit: 200 }),
     ])
       .then(([evidRes, statsRes, ctrlRes]) => {

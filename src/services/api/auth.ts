@@ -59,6 +59,16 @@ export class AuthService {
     return getStoredUser<User>();
   }
 
+  // Update the current user's display name
+  async updateProfile(name: string): Promise<{ user?: User }> {
+    return apiClient.put('/api/auth/profile', { name });
+  }
+
+  // Change the current user's password
+  async changePassword(currentPassword: string, newPassword: string): Promise<void> {
+    return apiClient.post('/api/auth/change-password', { currentPassword, newPassword });
+  }
+
   // Cache current user data
   cacheUser(user: User): void {
     storeCachedUser(user);

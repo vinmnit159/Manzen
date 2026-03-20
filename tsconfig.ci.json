@@ -1,17 +1,4 @@
 {
   "extends": "./tsconfig.json",
-  "include": [
-    "src/vite-env.d.ts",
-    "src/services/authStorage.ts",
-    "src/services/api/client.ts",
-    "src/services/api/auth.ts",
-    "src/services/api/integrations.ts",
-    "src/services/api/notion.ts",
-    "src/services/api/slack.ts",
-    "src/services/api/policies.ts",
-    "src/services/api/controls.ts",
-    "src/app/authGuard.ts",
-    "src/tests/apiClient.test.ts",
-    "src/tests/routes.test.ts"
-  ]
+  "include": ["src"]
 }

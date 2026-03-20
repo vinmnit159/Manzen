@@ -3,7 +3,7 @@ import { PageTemplate } from '@/app/components/PageTemplate';
 import { Card } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
 import { Loader2, GitCommit } from 'lucide-react';
-import { apiClient } from '@/services/api/client';
+import { integrationsService } from '@/services/api/integrations';
 
 interface Repo {
   id: string;
@@ -18,7 +18,7 @@ export function CodeChangesPage() {
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
-    apiClient.get<any>('/api/integrations/status')
+    integrationsService.getStatus()
       .then((res) => {
         const gh = (res?.integrations ?? []).find((i: any) => i.provider === 'GITHUB' && i.status === 'ACTIVE');
         if (gh) {

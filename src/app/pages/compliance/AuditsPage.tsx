@@ -29,7 +29,8 @@ import {
   AuditStatus,
   CreateAuditPayload,
 } from '@/services/api/audits';
-import { apiClient } from '@/services/api/client';
+import { usersService } from '@/services/api/users';
+import { controlsService } from '@/services/api/controls';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -134,12 +135,12 @@ function ScheduleAuditModal({
   // Fetch users and controls for dropdowns
   const { data: usersData } = useQuery<{ data: UserRecord[] }>({
     queryKey: ['users'],
-    queryFn: () => apiClient.get('/api/users'),
+    queryFn: () => usersService.listUsers(),
     staleTime: 30_000,
   });
   const { data: controlsData } = useQuery<{ data: ControlRecord[] }>({
     queryKey: ['controls'],
-    queryFn: () => apiClient.get('/api/controls'),
+    queryFn: () => controlsService.getControls(),
     staleTime: 30_000,
   });
 

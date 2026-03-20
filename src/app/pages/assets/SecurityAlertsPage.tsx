@@ -3,7 +3,7 @@ import { PageTemplate } from '@/app/components/PageTemplate';
 import { Card } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
 import { Loader2, Bell } from 'lucide-react';
-import { apiClient } from '@/services/api/client';
+import { risksService } from '@/services/api/risks';
 
 // Security alerts = HIGH/CRITICAL open risks + any access control failures from GitHub
 interface Alert {
@@ -20,9 +20,9 @@ export function SecurityAlertsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    apiClient.get<any>('/api/risks')
+    risksService.getRisks()
       .then((res) => {
-        const risks: any[] = res?.data ?? [];
+        const risks = res?.data ?? [];
         const highSeverity = risks
           .filter((r) => (r.impact === 'CRITICAL' || r.impact === 'HIGH') && r.status === 'OPEN')
           .map((r) => ({

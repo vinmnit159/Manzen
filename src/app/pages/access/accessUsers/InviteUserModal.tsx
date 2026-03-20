@@ -7,7 +7,7 @@ import {
   AlertCircle,
   Mail,
 } from 'lucide-react';
-import { apiClient } from '@/services/api/client';
+import { usersService } from '@/services/api/users';
 import { Role } from '@/services/api/types';
 import { ROLE_LABELS, ROLE_CONFIG } from '@/lib/rbac/permissions';
 import { ALL_ROLES } from './helpers';
@@ -27,11 +27,11 @@ export function InviteUserModal({ onClose }: { onClose: () => void }) {
     setSending(true);
     setError(null);
     try {
-      // The invite API endpoint on the external backend
-      await (apiClient as any).post('/api/users/invite', { email, role });
+      await usersService.inviteUser(email, role);
       setSent(true);
-    } catch (err: any) {
-      setError(err?.message ?? 'Failed to send invitation');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to send invitation';
+      setError(msg);
     } finally {
       setSending(false);
     }

@@ -15,6 +15,7 @@ import {
   FormMessage,
 } from '@/app/components/ui/form';
 import { toast } from 'sonner';
+import { ApiError } from '@/services/api/client';
 import { authService } from '@/services/api/auth';
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import { API_BASE_URL } from '@/services/api/client';
@@ -100,8 +101,9 @@ export function LoginPage() {
             'Login failed. Please check your credentials.',
         );
       }
-    } catch (error: any) {
-      toast.error(error.message || 'An error occurred. Please try again.');
+    } catch (error: unknown) {
+      const msg = error instanceof ApiError ? error.message : 'An error occurred. Please try again.';
+      toast.error(msg);
     } finally {
       setIsLoading(false);
     }

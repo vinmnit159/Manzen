@@ -15,6 +15,7 @@ import {
   FormMessage,
 } from '@/app/components/ui/form';
 import { toast } from 'sonner';
+import { ApiError } from '@/services/api/client';
 import { setupService, SetupRequest } from '@/services/api/setup';
 import { authService } from '@/services/api/auth';
 import { Role } from '@/services/api/types';
@@ -128,8 +129,9 @@ export function SetupFormPage() {
       } else {
         toast.error(response.error || 'Setup failed');
       }
-    } catch (error: any) {
-      toast.error(error.message || 'An error occurred during setup');
+    } catch (error: unknown) {
+      const msg = error instanceof ApiError ? error.message : 'An error occurred during setup';
+      toast.error(msg);
     } finally {
       setIsLoading(false);
     }
