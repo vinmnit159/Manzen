@@ -2,6 +2,7 @@ import { RiskLevel } from '@/services/api/types';
 
 export type SignalProvider =
   | 'aws'
+  | 'azure'
   | 'github'
   | 'google-workspace'
   | 'okta'

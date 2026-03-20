@@ -148,6 +148,7 @@ export interface Policy {
   approvedBy?: string;
   approvedAt?: string;
   createdAt: string;
+  updatedAt?: string;
   organization?: Organization;
 }
 

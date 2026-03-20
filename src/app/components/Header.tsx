@@ -124,7 +124,7 @@ export function Header() {
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && filteredResults.length > 0) {
-                  handleSearch(filteredResults[0].path);
+                  handleSearch(filteredResults[0]!.path);
                 }
               }}
               className="pl-10 pr-4"
@@ -133,9 +133,9 @@ export function Header() {
             {showSuggestions && filteredResults.length > 0 && (
               <div className="absolute top-full mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg z-50 max-h-96 overflow-y-auto">
                 <div className="py-2">
-                  {filteredResults.map((result, index) => (
+                  {filteredResults.map((result) => (
                     <button
-                      key={index}
+                      key={result.path}
                       className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center justify-between group transition-colors"
                       onClick={() => handleSearch(result.path)}
                     >

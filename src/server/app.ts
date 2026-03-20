@@ -50,7 +50,6 @@ export async function createServerApp() {
           body: (request as { body?: unknown }).body,
           params: (request as { params?: Record<string, string> }).params,
           query: (request as { query?: unknown }).query,
-          user: (request as any).user,
         }),
       });
     },
@@ -65,7 +64,6 @@ export async function createServerApp() {
           body: (request as { body?: unknown }).body,
           params: (request as { params?: Record<string, string> }).params,
           query: (request as { query?: unknown }).query,
-          user: (request as any).user,
         }),
       });
     },
@@ -79,8 +77,6 @@ export async function createServerApp() {
         handler: async (request) => definition.handler({
           body: (request as { body?: unknown }).body,
           params: (request as { params?: Record<string, string> }).params,
-          query: (request as { query?: unknown }).query,
-          user: (request as any).user,
         }),
       });
     },
@@ -94,8 +90,6 @@ export async function createServerApp() {
         handler: async (request) => definition.handler({
           body: (request as { body?: unknown }).body,
           params: (request as { params?: Record<string, string> }).params,
-          query: (request as { query?: unknown }).query,
-          user: (request as any).user,
         }),
       });
     },
@@ -110,7 +104,6 @@ export async function createServerApp() {
           body: (request as { body?: unknown }).body,
           params: (request as { params?: Record<string, string> }).params,
           query: (request as { query?: unknown }).query,
-          user: (request as any).user,
         }),
       });
     },
@@ -125,7 +118,6 @@ export async function createServerApp() {
           body: (request as { body?: unknown }).body,
           params: (request as { params?: Record<string, string> }).params,
           query: (request as { query?: unknown }).query,
-          user: (request as any).user,
         }),
       });
     },

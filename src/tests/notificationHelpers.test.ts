@@ -143,7 +143,7 @@ describe('groupPreferences', () => {
     const expectedCategories = [...new Set(NOTIFICATION_EVENT_DEFINITIONS.map(d => d.category))];
     for (const cat of expectedCategories) {
       expect(groups[cat]).toBeDefined();
-      expect(groups[cat].length).toBeGreaterThan(0);
+      expect(groups[cat]!.length).toBeGreaterThan(0);
     }
   });
 

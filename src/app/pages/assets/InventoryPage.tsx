@@ -46,6 +46,7 @@ interface AssetItem {
   environment?: string | null;
   tags?: string[];
   createdAt?: string;
+  risks?: unknown[];
 }
 
 export function InventoryPage() {
@@ -279,7 +280,7 @@ export function InventoryPage() {
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-400">
-                            {new Date(asset.createdAt).toLocaleDateString()}
+                            {asset.createdAt ? new Date(asset.createdAt).toLocaleDateString() : '—'}
                           </td>
                         </tr>
                       );

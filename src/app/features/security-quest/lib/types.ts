@@ -150,6 +150,8 @@ export interface BranchingChoice {
   /** If set, leads to a follow-up step */
   nextStepId?: string;
   topicTags: string[];
+  /** Optional key takeaway message shown after selecting this choice */
+  takeaway?: string;
 }
 
 export interface BranchingStep {

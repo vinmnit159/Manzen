@@ -135,7 +135,7 @@ export function QuestShell({ quest }: QuestShellProps) {
     // Show badge unlock briefly
     const badgeIds = currentModule.badgeIds;
     if (badgeIds.length > 0) {
-      setNewBadge(badgeIds[0]);
+      setNewBadge(badgeIds[0] ?? null);
       setTimeout(() => setNewBadge(null), 2000);
     }
     completeModule(currentModule.id);

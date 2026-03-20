@@ -88,16 +88,6 @@ export class SqlRiskEngineRepository implements RiskEngineRepository {
     }
   }
 
-  async listIntegrationExecutions(): Promise<IntegrationJobExecutionRecord[]> {
-    const result = await this.db.query('select * from integration_job_executions order by completed_at desc');
-    return result.rows.map((row) => riskEngineMappers.fromIntegrationJobExecutionRow(row as any));
-  }
-
-  async listSignalIngestions(): Promise<SignalIngestionRecord[]> {
-    const result = await this.db.query('select * from signal_ingestion_records order by normalized_at desc');
-    return result.rows.map((row) => riskEngineMappers.fromSignalIngestionRow(row as any));
-  }
-
   async listProviderStatuses(): Promise<ProviderSyncStatusRecord[]> {
     const result = await this.db.query('select * from provider_sync_statuses order by last_sync_at desc');
     return result.rows.map((row) => riskEngineMappers.fromProviderSyncStatusRow(row as any));

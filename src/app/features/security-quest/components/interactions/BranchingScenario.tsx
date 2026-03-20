@@ -55,7 +55,7 @@ export function BranchingScenario({ config, onAnswer, disabled }: BranchingScena
       for (const step of config.steps) {
         // Only count steps that were actually visited or could be on the best path
         const bestChoice = step.choices.reduce((best, c) =>
-          c.scoreImpact > best.scoreImpact ? c : best, step.choices[0]);
+          c.scoreImpact > best.scoreImpact ? c : best, step.choices[0]!);
         maxScore += bestChoice.scoreImpact + (bestChoice.reportBonus ? 50 : 0);
       }
 

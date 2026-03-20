@@ -69,14 +69,14 @@ describe('computeAndInsertCoverageSnapshot', () => {
   it('passes organizationId and frameworkId to the first query', async () => {
     const db = buildMockDb(defaultResponses());
     await computeAndInsertCoverageSnapshot(db, 'org-abc', 'fw-xyz');
-    const firstCall = (db.query as ReturnType<typeof vi.fn>).mock.calls[0];
+    const firstCall = (db.query as ReturnType<typeof vi.fn>).mock.calls[0]!;
     expect(firstCall[1]).toContain('fw-xyz');
   });
 
   it('passes both org and framework to the INSERT query', async () => {
     const db = buildMockDb(defaultResponses());
     await computeAndInsertCoverageSnapshot(db, 'org-42', 'fw-99');
-    const insertCall = (db.query as ReturnType<typeof vi.fn>).mock.calls[6];
+    const insertCall = (db.query as ReturnType<typeof vi.fn>).mock.calls[6]!;
     const insertArgs = insertCall[1] as string[];
     expect(insertArgs).toContain('org-42');
     expect(insertArgs).toContain('fw-99');
@@ -87,12 +87,12 @@ describe('computeAndInsertCoverageSnapshot', () => {
     const db = buildMockDb(defaultResponses());
     await computeAndInsertCoverageSnapshot(db, 'org-1', 'fw-1');
     const insertArgs = (db.query as ReturnType<typeof vi.fn>).mock
-      .calls[6][1] as number[];
+      .calls[6]![1] as number[];
     // insertArgs layout: [id, orgId, fwId, totalReqs, totalMapped, notApplicable, applicable,
     //                      covered, partiallyCovered, notCovered, controlCoveragePct, testPassRatePct,
     //                      mappedTestCount, passingTestCount, openGaps]
-    const controlCoveragePct = insertArgs[10];
-    const testPassRatePct = insertArgs[11];
+    const controlCoveragePct = insertArgs[10]!;
+    const testPassRatePct = insertArgs[11]!;
     expect(controlCoveragePct).toBe(67); // round(4/6 * 100)
     expect(testPassRatePct).toBe(60); // round(3/5 * 100)
   });
@@ -113,8 +113,8 @@ describe('computeAndInsertCoverageSnapshot', () => {
       computeAndInsertCoverageSnapshot(db, 'org-1', 'fw-1'),
     ).resolves.toBeUndefined();
     const insertArgs = (db.query as ReturnType<typeof vi.fn>).mock
-      .calls[6][1] as number[];
-    const controlCoveragePct = insertArgs[10];
+      .calls[6]![1] as number[];
+    const controlCoveragePct = insertArgs[10]!;
     expect(controlCoveragePct).toBe(0);
   });
 

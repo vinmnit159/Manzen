@@ -1,4 +1,5 @@
 // This file contains simple page components for pages that don't need complex layouts
+import React from "react";
 import { PageTemplate } from "@/app/components/PageTemplate";
 import { Button } from "@/app/components/ui/button";
 import { Card } from "@/app/components/ui/card";
@@ -27,10 +28,10 @@ export function createSimplePage(title: string, description: string, columns: st
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {rows.map((row, idx) => (
-                  <tr key={idx} className="hover:bg-gray-50">
-                    {Object.values(row).map((value: any, i) => (
-                      <td key={i} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {value}
+                  <tr key={String(Object.values(row)[0] ?? idx)} className="hover:bg-gray-50">
+                    {Object.entries(row).map(([col, value]) => (
+                      <td key={col} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {value as React.ReactNode}
                       </td>
                     ))}
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 space-x-3">

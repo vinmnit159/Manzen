@@ -43,8 +43,8 @@ export function ResultDetailDialog({
         {/* Findings list */}
         <div className="space-y-2 mt-2">
           {result.findings.map((f, i) => {
-            const rm = RESULT_META[f.result?.toLowerCase()] ?? RESULT_META.fail;
-            const sm = SEVERITY_META[f.severity?.toLowerCase()] ?? SEVERITY_META.medium;
+            const rm = (RESULT_META[f.result?.toLowerCase() ?? ""] ?? RESULT_META["fail"])!;
+            const sm = (SEVERITY_META[f.severity?.toLowerCase() ?? ""] ?? SEVERITY_META["medium"])!;
             return (
               <div key={i} className="rounded-lg border border-slate-200 bg-white px-4 py-3">
                 <div className="flex items-start justify-between gap-3">

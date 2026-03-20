@@ -69,7 +69,7 @@ export function AccessRequestsTab() {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {requests.map(req => {
-                  const sm = statusMeta[req.status] ?? statusMeta.PENDING;
+                  const sm = (statusMeta[req.status] ?? statusMeta["PENDING"])!;
                   return (
                     <tr key={req.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3">

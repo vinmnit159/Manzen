@@ -181,11 +181,18 @@ class ApiClient {
     }
   }
 
-  async get<T>(endpoint: string, params?: Record<string, string>): Promise<T> {
+  async get<T>(
+    endpoint: string,
+    params?: Record<string, string | number | boolean | undefined | null>,
+  ): Promise<T> {
     let url = endpoint;
     if (params) {
-      const searchParams = new URLSearchParams(params);
-      url += `?${searchParams.toString()}`;
+      const defined = Object.entries(params).filter(
+        ([, v]) => v !== undefined && v !== null,
+      ) as [string, string][];
+      if (defined.length > 0) {
+        url += `?${new URLSearchParams(defined).toString()}`;
+      }
     }
     return this.request<T>(url);
   }

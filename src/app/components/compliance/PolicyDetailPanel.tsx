@@ -103,7 +103,8 @@ export function PolicyDetailPanel({
   onClose: () => void;
   onMutated?: () => void;
 }) {
-  const cfg = STATUS_CONFIG[policy.status] ?? STATUS_CONFIG.DRAFT;
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  const cfg = (STATUS_CONFIG[policy.status] ?? STATUS_CONFIG['DRAFT'])!;
   const StatusIcon = cfg.Icon;
   const [downloading, setDownloading] = useState(false);
   const [uploading, setUploading] = useState(false);

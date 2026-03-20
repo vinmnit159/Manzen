@@ -16,7 +16,7 @@ export function registerTestsModule(registrar: {
       method: route.method,
       url: route.url,
       schema: route.schema,
-      handler: async (request) => handlers[route.handlerName](request),
+      handler: async (request) => (handlers[route.handlerName] as (r?: unknown) => Promise<unknown>)(request),
     });
   }
 

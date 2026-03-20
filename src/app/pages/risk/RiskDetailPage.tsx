@@ -105,7 +105,7 @@ function EditStakeholdersDialog({
   ) {
     setDraft((prev) => {
       const next = [...prev];
-      next[index] = { ...next[index], [field]: value };
+      next[index] = { ...next[index]!, [field]: value } as RiskStakeholder;
       return next;
     });
   }
@@ -116,10 +116,10 @@ function EditStakeholdersDialog({
     setDraft((prev) => {
       const next = [...prev];
       next[index] = {
-        ...next[index],
+        ...next[index]!,
         name: user.name ?? user.email,
         userId: user.id,
-      };
+      } as RiskStakeholder;
       return next;
     });
   }
@@ -702,7 +702,7 @@ export function RiskDetailPage() {
                                   size="sm"
                                   className="h-7 text-xs"
                                   onClick={() =>
-                                    setSelectedTestId(step.linkedTestId)
+                                    setSelectedTestId(step.linkedTestId ?? null)
                                   }
                                 >
                                   <Eye className="mr-1 h-3 w-3" />

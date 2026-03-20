@@ -549,9 +549,9 @@ export const riskCenterService = {
     const sourceControlId = linkedOrigin?.controlId ?? `ctrl-${risk.category.toLowerCase().replace(/\s/g, '-')}-001`;
     const origin: RiskSourceOrigin = {
       testId: sourceTestId,
-      testName: linkedOrigin?.controlName ?? `${risk.controls[0]} evaluation`,
+      testName: linkedOrigin?.controlName ?? `${risk.controls[0] ?? ''} evaluation`,
       controlId: sourceControlId,
-      controlName: linkedOrigin?.controlName ?? risk.controls[0],
+      controlName: linkedOrigin?.controlName ?? risk.controls[0] ?? '',
       provider: linkedOrigin?.provider ?? risk.source.replace(' signal', ''),
       signalId: linkedOrigin?.riskEngineTestId ?? `sig-${risk.id.slice(-8)}`,
       lastFailedAt: risk.lastSeenAt,
@@ -578,10 +578,10 @@ export const riskCenterService = {
       {
         label: `Validate the failing ${risk.category.toLowerCase()} signal for ${risk.assetName}.`,
         linkedTestId: sourceTestId,
-        linkedControlName: risk.controls[0],
+        linkedControlName: risk.controls[0] ?? '',
         failureReason: origin.failureReason,
         affectedResource: risk.assetName,
-        recommendedFix: `Review and remediate the ${risk.controls[0].toLowerCase()} control gap on ${risk.assetName}.`,
+        recommendedFix: `Review and remediate the ${(risk.controls[0] ?? '').toLowerCase()} control gap on ${risk.assetName}.`,
         evidenceSnapshotId: evidence[0]?.id,
         evidenceSummary: evidence[0]?.summary,
       },

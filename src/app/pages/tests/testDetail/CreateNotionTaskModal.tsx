@@ -40,7 +40,7 @@ export function CreateNotionTaskModal({
       .then((res) => {
         const linked = (res.data ?? []).filter((d) => d.linked);
         setDbs(linked);
-        if (linked.length === 1) setSelectedDb(linked[0].id);
+        if (linked.length === 1) setSelectedDb(linked[0]!.id);
       })
       .catch(() => setError('Failed to load Notion databases'))
       .finally(() => setLoadingDbs(false));

@@ -17,7 +17,7 @@ export function ColumnSelector({
     setIsOpen(false);
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyPress = (e: KeyboardEvent) => {
     if (e.key === 'Escape') {
       setIsOpen(false);
     }
@@ -28,6 +28,7 @@ export function ColumnSelector({
       document.addEventListener('keydown', handleKeyPress);
       return () => document.removeEventListener('keydown', handleKeyPress);
     }
+    return undefined;
   }, [isOpen]);
 
   return (

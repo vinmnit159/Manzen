@@ -89,7 +89,7 @@ export function DocumentsPage() {
     ])
       .then(([evidRes, statsRes, ctrlRes]) => {
         if (cancelled) return;
-        setEvidence(evidRes?.data ?? []);
+        setEvidence((evidRes?.data ?? []) as EvidenceItem[]);
         setStats(statsRes?.data ?? null);
         const ctrlData = (ctrlRes as { data?: ControlOption[] })?.data ?? [];
         setControls(

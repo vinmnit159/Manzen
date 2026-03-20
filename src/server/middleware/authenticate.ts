@@ -32,7 +32,7 @@ function decodeJwtPayload(token: string): AuthUser | null {
   try {
     const parts = token.split('.');
     if (parts.length !== 3) return null;
-    const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
+    const payload = JSON.parse(Buffer.from(parts[1]!, 'base64url').toString('utf8'));
     return {
       id:             payload.sub ?? payload.id ?? '',
       email:          payload.email ?? '',

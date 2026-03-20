@@ -1,45 +1,52 @@
 import { useEffect } from "react";
-import { useSearchParams } from "react-router";
 import { authService } from "@/services/api/auth";
-
 
 /**
  * Landing page for the Google OAuth redirect.
  *
- * The backend redirects here after a successful Google sign-in:
-  *   https://app.cloudanzen.com/auth/callback?token=JWT&user=encoded_json
+ * The backend should redirect here using a URL fragment so the token is
+ * never sent to the server in HTTP logs:
+ *
+ *   https://app.cloudanzen.com/auth/callback#token=JWT&user=encoded_json
+ *
+ * For backwards compatibility the page also accepts query params, but the
+ * backend should be migrated to use the fragment form.
  *
  * This page:
- *  1. Reads the token + user from query params
- *  2. Stores them in localStorage (same keys the rest of the app uses)
+ *  1. Reads the token + user from the URL fragment (preferred) or query params
+ *  2. Stores them via authService (sessionStorage)
  *  3. Hard-navigates to "/" so the router auth guard re-runs cleanly
  *
- * On error it redirects to /login?error=...
+ * On error it redirects to /login?error=oauth_failed
  */
 export function AuthCallbackPage() {
-  const [searchParams] = useSearchParams();
-
   useEffect(() => {
-    const token = searchParams.get("token");
-    const userRaw = searchParams.get("user");
-
-    if (!token || !userRaw) {
-      window.location.href = "/login?error=oauth_failed";
-      return;
-    }
-
     try {
+      // Prefer hash fragment — never reaches the server in HTTP requests
+      const hash = window.location.hash.slice(1); // strip leading "#"
+      const params = hash
+        ? new URLSearchParams(hash)
+        : new URLSearchParams(window.location.search);
+
+      const token = params.get("token");
+      const userRaw = params.get("user");
+
+      if (!token || !userRaw) {
+        window.location.href = "/login?error=oauth_failed";
+        return;
+      }
+
       const user = JSON.parse(decodeURIComponent(userRaw));
 
       authService.setToken(token);
       authService.cacheUser(user);
 
-      // Hard navigate so the router loader re-reads localStorage
+      // Hard navigate so the router loader re-reads sessionStorage
       window.location.href = "/";
     } catch {
       window.location.href = "/login?error=oauth_failed";
     }
-  }, [searchParams]);
+  }, []); // run once on mount — window.location is stable
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center">

@@ -155,7 +155,7 @@ export function questReducer(state: QuestState, action: QuestAction): QuestState
       const moduleIds = Object.keys(newProgress);
       const currentIdx = moduleIds.indexOf(action.moduleId);
       if (currentIdx >= 0 && currentIdx < moduleIds.length - 1) {
-        const nextId = moduleIds[currentIdx + 1];
+        const nextId = moduleIds[currentIdx + 1]!;
         if (newProgress[nextId] === 'locked') {
           newProgress[nextId] = 'available';
         }

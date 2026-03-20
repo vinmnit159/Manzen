@@ -655,7 +655,7 @@ export class FrameworkService {
       };
     }
 
-    const row = result.rows[0];
+    const row = result.rows[0]!;
     return {
       frameworkSlug: row.framework_slug,
       entitled: row.is_active,

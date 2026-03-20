@@ -75,8 +75,8 @@ export function CodeChangesPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {allCommits.map((row, idx) => (
-                  <tr key={idx} className="hover:bg-gray-50">
+                {allCommits.map((row) => (
+                  <tr key={row.repo} className="hover:bg-gray-50">
                     <td className="px-6 py-4 text-sm font-medium text-gray-900 font-mono">{row.repo}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{row.totalChecked}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{row.signedCount}</td>

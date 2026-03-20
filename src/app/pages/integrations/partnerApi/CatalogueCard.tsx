@@ -37,7 +37,7 @@ export function CatalogueCard({ tool }: { tool: CatalogueTool }) {
           <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-400">Suggested ISO Tests</p>
           <div className="space-y-1.5">
             {tool.suggestedTests.map((t, i) => {
-              const sm = SEVERITY_META[t.severity?.toLowerCase()] ?? SEVERITY_META.medium;
+              const sm = (SEVERITY_META[t.severity?.toLowerCase() ?? ""] ?? SEVERITY_META["medium"])!;
               return (
                 <div key={i} className="flex items-center justify-between gap-2 rounded-md bg-slate-50 px-3 py-2">
                   <p className="text-xs text-slate-700 flex-1">{t.name}</p>

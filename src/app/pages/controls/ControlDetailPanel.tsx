@@ -135,7 +135,7 @@ export function ControlDetailPanel({
   const { data: evidence = [], isLoading: evidenceLoading } = useQuery({
     queryKey: ['evidence', 'control', control.id],
     queryFn: async () => {
-      const r = (await evidenceService.listEvidence()) as any;
+      const r = (await evidenceService.getEvidence()) as { data?: unknown[] } | undefined;
       const items: any[] = r?.data ?? [];
       return items.filter(
         (e) => e.controlId === control.id || e.control?.id === control.id,

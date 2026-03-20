@@ -21,7 +21,7 @@ export function CardSortBoard({ config, onAnswer, disabled }: CardSortBoardProps
     if (toIndex < 0 || toIndex >= items.length) return;
     setItems(prev => {
       const next = [...prev];
-      const [moved] = next.splice(fromIndex, 1);
+      const [moved] = next.splice(fromIndex, 1) as [typeof next[0], ...typeof next];
       next.splice(toIndex, 0, moved);
       return next;
     });

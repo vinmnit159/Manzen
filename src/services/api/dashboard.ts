@@ -1,18 +1,18 @@
 import { apiClient } from './client';
-import { DashboardStats, RiskDistribution, ControlCompliance } from './types';
+import { DashboardStats, RiskDistribution, ControlCompliance, RiskLevel } from './types';
 
 export class DashboardService {
   // Get dashboard statistics
   async getDashboardStats(): Promise<{
     success: boolean;
     data: DashboardStats;
-  }> {
+  } | { success: false; error: string; data: never }> {
     try {
       // Get basic stats
       const [assetsResponse, risksResponse, controlsResponse] = await Promise.all([
-        apiClient.get('/api/assets'),
-        apiClient.get('/api/risks'),
-        apiClient.get('/api/controls'),
+        apiClient.get<{ success: boolean; data: Record<string, unknown>[] }>('/api/assets'),
+        apiClient.get<{ success: boolean; data: Record<string, unknown>[] }>('/api/risks'),
+        apiClient.get<{ success: boolean; data: Record<string, unknown>[] }>('/api/controls'),
       ]);
 
       if (!assetsResponse.success || !risksResponse.success || !controlsResponse.success) {
@@ -67,19 +67,18 @@ export class DashboardService {
   async getRiskDistribution(): Promise<{
     success: boolean;
     data: RiskDistribution[];
-  }> {
+  } | { success: false; error: string; data: never }> {
     try {
-      const response = await apiClient.get('/api/risks/distribution');
-      
+      const response = await apiClient.get<{ success: boolean; data: RiskDistribution[] }>('/api/risks/distribution');
+
       if (!response.success) {
-        // Return fallback data based on mock data
         return {
           success: true,
           data: [
-            { level: 'CRITICAL', count: 2, percentage: 25 },
-            { level: 'HIGH', count: 3, percentage: 37.5 },
-            { level: 'MEDIUM', count: 2, percentage: 25 },
-            { level: 'LOW', count: 1, percentage: 12.5 },
+            { level: RiskLevel.CRITICAL, count: 2, percentage: 25 },
+            { level: RiskLevel.HIGH, count: 3, percentage: 37.5 },
+            { level: RiskLevel.MEDIUM, count: 2, percentage: 25 },
+            { level: RiskLevel.LOW, count: 1, percentage: 12.5 },
           ],
         };
       }
@@ -98,10 +97,10 @@ export class DashboardService {
   async getControlCompliance(): Promise<{
     success: boolean;
     data: ControlCompliance;
-  }> {
+  } | { success: false; error: string; data: never }> {
     try {
-      const response = await apiClient.get('/api/controls/compliance');
-      
+      const response = await apiClient.get<{ success: boolean; data: ControlCompliance }>('/api/controls/compliance');
+
       if (!response.success) {
         // Return fallback data
         return {

@@ -361,7 +361,7 @@ function seedTestFromRiskDefinition(test: ControlTestDefinition): TestRecordDto 
     autoRemediationSupported: true,
     integration: {
       id: `integration-${test.signalType.toLowerCase()}`,
-      provider: test.signalType.split('_')[0],
+      provider: test.signalType.split('_')[0] ?? '',
       status: 'CONNECTED',
       metadata: { signalType: test.signalType },
     },
@@ -917,9 +917,6 @@ export type {
   CreateTestInput,
   ListTestsInput,
   RecurrenceRule,
-  TestHistoryEntryDto,
-  TestRecordDto,
-  TestRunRecordDto,
   TestSummaryDto,
   UpdateTestInput,
 };

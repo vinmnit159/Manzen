@@ -562,7 +562,7 @@ export function TestDetailPanel({
                     {
                       label: 'Cadence',
                       value: test.recurrenceRule
-                        ? test.recurrenceRule[0].toUpperCase() +
+                        ? test.recurrenceRule[0]!.toUpperCase() +
                           test.recurrenceRule.slice(1)
                         : 'One-time',
                     },
@@ -769,7 +769,7 @@ export function TestDetailPanel({
                       test.attestationStatus !== 'Attested' && (
                         <button
                           onClick={() =>
-                            requestAttestationMutation.mutate(usersData[0].id)
+                            requestAttestationMutation.mutate(usersData[0]!.id)
                           }
                           disabled={requestAttestationMutation.isPending}
                           className="px-3 py-2 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-sm font-medium disabled:opacity-50"

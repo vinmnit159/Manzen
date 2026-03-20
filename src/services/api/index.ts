@@ -43,7 +43,6 @@ export type {
   FindingRecord,
   FindingSeverity,
   FindingStatus,
-  CreateFindingRequest,
   UpdateFindingRequest,
   ListFindingsParams,
 } from './findings';

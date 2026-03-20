@@ -2,10 +2,11 @@ import { apiClient, ApiResponse } from './client';
 import {
   Asset,
   CreateAssetRequest,
-  UpdateAssetRequest,
   AssetType,
   RiskLevel,
 } from './types';
+
+type UpdateAssetRequest = Partial<CreateAssetRequest>;
 
 export class AssetsService {
   // Get all assets

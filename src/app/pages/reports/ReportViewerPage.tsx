@@ -111,7 +111,7 @@ function periodToRange(
   value: string,
 ): { startDate: string; endDate: string } {
   if (type === 'monthly') {
-    const [year, month] = value.split('-').map(Number);
+    const parts = value.split("-").map(Number); const year = parts[0]!; const month = parts[1]!;
     const start = new Date(year, month - 1, 1);
     const end = new Date(year, month, 0);
     return {
@@ -231,12 +231,11 @@ function FrameworkProgressView({
                 cx="50%"
                 cy="50%"
                 outerRadius={90}
-                label={({ name, percent }) =>
-                  `${name} ${Math.round(percent * 100)}%`
-                }
+                label={(({ name, percent = 0 }: { name: string; percent?: number }) =>
+                  `${name} ${Math.round(percent * 100)}%`) as (props: unknown) => string}
               >
                 {pieData.map((_, i) => (
-                  <Cell key={i} fill={PIE_COLORS[i]} />
+                  <Cell key={i} fill={PIE_COLORS[i] ?? '#ccc'} />
                 ))}
               </Pie>
               <Tooltip />
@@ -253,7 +252,7 @@ function FrameworkProgressView({
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis dataKey="label" tick={{ fontSize: 11 }} />
               <YAxis domain={[0, 100]} unit="%" tick={{ fontSize: 11 }} />
-              <Tooltip formatter={(v: number) => `${v}%`} />
+              <Tooltip formatter={((v: number) => `${v}%`) as (v: unknown) => string} />
               <Area
                 type="monotone"
                 dataKey="pct"

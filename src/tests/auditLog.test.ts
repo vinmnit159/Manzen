@@ -18,8 +18,8 @@ describe('rbacAuditLog', () => {
 
       const entries = rbacAuditLog.getAll();
       expect(entries).toHaveLength(1);
-      expect(entries[0].action).toBe('ROLE_ASSIGNED');
-      expect(entries[0].actorId).toBe('u1');
+      expect(entries[0]!.action).toBe('ROLE_ASSIGNED');
+      expect(entries[0]!.actorId).toBe('u1');
     });
 
     it('assigns a unique id and ISO timestamp to each entry', () => {
@@ -27,9 +27,9 @@ describe('rbacAuditLog', () => {
       rbacAuditLog.record({ action: 'USER_INVITED', actorId: 'u1', actorEmail: 'a@b.com' });
 
       const entries = rbacAuditLog.getAll();
-      expect(entries[0].id).not.toBe(entries[1].id);
+      expect(entries[0]!.id).not.toBe(entries[1]!.id);
       // ISO 8601 format check
-      expect(new Date(entries[0].timestamp).toISOString()).toBe(entries[0].timestamp);
+      expect(new Date(entries[0]!.timestamp).toISOString()).toBe(entries[0]!.timestamp);
     });
 
     it('stores multiple entries in order (newest first via getAll)', () => {
@@ -38,8 +38,8 @@ describe('rbacAuditLog', () => {
 
       const entries = rbacAuditLog.getAll();
       // getAll returns newest first (reversed)
-      expect(entries[0].action).toBe('USER_REMOVED');
-      expect(entries[1].action).toBe('ROLE_ASSIGNED');
+      expect(entries[0]!.action).toBe('USER_REMOVED');
+      expect(entries[1]!.action).toBe('ROLE_ASSIGNED');
     });
 
     it('stores optional metadata fields', () => {
@@ -52,9 +52,9 @@ describe('rbacAuditLog', () => {
         after: { role: 'ORG_ADMIN' },
       });
       const entries = rbacAuditLog.getAll();
-      expect(entries[0].metadata?.resource).toBe('/admin');
-      expect(entries[0].before?.role).toBe('VIEWER');
-      expect(entries[0].after?.role).toBe('ORG_ADMIN');
+      expect(entries[0]!.metadata?.resource).toBe('/admin');
+      expect(entries[0]!.before?.role).toBe('VIEWER');
+      expect(entries[0]!.after?.role).toBe('ORG_ADMIN');
     });
   });
 
@@ -70,7 +70,7 @@ describe('rbacAuditLog', () => {
       const entries = rbacAuditLog.getAll();
       expect(entries).toHaveLength(5);
       // newest actorId should be u4
-      expect(entries[0].actorId).toBe('u4');
+      expect(entries[0]!.actorId).toBe('u4');
     });
   });
 
@@ -98,7 +98,7 @@ describe('rbacAuditLog', () => {
 
       const entries = rbacAuditLog.getByUser('u1');
       expect(entries).toHaveLength(1);
-      expect(entries[0].actorId).toBe('u1');
+      expect(entries[0]!.actorId).toBe('u1');
     });
 
     it('returns entries where user is target', () => {
@@ -138,10 +138,10 @@ describe('rbacAuditLog', () => {
         'CONTRIBUTOR',
       );
       const entries = rbacAuditLog.getAll();
-      expect(entries[0].action).toBe('ROLE_ASSIGNED');
-      expect(entries[0].before?.role).toBe('VIEWER');
-      expect(entries[0].after?.role).toBe('CONTRIBUTOR');
-      expect(entries[0].targetId).toBe('user1');
+      expect(entries[0]!.action).toBe('ROLE_ASSIGNED');
+      expect(entries[0]!.before?.role).toBe('VIEWER');
+      expect(entries[0]!.after?.role).toBe('CONTRIBUTOR');
+      expect(entries[0]!.targetId).toBe('user1');
     });
 
     it('logUserInvited records USER_INVITED with role', () => {
@@ -151,9 +151,9 @@ describe('rbacAuditLog', () => {
         'VIEWER',
       );
       const entries = rbacAuditLog.getAll();
-      expect(entries[0].action).toBe('USER_INVITED');
-      expect(entries[0].after?.role).toBe('VIEWER');
-      expect(entries[0].targetEmail).toBe('newuser@test.com');
+      expect(entries[0]!.action).toBe('USER_INVITED');
+      expect(entries[0]!.after?.role).toBe('VIEWER');
+      expect(entries[0]!.targetEmail).toBe('newuser@test.com');
     });
 
     it('logUserRemoved records USER_REMOVED', () => {
@@ -162,8 +162,8 @@ describe('rbacAuditLog', () => {
         { id: 'user2', email: 'user2@test.com' },
       );
       const entries = rbacAuditLog.getAll();
-      expect(entries[0].action).toBe('USER_REMOVED');
-      expect(entries[0].targetId).toBe('user2');
+      expect(entries[0]!.action).toBe('USER_REMOVED');
+      expect(entries[0]!.targetId).toBe('user2');
     });
 
     it('logAccessRequest records ACCESS_REQUEST_CREATED', () => {
@@ -174,9 +174,9 @@ describe('rbacAuditLog', () => {
         'role-upgrade',
       );
       const entries = rbacAuditLog.getAll();
-      expect(entries[0].action).toBe('ACCESS_REQUEST_CREATED');
-      expect(entries[0].metadata?.requestId).toBe('req-123');
-      expect(entries[0].metadata?.requestedRole).toBe('ORG_ADMIN');
+      expect(entries[0]!.action).toBe('ACCESS_REQUEST_CREATED');
+      expect(entries[0]!.metadata?.requestId).toBe('req-123');
+      expect(entries[0]!.metadata?.requestedRole).toBe('ORG_ADMIN');
     });
 
     it('logAccessReview records APPROVED decision', () => {
@@ -187,8 +187,8 @@ describe('rbacAuditLog', () => {
         'looks good',
       );
       const entries = rbacAuditLog.getAll();
-      expect(entries[0].action).toBe('ACCESS_REQUEST_APPROVED');
-      expect(entries[0].metadata?.note).toBe('looks good');
+      expect(entries[0]!.action).toBe('ACCESS_REQUEST_APPROVED');
+      expect(entries[0]!.metadata?.note).toBe('looks good');
     });
 
     it('logAccessReview records REJECTED decision', () => {
@@ -198,15 +198,15 @@ describe('rbacAuditLog', () => {
         'REJECTED',
       );
       const entries = rbacAuditLog.getAll();
-      expect(entries[0].action).toBe('ACCESS_REQUEST_REJECTED');
+      expect(entries[0]!.action).toBe('ACCESS_REQUEST_REJECTED');
     });
 
     it('logAccessDenied records ACCESS_DENIED', () => {
       rbacAuditLog.logAccessDenied('u3', 'u3@test.com', 'DELETE', '/api/risks');
       const entries = rbacAuditLog.getAll();
-      expect(entries[0].action).toBe('ACCESS_DENIED');
-      expect(entries[0].metadata?.resource).toBe('/api/risks');
-      expect(entries[0].metadata?.attemptedAction).toBe('DELETE');
+      expect(entries[0]!.action).toBe('ACCESS_DENIED');
+      expect(entries[0]!.metadata?.resource).toBe('/api/risks');
+      expect(entries[0]!.metadata?.attemptedAction).toBe('DELETE');
     });
   });
 });

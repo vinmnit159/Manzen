@@ -154,7 +154,7 @@ export function FormField({ label, required, hint, id, children }: FormFieldProp
   const [fieldId] = React.useState(() => id ?? `form-field-${++_counter}`);
 
   // Clone the child element to inject the id prop
-  const child = React.cloneElement(children, {
+  const child = React.cloneElement(children as React.ReactElement<Record<string, unknown>>, {
     id: fieldId,
     ...(required ? { 'aria-required': true } : {}),
   });

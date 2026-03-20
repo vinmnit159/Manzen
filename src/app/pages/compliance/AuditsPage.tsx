@@ -133,19 +133,19 @@ function ScheduleAuditModal({
   const [controlSearch, setControlSearch] = useState('');
 
   // Fetch users and controls for dropdowns
-  const { data: usersData } = useQuery<{ data: UserRecord[] }>({
+  const { data: usersData } = useQuery({
     queryKey: ['users'],
     queryFn: () => usersService.listUsers(),
     staleTime: 30_000,
   });
-  const { data: controlsData } = useQuery<{ data: ControlRecord[] }>({
+  const { data: controlsData } = useQuery({
     queryKey: ['controls'],
     queryFn: () => controlsService.getControls(),
     staleTime: 30_000,
   });
 
-  const users = usersData?.data ?? [];
-  const controls = controlsData?.data ?? [];
+  const users: UserRecord[] = (usersData ?? []) as UserRecord[];
+  const controls: ControlRecord[] = ((controlsData as { data?: ControlRecord[] } | undefined)?.data ?? []) as ControlRecord[];
 
   const filteredControls = controls.filter(
     (c) =>

@@ -172,7 +172,7 @@ export function PartnerApiPage() {
     return (
       <PageTemplate
         title="Partner API"
-        subtitle="Manage external tool integrations"
+        description="Manage external tool integrations"
       >
         <div className="flex flex-col items-center justify-center py-24 text-center">
           <ShieldIcon className="mb-4 w-10 h-10 text-slate-300" />
@@ -190,7 +190,7 @@ export function PartnerApiPage() {
   return (
     <PageTemplate
       title="Partner API"
-      subtitle="Issue API keys to external tool teams so they can push scan results directly into your ISMS"
+      description="Issue API keys to external tool teams so they can push scan results directly into your ISMS"
     >
       {/* ── Stats ─────────────────────────────────────────────────────────── */}
       <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">

@@ -118,9 +118,9 @@ export const KEY_TAKEAWAYS: Record<string, string> = {
 
 export function getTakeawaysForMistakes(mistakesByTopic: Record<string, number>): string[] {
   return Object.keys(mistakesByTopic)
-    .filter(topic => mistakesByTopic[topic] > 0)
+    .filter(topic => (mistakesByTopic[topic] ?? 0) > 0)
     .map(topic => KEY_TAKEAWAYS[topic])
-    .filter(Boolean);
+    .filter((t): t is string => t !== undefined);
 }
 
 // ── Attempt Payload Builder ───────────────────────────────────────────────────
