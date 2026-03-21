@@ -41,19 +41,12 @@ class ApiClient {
   constructor(baseURL: string = API_BASE_URL) {
     this.baseURL = baseURL;
 
-    // SECURITY NOTE: JWT is currently stored in localStorage, which is
-    // accessible to JavaScript and therefore vulnerable to XSS attacks.
-    //
-    // Recommended migration path:
-    //   1. Move to httpOnly, Secure, SameSite=Strict cookies set by the backend
-    //      on login (prevents JS access entirely).
-    //   2. Backend sends Set-Cookie header with the JWT; client sends credentials
-    //      with `credentials: 'include'` on every fetch.
-    //   3. Remove `setToken`/`removeToken` localStorage helpers; logout becomes
-    //      a POST to /api/auth/logout that clears the cookie server-side.
-    //
-    // This change requires backend coordination (CORS must allow credentials,
-    // cookie domain must match) and is tracked in the security backlog.
+    // AUTH NOTE: The backend now sets an HttpOnly cookie on login, so the
+    // browser sends the JWT automatically via `credentials: 'include'`.
+    // The sessionStorage token below is kept as a migration fallback —
+    // the backend accepts both cookie and Bearer header during the
+    // transition period. Once all clients rely on the cookie, the
+    // Bearer header and sessionStorage token can be removed.
     this.token = getAuthToken();
   }
 

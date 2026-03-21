@@ -32,8 +32,13 @@ export class AuthService {
     return apiClient.get('/api/auth/me');
   }
 
-  // Logout (client-side only - remove token)
-  logout(): void {
+  // Logout — clears HttpOnly cookie on backend + local session storage
+  async logout(): Promise<void> {
+    try {
+      await apiClient.post('/api/auth/logout', {});
+    } catch {
+      // Best-effort — clear local state even if backend call fails
+    }
     apiClient.removeToken();
     clearAuthSession();
   }
