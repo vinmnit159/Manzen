@@ -9,7 +9,7 @@ import { evidenceService } from '@/services/api/evidence';
 import { auditsService } from '@/services/api/audits';
 import type { Control } from '@/services/api/types';
 import type { AuditRecord } from '@/services/api/audits';
-import { fmtDate } from './utils';
+import { fmtDate } from '@/lib/format-date';
 
 // ─── Attach Evidence ──────────────────────────────────────────────────────────
 

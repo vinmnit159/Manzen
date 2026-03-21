@@ -44,8 +44,8 @@ export function TemplatesModal({
       const policy: Policy = res.data;
       setDone(prev => new Set([...prev, template.name]));
       onCreated(policy);
-    } catch (err: any) {
-      setCardError(err?.message ?? 'Failed to create policy');
+    } catch (err: unknown) {
+      setCardError(err instanceof Error ? err.message : 'Failed to create policy');
     } finally {
       setCreating(null);
     }

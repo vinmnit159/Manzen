@@ -39,7 +39,8 @@ import { RoleBadge } from '@/app/components/rbac/RequirePermission';
 import { PERMISSIONS } from '@/lib/rbac/permissions';
 import { useCurrentUser, useHasPermission } from '@/hooks/useCurrentUser';
 
-import { fmtDate, initials, ALL_ROLES } from './accessUsers/helpers';
+import { initials, ALL_ROLES } from './accessUsers/helpers';
+import { fmtDate } from '@/lib/format-date';
 import { KpiCard } from './accessUsers/KpiCard';
 import { UserDetailPanel } from './accessUsers/UserDetailPanel';
 import { InviteUserModal } from './accessUsers/InviteUserModal';

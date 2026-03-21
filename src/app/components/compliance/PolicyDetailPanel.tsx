@@ -25,15 +25,7 @@ import { Policy } from '@/services/api/types';
 import { policiesService } from '@/services/api/policies';
 import { testsService } from '@/services/api/tests';
 import { controlsService } from '@/services/api/controls';
-
-function fmtDate(s: string | null | undefined) {
-  if (!s) return '—';
-  return new Date(s).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
-}
+import { fmtDate } from '@/lib/format-date';
 
 const STATUS_CONFIG: Record<
   string,
@@ -167,8 +159,8 @@ export function PolicyDetailPanel({
     try {
       await policiesService.uploadPolicyDocument(policy.id, file);
       onMutated?.();
-    } catch (e: any) {
-      setUploadErr(e?.message ?? 'Upload failed');
+    } catch (e: unknown) {
+      setUploadErr(e instanceof Error ? e.message : 'Upload failed');
     } finally {
       setUploading(false);
     }

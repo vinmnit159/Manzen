@@ -2,11 +2,6 @@ import type { AppRole } from '@/lib/rbac/permissions';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
-export function fmtDate(s: string | null | undefined) {
-  if (!s) return '—';
-  return new Date(s).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-}
-
 export function initials(name?: string | null, email?: string) {
   if (name?.trim()) {
     const p = name.trim().split(/\s+/);

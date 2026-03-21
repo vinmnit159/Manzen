@@ -35,8 +35,8 @@ export function UploadEvidenceModal({
     try {
       const res = await evidenceService.uploadEvidenceFile(file, controlId) as any;
       onUploaded(res.data);
-    } catch (err: any) {
-      setError(err?.message ?? 'Upload failed');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Upload failed');
     } finally {
       setUploading(false);
     }

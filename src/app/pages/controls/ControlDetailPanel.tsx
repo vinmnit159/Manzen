@@ -21,6 +21,7 @@ import {
   TabsTrigger,
 } from '@/app/components/ui/tabs';
 import { Control } from './types';
+import { fmtDate } from '@/lib/format-date';
 
 interface EvidenceItem {
   id: string;
@@ -55,15 +56,6 @@ const STATUS_CONFIG = {
     Icon: XCircle,
   },
 };
-
-function fmtDate(s: string | null | undefined) {
-  if (!s) return '—';
-  return new Date(s).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
-}
 
 function StatusBadge({ status }: { status: string }) {
   const cfg = STATUS_CONFIG[status as keyof typeof STATUS_CONFIG] ?? {

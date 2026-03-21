@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- legacy: to be typed progressively */
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Mail, CheckCircle2, XCircle, Clock } from 'lucide-react';
@@ -30,8 +29,8 @@ export function AccessRequestsTab() {
       await trustCenterService.decideAccessRequest(id, status);
       qc.invalidateQueries({ queryKey: ['trust-access-requests'] });
       showToast('success', status === 'APPROVED' ? 'Access approved' : 'Request rejected');
-    } catch (e: any) {
-      showToast('error', e?.message ?? 'Failed');
+    } catch (e: unknown) {
+      showToast('error', e instanceof Error ? e.message : 'Failed');
     } finally {
       setActing(null);
     }

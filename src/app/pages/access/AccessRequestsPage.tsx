@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- legacy: to be typed progressively */
 /**
  * Access → Access Requests
  *
@@ -39,6 +38,7 @@ import {
   TabsList,
   TabsTrigger,
 } from '@/app/components/ui/tabs';
+import { fmtDate, fmtDateTime } from '@/lib/format-date';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -60,26 +60,6 @@ interface AccessRequest {
   createdAt: string;
   expiresAt?: string;
   reviewedAt?: string;
-}
-
-function fmtDate(s: string | null | undefined) {
-  if (!s) return '—';
-  return new Date(s).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
-}
-
-function fmtDateTime(s: string | null | undefined) {
-  if (!s) return '—';
-  return new Date(s).toLocaleString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
 }
 
 // ── Mock data (will be replaced by real API) ────────────────────────────────────
@@ -233,8 +213,8 @@ function NewRequestModal({
       // Simulate API delay
       await new Promise((r) => setTimeout(r, 600));
       onCreated(newReq);
-    } catch (err: any) {
-      setError(err?.message ?? 'Failed to submit request');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to submit request');
     } finally {
       setSubmitting(false);
     }

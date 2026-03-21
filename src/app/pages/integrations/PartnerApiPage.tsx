@@ -42,11 +42,10 @@ import {
   ShieldIcon,
 } from './partnerApi/icons';
 import {
-  fmtDate,
-  fmtDateTime,
   timeAgo,
   categoryBadge,
 } from './partnerApi/helpers';
+import { fmtDate, fmtDateTime } from '@/lib/format-date';
 import { StatCard } from './partnerApi/StatCard';
 import { IssueKeyDialog } from './partnerApi/IssueKeyDialog';
 import { RawKeyDialog } from './partnerApi/RawKeyDialog';

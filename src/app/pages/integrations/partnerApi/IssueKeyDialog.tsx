@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- legacy: to be typed progressively */
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/app/components/ui/dialog';
 import { Button } from '@/app/components/ui/button';
@@ -46,8 +45,8 @@ export function IssueKeyDialog({
       });
       onIssued(res.data.rawKey, res.data.name, res.data.toolName);
       setForm({ name: '', toolName: '', toolCategory: '', expiresAt: '' });
-    } catch (e: any) {
-      setError(e.message ?? 'Failed to issue key.');
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to issue key.');
     } finally {
       setBusy(false);
     }

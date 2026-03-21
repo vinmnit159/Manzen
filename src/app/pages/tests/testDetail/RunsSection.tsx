@@ -4,7 +4,7 @@ import { STALE } from '@/lib/queryClient';
 import { testsService } from '@/services/api/tests';
 import type { TestRunRecord } from '@/services/api/tests';
 import { LastResultBadge } from './StatusBadge';
-import { fmtDateTime } from './utils';
+import { fmtDateTime } from '@/lib/format-date';
 
 export function RunsSection({ testId }: { testId: string }) {
   const { data, isLoading } = useQuery({

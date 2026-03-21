@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- legacy: to be typed progressively */
 /**
  * PublicTrustPortalPage — /trust/:orgSlug
  *
@@ -126,8 +125,8 @@ function AccessRequestModal({
       };
       await trustCenterService.submitAccessRequest(orgSlug, payload);
       setSuccess(true);
-    } catch (e: any) {
-      setError(e?.message ?? 'Failed to submit request. Please try again.');
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to submit request. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -290,8 +289,8 @@ function QuestionnaireModal({
         questionnaireType: type,
       });
       setSuccess(true);
-    } catch (e: any) {
-      setError(e?.message ?? 'Failed. Please try again.');
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed. Please try again.');
     } finally {
       setSaving(false);
     }

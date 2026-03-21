@@ -25,19 +25,7 @@ import {
   FindingStatus,
 } from '@/services/api/findings';
 import { SecurityQuestApp } from '@/app/features/security-quest/components/SecurityQuestApp';
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function fmtDate(d: string | null | undefined): string {
-  if (!d) return '—';
-  return new Date(d).toLocaleString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
+import { fmtDateTime } from '@/lib/format-date';
 
 // ── Task status pill ──────────────────────────────────────────────────────────
 
@@ -172,7 +160,7 @@ function Task1Policies({
       <div className="space-y-3">
         <div className="flex items-center gap-2 text-sm text-green-700 font-medium">
           <CheckCircle2 className="w-4 h-4" />
-          All policies accepted on {fmtDate(status.policyAcceptedAt)}
+          All policies accepted on {fmtDateTime(status.policyAcceptedAt)}
         </div>
         {ids.length > 0 && (
           <p className="text-xs text-gray-500">
@@ -289,7 +277,7 @@ function Task2Mdm({ status }: { status: OnboardingStatus }) {
       <div className="space-y-2">
         <div className="flex items-center gap-2 text-sm text-green-700 font-medium">
           <CheckCircle2 className="w-4 h-4" />
-          MDM agent enrolled on {fmtDate(status.mdmEnrolledAt)}
+          MDM agent enrolled on {fmtDateTime(status.mdmEnrolledAt)}
         </div>
         {status.deviceId && (
           <p className="text-xs text-gray-500">
@@ -347,7 +335,7 @@ function Task3Training({
     return (
       <div className="flex items-center gap-2 text-sm text-green-700 font-medium">
         <CheckCircle2 className="w-4 h-4" />
-        Training completed on {fmtDate(status.trainingCompletedAt)}
+        Training completed on {fmtDateTime(status.trainingCompletedAt)}
       </div>
     );
   }
@@ -379,7 +367,7 @@ function Task3Training({
       {status.trainingStarted && !status.trainingCompleted && (
         <div className="flex items-center gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
           <Clock className="w-3.5 h-3.5" />
-          Training in progress — started {fmtDate(status.trainingStartedAt)}.
+          Training in progress — started {fmtDateTime(status.trainingStartedAt)}.
           Complete all modules to finish.
         </div>
       )}

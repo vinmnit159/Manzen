@@ -30,6 +30,7 @@ import { Role } from '@/services/api/types';
 import { ROLE_LABELS, AppRole } from '@/lib/rbac/permissions';
 import { useHasPermission, useCurrentUser } from '@/hooks/useCurrentUser';
 import { PERMISSIONS } from '@/lib/rbac/permissions';
+import { fmtDateTime } from '@/lib/format-date';
 
 // ─── Role badge colour map ─────────────────────────────────────────────────
 
@@ -50,17 +51,6 @@ function roleLabel(role: string): string {
     .toLowerCase()
     .replace(/_/g, ' ')
     .replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
-function fmtDate(d: string | null | undefined): string {
-  if (!d) return '—';
-  return new Date(d).toLocaleString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
 }
 
 // ─── Onboarding progress mini-badge ──────────────────────────────────────────
@@ -229,7 +219,7 @@ function UserDetailPanel({
             done={ob.policyAccepted}
             detail={
               ob.policyAccepted
-                ? `Accepted on ${fmtDate(ob.policyAcceptedAt)}`
+                ? `Accepted on ${fmtDateTime(ob.policyAcceptedAt)}`
                 : undefined
             }
             subDetail={
@@ -248,7 +238,7 @@ function UserDetailPanel({
             done={ob.mdmEnrolled}
             detail={
               ob.mdmEnrolled
-                ? `Enrolled on ${fmtDate(ob.mdmEnrolledAt)}`
+                ? `Enrolled on ${fmtDateTime(ob.mdmEnrolledAt)}`
                 : 'Awaiting device enrollment'
             }
             subDetail={ob.deviceId ? `Device: ${ob.deviceId}` : undefined}
@@ -262,9 +252,9 @@ function UserDetailPanel({
             inProgress={ob.trainingStarted && !ob.trainingCompleted}
             detail={
               ob.trainingCompleted
-                ? `Completed on ${fmtDate(ob.trainingCompletedAt)}`
+                ? `Completed on ${fmtDateTime(ob.trainingCompletedAt)}`
                 : ob.trainingStarted
-                  ? `Started on ${fmtDate(ob.trainingStartedAt)} — training not completed yet`
+                  ? `Started on ${fmtDateTime(ob.trainingStartedAt)} — training not completed yet`
                   : 'Not started'
             }
           />
@@ -355,8 +345,8 @@ export function PeoplePage() {
     try {
       await usersService.deleteUser(id);
       qc.invalidateQueries({ queryKey: QK.users() });
-    } catch (e: any) {
-      alert(e?.message ?? 'Failed to remove user');
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : 'Failed to remove user');
     }
   };
 

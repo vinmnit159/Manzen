@@ -35,8 +35,4 @@ export const DEFAULT_COLUMNS: ColumnConfig[] = [
   { id: 'actions',  label: 'Actions',   visible: true,  sortable: false, minWidth: 120 },
 ];
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-export function fmtDate(iso: string | null | undefined): string {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-}
+

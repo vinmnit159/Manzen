@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- legacy: to be typed progressively */
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/app/components/ui/button';
@@ -113,8 +112,8 @@ export function ScheduleAuditModal({
       await auditsService.create(payload);
       onCreated();
       onClose();
-    } catch (e: any) {
-      setError(e?.message ?? 'Failed to create audit');
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to create audit');
     } finally {
       setSaving(false);
     }

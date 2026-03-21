@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- legacy: to be typed progressively */
 import { useState } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '@/app/components/ui/button';
@@ -41,8 +40,8 @@ export function AddFindingModal({
       });
       onSaved();
       onClose();
-    } catch (e: any) {
-      setError(e?.message ?? 'Failed to create finding');
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to create finding');
     } finally {
       setSaving(false);
     }

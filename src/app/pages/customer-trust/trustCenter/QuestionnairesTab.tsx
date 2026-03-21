@@ -279,8 +279,8 @@ export function QuestionnairesTab() {
       setEditId(null);
       setEditUrl('');
       showToast('success', 'Questionnaire marked complete');
-    } catch (e: any) {
-      showToast('error', e?.message ?? 'Failed');
+    } catch (e: unknown) {
+      showToast('error', e instanceof Error ? e.message : 'Failed');
     } finally {
       setActing(null);
     }

@@ -30,17 +30,9 @@ import {
 } from 'lucide-react';
 import { reportsService } from '@/services/api/reports';
 import { Card } from '@/app/components/ui/card';
+import { fmtDate } from '@/lib/format-date';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function fmtDate(iso: string | null | undefined) {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-}
 
 function KpiCard({
   label,

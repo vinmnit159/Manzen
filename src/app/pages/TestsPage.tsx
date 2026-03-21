@@ -15,8 +15,9 @@ import type { Control } from '@/services/api/types';
 import { authService } from '@/services/api/auth';
 import { clearAuthSession } from '@/services/authStorage';
 
-import { STATUS_CONFIG, CATEGORY_OPTIONS, STATUS_OPTIONS, TYPE_OPTIONS, CATEGORY_COLOR, DEFAULT_COLUMNS, fmtDate } from './testsPage/config';
+import { STATUS_CONFIG, CATEGORY_OPTIONS, STATUS_OPTIONS, TYPE_OPTIONS, CATEGORY_COLOR, DEFAULT_COLUMNS } from './testsPage/config';
 import type { ColumnConfig } from './testsPage/config';
+import { fmtDate } from '@/lib/format-date';
 import { StatusBadge, SortIcon } from './testsPage/StatusBadge';
 import { ColumnPicker } from './testsPage/ColumnPicker';
 import { LoadingState, ErrorState, EmptyState } from './testsPage/StateComponents';

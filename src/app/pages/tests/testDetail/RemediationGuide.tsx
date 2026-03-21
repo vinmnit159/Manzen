@@ -13,7 +13,7 @@ import {
   type RemediationAction,
 } from '@/services/api/remediation';
 import { STATUS_CONFIG } from './constants';
-import { fmtDate } from './utils';
+import { fmtDate } from '@/lib/format-date';
 import { getProviderLabel } from './scanRegistry';
 
 // ── Live remediation panel (shown when autoRemediationSupported=true) ──────────

@@ -2,7 +2,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
 import { PartnerScanResultDetail } from '@/services/api/partner';
-import { RESULT_META, SEVERITY_META, fmtDateTime } from './helpers';
+import { RESULT_META, SEVERITY_META } from './helpers';
+import { fmtDateTime } from '@/lib/format-date';
 
 /** Result detail slide-over */
 export function ResultDetailDialog({

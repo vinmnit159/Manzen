@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { QK } from '@/lib/queryKeys';
 import { STALE } from '@/lib/queryClient';
 import { testsService } from '@/services/api/tests';
-import { fmtDate } from './utils';
+import { fmtDate } from '@/lib/format-date';
 
 export function HistorySection({ testId }: { testId: string }) {
   const { data, isLoading } = useQuery({

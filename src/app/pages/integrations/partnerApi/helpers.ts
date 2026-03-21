@@ -1,13 +1,5 @@
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-export function fmtDate(iso: string | null) {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-}
-export function fmtDateTime(iso: string | null) {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-}
 export function timeAgo(iso: string | null) {
   if (!iso) return 'Never';
   const diff = Date.now() - new Date(iso).getTime();

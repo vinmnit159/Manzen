@@ -279,6 +279,11 @@ const AccessRequestsPage = lazy(() =>
     default: m.AccessRequestsPage,
   })),
 );
+const McpSettingsPage = lazy(() =>
+  import('@/app/pages/settings/McpSettingsPage').then((m) => ({
+    default: m.McpSettingsPage,
+  })),
+);
 
 // ── Auth guard ────────────────────────────────────────────────────────────────
 // ── Router ────────────────────────────────────────────────────────────────────
@@ -389,6 +394,7 @@ export const router = createBrowserRouter([
           { path: 'access/users', Component: AccessUsersPage },
           { path: 'access/roles', Component: AccessRolesPage },
           { path: 'access/requests', Component: AccessRequestsPage },
+          { path: 'mcp', Component: McpSettingsPage },
         ],
       },
     ],

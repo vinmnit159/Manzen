@@ -31,8 +31,8 @@ export function UploadModal({
     try {
       const res = await policiesService.uploadPolicyDocument(policy.id, file) as any;
       onUploaded(res.data.policy);
-    } catch (err: any) {
-      setError(err?.message ?? 'Upload failed');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Upload failed');
     } finally {
       setUploading(false);
     }

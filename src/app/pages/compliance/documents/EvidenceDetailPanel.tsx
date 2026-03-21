@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { evidenceService } from '@/services/api/evidence';
 import { testsService, type TestRecord } from '@/services/api/tests';
+import { fmtDate } from '@/lib/format-date';
 
 export interface EvidenceItem {
   id: string;
@@ -59,15 +60,6 @@ export function controlStatusColor(status: string) {
   if (status === 'PARTIALLY_IMPLEMENTED')
     return 'text-yellow-600 bg-yellow-50 border-yellow-200';
   return 'text-red-600 bg-red-50 border-red-200';
-}
-
-export function fmtDate(s: string | null | undefined) {
-  if (!s) return '—';
-  return new Date(s).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
 }
 
 // ── Evidence Detail Panel ─────────────────────────────────────────────────────

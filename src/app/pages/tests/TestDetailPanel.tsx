@@ -42,7 +42,7 @@ import {
   ADMIN_ROLES,
   AUDIT_REVIEW_ROLES,
 } from './testDetail/constants';
-import { fmtDate, fmtDateTime } from './testDetail/utils';
+import { fmtDate, fmtDateTime } from '@/lib/format-date';
 import { StatusBadge, LastResultBadge } from './testDetail/StatusBadge';
 import { Section, DetailStatCard } from './testDetail/Section';
 import { HistorySection } from './testDetail/HistorySection';

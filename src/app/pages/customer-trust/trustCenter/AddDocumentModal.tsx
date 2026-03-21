@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- legacy: to be typed progressively */
 import { useState } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '@/app/components/ui/button';
@@ -29,8 +28,8 @@ export function AddDocumentModal({ onClose, onSaved }: { onClose: () => void; on
       await trustCenterService.createDocument(payload);
       onSaved();
       onClose();
-    } catch (e: any) {
-      setError(e?.message ?? 'Failed to create document');
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to create document');
     } finally {
       setSaving(false);
     }

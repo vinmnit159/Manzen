@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- legacy: to be typed progressively */
 import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { PageTemplate } from '@/app/components/PageTemplate';
@@ -92,8 +91,8 @@ export function CustomerTrustSettingsPage() {
       await trustCenterService.updateSettings(payload);
       qc.invalidateQueries({ queryKey: ['trust-settings'] });
       showToast('success', 'Settings saved');
-    } catch (e: any) {
-      showToast('error', e?.message ?? 'Failed to save settings');
+    } catch (e: unknown) {
+      showToast('error', e instanceof Error ? e.message : 'Failed to save settings');
     } finally {
       setSaving(false);
     }
@@ -104,8 +103,8 @@ export function CustomerTrustSettingsPage() {
       await trustCenterService.triggerSnapshot();
       qc.invalidateQueries({ queryKey: ['trust-settings'] });
       showToast('success', 'Compliance snapshot refreshed');
-    } catch (e: any) {
-      showToast('error', e?.message ?? 'Failed to snapshot');
+    } catch (e: unknown) {
+      showToast('error', e instanceof Error ? e.message : 'Failed to snapshot');
     }
   }
 

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- legacy: to be typed progressively */
 import { useState } from 'react';
 import {
   X, Shield, CheckCircle2, Circle, Github,
@@ -16,7 +15,8 @@ import {
 import { RoleBadge } from '@/app/components/rbac/RequirePermission';
 import { PERMISSIONS } from '@/lib/rbac/permissions';
 import { useCurrentUser, useHasPermission } from '@/hooks/useCurrentUser';
-import { fmtDate, ALL_ROLES, initials } from './helpers';
+import { ALL_ROLES, initials } from './helpers';
+import { fmtDate } from '@/lib/format-date';
 
 // ── User Detail Slide-over ─────────────────────────────────────────────────────
 
@@ -49,8 +49,8 @@ export function UserDetailPanel({
       await usersService.updateUser(user.id, { role: selectedRole });
       onRoleUpdated(user.id, selectedRole);
       setEditingRole(false);
-    } catch (e: any) {
-      setSaveErr(e?.message ?? 'Failed to update role');
+    } catch (e: unknown) {
+      setSaveErr(e instanceof Error ? e.message : 'Failed to update role');
     } finally {
       setSaving(false);
     }

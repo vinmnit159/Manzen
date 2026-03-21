@@ -6,6 +6,7 @@ import {
   Users,
   Shield,
   KeyRound,
+  Bot,
 } from "lucide-react";
 import { cn } from "@/app/components/ui/utils";
 import { authService } from "@/services/api/auth";
@@ -39,6 +40,12 @@ const settingsNav: SettingsNavGroup[] = [
       { label: "Users",           to: "/settings/access/users",    icon: Users,    roles: ADMIN_ROLES },
       { label: "Roles",           to: "/settings/access/roles",    icon: Shield,   roles: ADMIN_ROLES },
       { label: "Access Requests", to: "/settings/access/requests", icon: KeyRound },
+    ],
+  },
+  {
+    group: "Integrations",
+    items: [
+      { label: "MCP",             to: "/settings/mcp",             icon: Bot,      roles: ADMIN_ROLES },
     ],
   },
 ];
