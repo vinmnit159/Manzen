@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- legacy: to be typed progressively */
-import { apiClient } from './client';
+import { createIntegrationService } from './integration-service-factory';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -40,36 +39,8 @@ export interface IdentitySyncLogRecord {
 
 // ─── Service ──────────────────────────────────────────────────────────────────
 
-export const oktaService = {
-  async getAccounts(): Promise<{ success: boolean; data: OktaIntegrationRecord[] }> {
-    return apiClient.get('/api/integrations/okta/accounts');
-  },
-
-  async connect(data: {
-    domain: string;
-    apiToken: string;
-    label?: string;
-  }): Promise<{ success: boolean; data: OktaIntegrationRecord }> {
-    return apiClient.post('/api/integrations/okta/connect', data);
-  },
-
-  async disconnect(integrationId: string): Promise<{ success: boolean }> {
-    return apiClient.delete(`/api/integrations/okta/${integrationId}`);
-  },
-
-  async runScan(integrationId: string): Promise<{ success: boolean; message: string }> {
-    return apiClient.post(`/api/integrations/okta/${integrationId}/scan`, {});
-  },
-
-  async getFindings(integrationId: string): Promise<{ success: boolean; data: IdentityFindingRecord[] }> {
-    return apiClient.get(`/api/integrations/okta/${integrationId}/findings`);
-  },
-
-  async getLogs(integrationId: string): Promise<{ success: boolean; data: IdentitySyncLogRecord[] }> {
-    return apiClient.get(`/api/integrations/okta/${integrationId}/logs`);
-  },
-
-  async getTests(integrationId: string): Promise<{ success: boolean; data: any[]; seeded: boolean }> {
-    return apiClient.get(`/api/integrations/okta/${integrationId}/tests`);
-  },
-};
+export const oktaService = createIntegrationService<
+  OktaIntegrationRecord,
+  IdentityFindingRecord,
+  IdentitySyncLogRecord
+>('okta');

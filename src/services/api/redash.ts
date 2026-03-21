@@ -1,4 +1,5 @@
 import { apiClient } from './client';
+import { createIntegrationService } from './integration-service-factory';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -29,48 +30,13 @@ export interface RedashFinding {
 
 // ─── Service ──────────────────────────────────────────────────────────────────
 
-export const redashService = {
-  /** Connect a Redash instance via base URL + API key */
-  async connect(data: {
-    baseUrl: string;
-    apiKey: string;
-    label?: string;
-  }): Promise<{ success: boolean; data: { id: string; baseUrl: string; label: string | null; status: string; adminEmail: string; createdAt: string } }> {
-    return apiClient.post('/api/integrations/redash/connect', data);
-  },
-
-  /** List connected Redash integrations for the org */
-  async getAccounts(): Promise<{ success: boolean; data: RedashIntegrationRecord[] }> {
-    return apiClient.get('/api/integrations/redash/accounts');
-  },
-
-  /** Disconnect a Redash integration */
-  async disconnect(integrationId: string): Promise<{ success: boolean }> {
-    return apiClient.delete(`/api/integrations/redash/${integrationId}`);
-  },
-
-  /** Trigger a manual compliance scan (fire-and-forget) */
-  async runScan(integrationId: string): Promise<{ success: boolean; message: string }> {
-    return apiClient.post(`/api/integrations/redash/${integrationId}/scan`, {});
-  },
-
-  /** Get findings for a Redash integration */
-  async getFindings(integrationId: string): Promise<{ success: boolean; data: RedashFinding[] }> {
-    return apiClient.get(`/api/integrations/redash/${integrationId}/findings`);
-  },
-
+export const redashService = createIntegrationService<RedashIntegrationRecord, RedashFinding, never>('redash', {
   /** Get users for a Redash integration */
   async getUsers(integrationId: string): Promise<{ success: boolean; data: Record<string, unknown>[] }> {
     return apiClient.get(`/api/integrations/redash/${integrationId}/users`);
   },
-
   /** Get data sources for a Redash integration */
   async getDataSources(integrationId: string): Promise<{ success: boolean; data: Record<string, unknown>[] }> {
     return apiClient.get(`/api/integrations/redash/${integrationId}/data-sources`);
   },
-
-  /** List automated tests linked to a Redash integration */
-  async getTests(integrationId: string): Promise<{ success: boolean; data: Record<string, unknown>[]; seeded: boolean }> {
-    return apiClient.get(`/api/integrations/redash/${integrationId}/tests`);
-  },
-};
+});

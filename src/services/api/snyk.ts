@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- legacy: to be typed progressively */
-import { apiClient } from './client';
+import { createIntegrationService } from './integration-service-factory';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -42,36 +41,8 @@ export interface CodeSyncLogRecord {
 
 // ─── Service ──────────────────────────────────────────────────────────────────
 
-export const snykService = {
-  async getAccounts(): Promise<{ success: boolean; data: SnykIntegrationRecord[] }> {
-    return apiClient.get('/api/integrations/snyk/accounts');
-  },
-
-  async connect(data: {
-    snykOrgId: string;
-    apiToken: string;
-    label?: string;
-  }): Promise<{ success: boolean; data: SnykIntegrationRecord }> {
-    return apiClient.post('/api/integrations/snyk/connect', data);
-  },
-
-  async disconnect(integrationId: string): Promise<{ success: boolean }> {
-    return apiClient.delete(`/api/integrations/snyk/${integrationId}`);
-  },
-
-  async runScan(integrationId: string): Promise<{ success: boolean; message: string }> {
-    return apiClient.post(`/api/integrations/snyk/${integrationId}/scan`, {});
-  },
-
-  async getFindings(integrationId: string): Promise<{ success: boolean; data: CodeFindingRecord[] }> {
-    return apiClient.get(`/api/integrations/snyk/${integrationId}/findings`);
-  },
-
-  async getLogs(integrationId: string): Promise<{ success: boolean; data: CodeSyncLogRecord[] }> {
-    return apiClient.get(`/api/integrations/snyk/${integrationId}/logs`);
-  },
-
-  async getTests(integrationId: string): Promise<{ success: boolean; data: any[]; seeded: boolean }> {
-    return apiClient.get(`/api/integrations/snyk/${integrationId}/tests`);
-  },
-};
+export const snykService = createIntegrationService<
+  SnykIntegrationRecord,
+  CodeFindingRecord,
+  CodeSyncLogRecord
+>('snyk');

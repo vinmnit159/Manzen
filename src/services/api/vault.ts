@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- legacy: to be typed progressively */
-import { apiClient } from './client';
+import { createIntegrationService } from './integration-service-factory';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -44,37 +43,4 @@ export interface SecretSyncLogRecord {
 
 // ─── Service ──────────────────────────────────────────────────────────────────
 
-export const vaultService = {
-  async getAccounts(): Promise<{ success: boolean; data: VaultIntegrationRecord[] }> {
-    return apiClient.get('/api/integrations/vault/accounts');
-  },
-
-  async connect(data: {
-    vaultAddr: string;
-    token: string;
-    namespace?: string;
-    label?: string;
-  }): Promise<{ success: boolean; data: VaultIntegrationRecord }> {
-    return apiClient.post('/api/integrations/vault/connect', data);
-  },
-
-  async disconnect(integrationId: string): Promise<{ success: boolean }> {
-    return apiClient.delete(`/api/integrations/vault/${integrationId}`);
-  },
-
-  async runScan(integrationId: string): Promise<{ success: boolean; message: string }> {
-    return apiClient.post(`/api/integrations/vault/${integrationId}/scan`, {});
-  },
-
-  async getFindings(integrationId: string): Promise<{ success: boolean; data: SecretFindingRecord[] }> {
-    return apiClient.get(`/api/integrations/vault/${integrationId}/findings`);
-  },
-
-  async getLogs(integrationId: string): Promise<{ success: boolean; data: SecretSyncLogRecord[] }> {
-    return apiClient.get(`/api/integrations/vault/${integrationId}/logs`);
-  },
-
-  async getTests(integrationId: string): Promise<{ success: boolean; data: any[]; seeded: boolean }> {
-    return apiClient.get(`/api/integrations/vault/${integrationId}/tests`);
-  },
-};
+export const vaultService = createIntegrationService<VaultIntegrationRecord, SecretFindingRecord, SecretSyncLogRecord>('vault');

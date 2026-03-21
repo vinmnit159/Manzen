@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- legacy: to be typed progressively */
 import { apiClient } from './client';
+import { createIntegrationService } from './integration-service-factory';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -37,33 +38,7 @@ export interface BigIdSyncLog {
 
 // ─── Service ──────────────────────────────────────────────────────────────────
 
-export const bigIdService = {
-  /** List connected BigID integrations for the org */
-  async getAccounts(): Promise<{ success: boolean; data: BigIdIntegrationRecord[] }> {
-    return apiClient.get('/api/integrations/bigid/accounts');
-  },
-
-  /** Connect a new BigID instance (base URL + API token) */
-  async connect(data: {
-    baseUrl: string;
-    apiToken: string;
-    label?: string;
-    staleScanDays?: number;
-    criticalScanDays?: number;
-  }): Promise<{ success: boolean; data: BigIdIntegrationRecord }> {
-    return apiClient.post('/api/integrations/bigid/connect', data);
-  },
-
-  /** Disconnect a BigID integration */
-  async disconnect(integrationId: string): Promise<{ success: boolean }> {
-    return apiClient.delete(`/api/integrations/bigid/${integrationId}`);
-  },
-
-  /** Trigger a manual compliance scan (fire-and-forget) */
-  async runScan(integrationId: string): Promise<{ success: boolean; message: string }> {
-    return apiClient.post(`/api/integrations/bigid/${integrationId}/scan`, {});
-  },
-
+export const bigIdService = createIntegrationService<BigIdIntegrationRecord, any, BigIdSyncLog>('bigid', {
   /** List data sources for an integration */
   async getDataSources(
     integrationId: string,
@@ -72,19 +47,4 @@ export const bigIdService = {
     const qs = filter ? `?filter=${filter}` : '';
     return apiClient.get(`/api/integrations/bigid/${integrationId}/data-sources${qs}`);
   },
-
-  /** Get latest findings summary snapshots */
-  async getFindings(integrationId: string): Promise<{ success: boolean; data: any[] }> {
-    return apiClient.get(`/api/integrations/bigid/${integrationId}/findings`);
-  },
-
-  /** Get sync logs */
-  async getLogs(integrationId: string): Promise<{ success: boolean; data: BigIdSyncLog[] }> {
-    return apiClient.get(`/api/integrations/bigid/${integrationId}/logs`);
-  },
-
-  /** List automated tests linked to this integration */
-  async getTests(integrationId: string): Promise<{ success: boolean; data: any[]; seeded: boolean }> {
-    return apiClient.get(`/api/integrations/bigid/${integrationId}/tests`);
-  },
-};
+});

@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- legacy: to be typed progressively */
-import { apiClient } from './client';
+import { createIntegrationService } from './integration-service-factory';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -40,37 +39,4 @@ export interface IdentitySyncLogRecord {
 
 // ─── Service ──────────────────────────────────────────────────────────────────
 
-export const azureAdService = {
-  async getAccounts(): Promise<{ success: boolean; data: AzureAdIntegrationRecord[] }> {
-    return apiClient.get('/api/integrations/azure-ad/accounts');
-  },
-
-  async connect(data: {
-    tenantId: string;
-    clientId: string;
-    clientSecret: string;
-    label?: string;
-  }): Promise<{ success: boolean; data: AzureAdIntegrationRecord }> {
-    return apiClient.post('/api/integrations/azure-ad/connect', data);
-  },
-
-  async disconnect(integrationId: string): Promise<{ success: boolean }> {
-    return apiClient.delete(`/api/integrations/azure-ad/${integrationId}`);
-  },
-
-  async runScan(integrationId: string): Promise<{ success: boolean; message: string }> {
-    return apiClient.post(`/api/integrations/azure-ad/${integrationId}/scan`, {});
-  },
-
-  async getFindings(integrationId: string): Promise<{ success: boolean; data: IdentityFindingRecord[] }> {
-    return apiClient.get(`/api/integrations/azure-ad/${integrationId}/findings`);
-  },
-
-  async getLogs(integrationId: string): Promise<{ success: boolean; data: IdentitySyncLogRecord[] }> {
-    return apiClient.get(`/api/integrations/azure-ad/${integrationId}/logs`);
-  },
-
-  async getTests(integrationId: string): Promise<{ success: boolean; data: any[]; seeded: boolean }> {
-    return apiClient.get(`/api/integrations/azure-ad/${integrationId}/tests`);
-  },
-};
+export const azureAdService = createIntegrationService<AzureAdIntegrationRecord, IdentityFindingRecord, IdentitySyncLogRecord>('azure-ad');

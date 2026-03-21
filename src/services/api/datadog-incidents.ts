@@ -1,5 +1,5 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- legacy: to be typed progressively */
 import { apiClient } from './client';
+import { createIntegrationService } from './integration-service-factory';
 import type { IncidentRecord, IncidentSyncLog } from './pagerduty';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -20,39 +20,8 @@ export type { IncidentRecord, IncidentSyncLog };
 
 // ─── Service ──────────────────────────────────────────────────────────────────
 
-export const datadogIncidentsService = {
-  async getAccounts(): Promise<{ success: boolean; data: DatadogIntegrationRecord[] }> {
-    return apiClient.get('/api/integrations/datadog-incidents/accounts');
-  },
-
-  async connect(data: {
-    apiKey: string;
-    appKey: string;
-    datadogSite?: string;
-    label?: string;
-    slaHours?: number;
-    staleDays?: number;
-  }): Promise<{ success: boolean; data: DatadogIntegrationRecord }> {
-    return apiClient.post('/api/integrations/datadog-incidents/connect', data);
-  },
-
-  async disconnect(integrationId: string): Promise<{ success: boolean }> {
-    return apiClient.delete(`/api/integrations/datadog-incidents/${integrationId}`);
-  },
-
-  async runScan(integrationId: string): Promise<{ success: boolean; message: string }> {
-    return apiClient.post(`/api/integrations/datadog-incidents/${integrationId}/scan`, {});
-  },
-
+export const datadogIncidentsService = createIntegrationService<DatadogIntegrationRecord, IncidentRecord, IncidentSyncLog>('datadog-incidents', {
   async getIncidents(integrationId: string): Promise<{ success: boolean; data: IncidentRecord[] }> {
     return apiClient.get(`/api/integrations/datadog-incidents/${integrationId}/incidents`);
   },
-
-  async getLogs(integrationId: string): Promise<{ success: boolean; data: IncidentSyncLog[] }> {
-    return apiClient.get(`/api/integrations/datadog-incidents/${integrationId}/logs`);
-  },
-
-  async getTests(integrationId: string): Promise<{ success: boolean; data: any[]; seeded: boolean }> {
-    return apiClient.get(`/api/integrations/datadog-incidents/${integrationId}/tests`);
-  },
-};
+});

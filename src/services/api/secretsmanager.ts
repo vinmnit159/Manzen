@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- legacy: to be typed progressively */
-import { apiClient } from './client';
+import { createIntegrationService } from './integration-service-factory';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -43,37 +42,4 @@ export interface SecretSyncLogRecord {
 
 // ─── Service ──────────────────────────────────────────────────────────────────
 
-export const secretsManagerService = {
-  async getAccounts(): Promise<{ success: boolean; data: SecretsManagerIntegrationRecord[] }> {
-    return apiClient.get('/api/integrations/secrets-manager/accounts');
-  },
-
-  async connect(data: {
-    awsRegion: string;
-    accessKeyId: string;
-    secretAccessKey: string;
-    label?: string;
-  }): Promise<{ success: boolean; data: SecretsManagerIntegrationRecord }> {
-    return apiClient.post('/api/integrations/secrets-manager/connect', data);
-  },
-
-  async disconnect(integrationId: string): Promise<{ success: boolean }> {
-    return apiClient.delete(`/api/integrations/secrets-manager/${integrationId}`);
-  },
-
-  async runScan(integrationId: string): Promise<{ success: boolean; message: string }> {
-    return apiClient.post(`/api/integrations/secrets-manager/${integrationId}/scan`, {});
-  },
-
-  async getFindings(integrationId: string): Promise<{ success: boolean; data: SecretFindingRecord[] }> {
-    return apiClient.get(`/api/integrations/secrets-manager/${integrationId}/findings`);
-  },
-
-  async getLogs(integrationId: string): Promise<{ success: boolean; data: SecretSyncLogRecord[] }> {
-    return apiClient.get(`/api/integrations/secrets-manager/${integrationId}/logs`);
-  },
-
-  async getTests(integrationId: string): Promise<{ success: boolean; data: any[]; seeded: boolean }> {
-    return apiClient.get(`/api/integrations/secrets-manager/${integrationId}/tests`);
-  },
-};
+export const secretsManagerService = createIntegrationService<SecretsManagerIntegrationRecord, SecretFindingRecord, SecretSyncLogRecord>('secrets-manager');

@@ -1,4 +1,5 @@
 import { apiClient } from './client';
+import { createIntegrationService } from './integration-service-factory';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -48,53 +49,13 @@ export interface FleetSyncLog {
 
 // ─── Service ──────────────────────────────────────────────────────────────────
 
-export const fleetService = {
-  /** Connect a Fleet server via base URL + API token */
-  async connect(data: {
-    baseUrl: string;
-    apiToken: string;
-    label?: string;
-  }): Promise<{ success: boolean; data: { id: string; baseUrl: string; label: string | null; status: string; adminEmail: string; createdAt: string } }> {
-    return apiClient.post('/api/integrations/fleet/connect', data);
-  },
-
-  /** List connected Fleet integrations for the org */
-  async getAccounts(): Promise<{ success: boolean; data: FleetIntegrationRecord[] }> {
-    return apiClient.get('/api/integrations/fleet/accounts');
-  },
-
-  /** Disconnect a Fleet integration */
-  async disconnect(integrationId: string): Promise<{ success: boolean }> {
-    return apiClient.delete(`/api/integrations/fleet/${integrationId}`);
-  },
-
-  /** Trigger a manual compliance scan (fire-and-forget) */
-  async runScan(integrationId: string): Promise<{ success: boolean; message: string }> {
-    return apiClient.post(`/api/integrations/fleet/${integrationId}/scan`, {});
-  },
-
+export const fleetService = createIntegrationService<FleetIntegrationRecord, FleetFinding, FleetSyncLog>('fleet', {
   /** Get hosts for a Fleet integration */
   async getHosts(integrationId: string): Promise<{ success: boolean; data: Record<string, unknown>[] }> {
     return apiClient.get(`/api/integrations/fleet/${integrationId}/hosts`);
   },
-
   /** Get policies for a Fleet integration */
   async getPolicies(integrationId: string): Promise<{ success: boolean; data: Record<string, unknown>[] }> {
     return apiClient.get(`/api/integrations/fleet/${integrationId}/policies`);
   },
-
-  /** Get findings for a Fleet integration */
-  async getFindings(integrationId: string): Promise<{ success: boolean; data: FleetFinding[] }> {
-    return apiClient.get(`/api/integrations/fleet/${integrationId}/findings`);
-  },
-
-  /** Get sync logs for a Fleet integration */
-  async getLogs(integrationId: string): Promise<{ success: boolean; data: FleetSyncLog[] }> {
-    return apiClient.get(`/api/integrations/fleet/${integrationId}/logs`);
-  },
-
-  /** List automated tests linked to a Fleet integration */
-  async getTests(integrationId: string): Promise<{ success: boolean; data: Record<string, unknown>[]; seeded: boolean }> {
-    return apiClient.get(`/api/integrations/fleet/${integrationId}/tests`);
-  },
-};
+});

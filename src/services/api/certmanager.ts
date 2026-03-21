@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- legacy: to be typed progressively */
-import { apiClient } from './client';
+import { createIntegrationService } from './integration-service-factory';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -44,40 +43,4 @@ export interface SecretSyncLogRecord {
 
 // ─── Service ──────────────────────────────────────────────────────────────────
 
-export const certManagerService = {
-  async getAccounts(): Promise<{ success: boolean; data: CertManagerIntegrationRecord[] }> {
-    return apiClient.get('/api/integrations/cert-manager/accounts');
-  },
-
-  async connect(data: {
-    instanceUrl: string;
-    providerType: string;
-    apiKey?: string;
-    accessKeyId?: string;
-    secretAccessKey?: string;
-    region?: string;
-    label?: string;
-  }): Promise<{ success: boolean; data: CertManagerIntegrationRecord }> {
-    return apiClient.post('/api/integrations/cert-manager/connect', data);
-  },
-
-  async disconnect(integrationId: string): Promise<{ success: boolean }> {
-    return apiClient.delete(`/api/integrations/cert-manager/${integrationId}`);
-  },
-
-  async runScan(integrationId: string): Promise<{ success: boolean; message: string }> {
-    return apiClient.post(`/api/integrations/cert-manager/${integrationId}/scan`, {});
-  },
-
-  async getFindings(integrationId: string): Promise<{ success: boolean; data: SecretFindingRecord[] }> {
-    return apiClient.get(`/api/integrations/cert-manager/${integrationId}/findings`);
-  },
-
-  async getLogs(integrationId: string): Promise<{ success: boolean; data: SecretSyncLogRecord[] }> {
-    return apiClient.get(`/api/integrations/cert-manager/${integrationId}/logs`);
-  },
-
-  async getTests(integrationId: string): Promise<{ success: boolean; data: any[]; seeded: boolean }> {
-    return apiClient.get(`/api/integrations/cert-manager/${integrationId}/tests`);
-  },
-};
+export const certManagerService = createIntegrationService<CertManagerIntegrationRecord, SecretFindingRecord, SecretSyncLogRecord>('cert-manager');
