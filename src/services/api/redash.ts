@@ -60,17 +60,17 @@ export const redashService = {
   },
 
   /** Get users for a Redash integration */
-  async getUsers(integrationId: string): Promise<{ success: boolean; data: any[] }> {
+  async getUsers(integrationId: string): Promise<{ success: boolean; data: Record<string, unknown>[] }> {
     return apiClient.get(`/api/integrations/redash/${integrationId}/users`);
   },
 
   /** Get data sources for a Redash integration */
-  async getDataSources(integrationId: string): Promise<{ success: boolean; data: any[] }> {
+  async getDataSources(integrationId: string): Promise<{ success: boolean; data: Record<string, unknown>[] }> {
     return apiClient.get(`/api/integrations/redash/${integrationId}/data-sources`);
   },
 
   /** List automated tests linked to a Redash integration */
-  async getTests(integrationId: string): Promise<{ success: boolean; data: any[]; seeded: boolean }> {
+  async getTests(integrationId: string): Promise<{ success: boolean; data: Record<string, unknown>[]; seeded: boolean }> {
     return apiClient.get(`/api/integrations/redash/${integrationId}/tests`);
   },
 };

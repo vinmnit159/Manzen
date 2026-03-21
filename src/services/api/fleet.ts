@@ -74,12 +74,12 @@ export const fleetService = {
   },
 
   /** Get hosts for a Fleet integration */
-  async getHosts(integrationId: string): Promise<{ success: boolean; data: any[] }> {
+  async getHosts(integrationId: string): Promise<{ success: boolean; data: Record<string, unknown>[] }> {
     return apiClient.get(`/api/integrations/fleet/${integrationId}/hosts`);
   },
 
   /** Get policies for a Fleet integration */
-  async getPolicies(integrationId: string): Promise<{ success: boolean; data: any[] }> {
+  async getPolicies(integrationId: string): Promise<{ success: boolean; data: Record<string, unknown>[] }> {
     return apiClient.get(`/api/integrations/fleet/${integrationId}/policies`);
   },
 
@@ -94,7 +94,7 @@ export const fleetService = {
   },
 
   /** List automated tests linked to a Fleet integration */
-  async getTests(integrationId: string): Promise<{ success: boolean; data: any[]; seeded: boolean }> {
+  async getTests(integrationId: string): Promise<{ success: boolean; data: Record<string, unknown>[]; seeded: boolean }> {
     return apiClient.get(`/api/integrations/fleet/${integrationId}/tests`);
   },
 };

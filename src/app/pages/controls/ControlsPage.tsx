@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- legacy: to be typed progressively */
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router';
 import { clearAuthSession } from '@/services/authStorage';

@@ -120,8 +120,8 @@ export function useFindingDetailActions(
       const updated = await findingsService.update(finding.id, { status });
       qc.invalidateQueries({ queryKey: ['findings'] });
       onUpdated(updated);
-    } catch (err: any) {
-      setError(err?.message ?? 'Update failed');
+    } catch (err: unknown) {
+      setError((err as { message?: string })?.message ?? 'Update failed');
     } finally {
       setSaving(false);
     }
@@ -140,8 +140,8 @@ export function useFindingDetailActions(
       });
       qc.invalidateQueries({ queryKey: ['findings'] });
       onUpdated(updated);
-    } catch (err: any) {
-      setError(err?.message ?? 'Save failed');
+    } catch (err: unknown) {
+      setError((err as { message?: string })?.message ?? 'Save failed');
     } finally {
       setSaving(false);
     }
@@ -155,8 +155,8 @@ export function useFindingDetailActions(
       const updated = await findingsService.addRemediation(finding.id, note.trim());
       qc.invalidateQueries({ queryKey: ['findings'] });
       onUpdated(updated);
-    } catch (err: any) {
-      setError(err?.message ?? 'Failed to add remediation note');
+    } catch (err: unknown) {
+      setError((err as { message?: string })?.message ?? 'Failed to add remediation note');
     } finally {
       setSaving(false);
     }

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- legacy: to be typed progressively */
 import type { AuthUser } from '@/server/middleware/authenticate';
 import { notificationsContracts } from './contracts';
 import { NotificationService } from './service';

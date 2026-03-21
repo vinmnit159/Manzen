@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- legacy: to be typed progressively */
 import { useState } from 'react';
 import {
   X, Shield, CheckCircle2, Circle, Github,

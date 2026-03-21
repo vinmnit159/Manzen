@@ -636,7 +636,7 @@ export function TestDetailPanel({
                         </dd>
                       </div>
                     </div>
-                    {test.lastResultDetails?.summary && (
+                    {typeof test.lastResultDetails?.summary === 'string' && test.lastResultDetails.summary && (
                       <p className="text-xs text-gray-600">
                         {test.lastResultDetails.summary}
                       </p>

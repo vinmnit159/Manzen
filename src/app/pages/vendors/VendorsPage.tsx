@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- legacy: to be typed progressively */
 import { useEffect, useMemo, useState } from 'react';
 import { PageTemplate } from '@/app/components/PageTemplate';
 import { PageFilterBar } from '@/app/components/filters/PageFilterBar';

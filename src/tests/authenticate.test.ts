@@ -66,7 +66,7 @@ function makeFakeReply() {
   return reply;
 }
 
-type FakeReply = ReturnType<typeof makeFakeReply>;
+type _FakeReply = ReturnType<typeof makeFakeReply>;
 
 function makeFakeRequest(overrides: {
   method?: string;

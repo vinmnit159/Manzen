@@ -32,8 +32,9 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
-      // Surface any usage as warnings — too many to fix at once but must be visible
-      '@typescript-eslint/no-explicit-any': 'warn',
+      // any is an error — legacy violations are suppressed per-file with
+      // eslint-disable comments until they are progressively typed.
+      '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-unused-vars': [
         'error',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },

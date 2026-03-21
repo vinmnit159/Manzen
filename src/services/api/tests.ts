@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- legacy: to be typed progressively */
 import { apiClient, ApiResponse, ApiError } from './client';
 
 // ─── Enums ────────────────────────────────────────────────────────────────────
@@ -98,7 +99,7 @@ export interface TestRecord {
   integrationId?: string | null;
   lastRunAt?: string | null;
   lastResult?: 'Pass' | 'Fail' | 'Warning' | 'Not_Run';
-  lastResultDetails?: any;
+  lastResultDetails?: Record<string, unknown> | null;
   autoRemediationSupported?: boolean;
   integration?: {
     id: string;

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- legacy: to be typed progressively */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { BookOpen, Layers3, Rocket } from 'lucide-react';
 import { useNavigate } from 'react-router';

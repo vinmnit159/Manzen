@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- legacy: to be typed progressively */
 import { apiClient } from './client';
 
 export type VendorStatus = 'MONITORED' | 'ASSESSMENT_DUE' | 'IN_REVIEW' | 'BLOCKED';

@@ -5,7 +5,7 @@ export interface EngineerAIntegrationRecord {
   organizationId: string;
   provider: string;
   status: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
 }
@@ -20,8 +20,8 @@ export function createEngineerAService(basePath: string) {
       apiClient.post<ConnectResponse>(`${basePath}/connect`, payload),
     disconnect: (integrationId: string) => apiClient.delete<{ success: boolean }>(`${basePath}/${integrationId}`),
     runScan: (integrationId: string) => apiClient.post<{ success: boolean; jobId: string; status: string }>(`${basePath}/${integrationId}/scan`, {}),
-    getFindings: (integrationId: string) => apiClient.get<{ success: boolean; data: any[] }>(`${basePath}/${integrationId}/findings`),
-    getLogs: (integrationId: string) => apiClient.get<{ success: boolean; data: any[] }>(`${basePath}/${integrationId}/logs`),
-    getTests: (integrationId: string) => apiClient.get<{ success: boolean; data: any[] }>(`${basePath}/${integrationId}/tests`),
+    getFindings: (integrationId: string) => apiClient.get<{ success: boolean; data: Record<string, unknown>[] }>(`${basePath}/${integrationId}/findings`),
+    getLogs: (integrationId: string) => apiClient.get<{ success: boolean; data: Record<string, unknown>[] }>(`${basePath}/${integrationId}/logs`),
+    getTests: (integrationId: string) => apiClient.get<{ success: boolean; data: Record<string, unknown>[] }>(`${basePath}/${integrationId}/tests`),
   };
 }

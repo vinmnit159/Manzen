@@ -2,6 +2,7 @@ import { addDays, differenceInCalendarDays } from 'date-fns';
 import { getRiskEngineRuntimeService } from '@/server/risk-engine/runtime';
 import {
   getTestsRuntimeService,
+  TestsRuntimeService,
   type TestRecordDto,
   type TestRunRecordDto,
 } from './runtime';
@@ -195,8 +196,8 @@ function countBy(values: string[]) {
   }));
 }
 
-async function getMutableService() {
-  return (await getTestsRuntimeService()) as any;
+async function getMutableService(): Promise<TestsRuntimeService> {
+  return getTestsRuntimeService();
 }
 
 function emitNotification(
@@ -212,11 +213,11 @@ function emitNotification(
   }
 }
 
-function asRecords(service: any): TestRecordDto[] {
+function asRecords(service: TestsRuntimeService): TestRecordDto[] {
   return service.listTests({ page: 1, limit: 1000 });
 }
 
-function getOrgIdForTest(service: any, testId: string) {
+function getOrgIdForTest(service: TestsRuntimeService, testId: string) {
   const test = service.getTest(testId) as TestRecordDto;
   return test.organizationId;
 }

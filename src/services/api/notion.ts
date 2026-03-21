@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- legacy: to be typed progressively */
 import { apiClient, API_BASE_URL } from './client';
 import { getAuthToken } from '@/services/authStorage';
 

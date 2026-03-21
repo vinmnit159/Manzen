@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- legacy: to be typed progressively */
 import { useState, useRef } from 'react';
 import { FileText, Loader2, Upload, X, AlertCircle } from 'lucide-react';
 import { evidenceService } from '@/services/api/evidence';

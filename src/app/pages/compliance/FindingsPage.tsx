@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- legacy: to be typed progressively */
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {

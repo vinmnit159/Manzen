@@ -19,6 +19,10 @@ import {
   auditsService,
   AuditControlRecord,
   AuditControlStatus,
+  ControlEvidenceItem,
+  ControlRiskItem,
+  ControlTestItem,
+  ControlFindingItem,
 } from '@/services/api/audits';
 import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
@@ -157,12 +161,20 @@ export function SectionHead({
 
 // ── Finding Row ───────────────────────────────────────────────────────────────
 
+interface FindingItem {
+  id: string;
+  severity: string;
+  status: string;
+  description?: string;
+  remediation?: string;
+}
+
 export function FindingRow({
   finding,
   auditId,
   onDeleted,
 }: {
-  finding: any;
+  finding: FindingItem;
   auditId: string;
   onDeleted: () => void;
 }) {
@@ -242,10 +254,10 @@ export function ControlReviewPanel({
   const [notesDirty, setNotesDirty] = useState(false);
 
   const ctrl = auditControl.control;
-  const evidence = ctrl.evidence ?? [];
-  const risks = ctrl.riskMappings?.map((r: any) => r.risk) ?? [];
-  const tests = ctrl.testMappings?.map((r: any) => r.test) ?? [];
-  const findings = ctrl.findings ?? [];
+  const evidence: ControlEvidenceItem[] = ctrl.evidence ?? [];
+  const risks: ControlRiskItem[] = ctrl.riskMappings?.map((r) => r.risk) ?? [];
+  const tests: ControlTestItem[] = ctrl.testMappings?.map((r) => r.test) ?? [];
+  const findings: ControlFindingItem[] = ctrl.findings ?? [];
 
   async function handleStatusChange(status: AuditControlStatus) {
     setSavingStatus(true);
@@ -415,7 +427,7 @@ export function ControlReviewPanel({
                 </p>
               ) : (
                 <div className="space-y-1.5">
-                  {evidence.map((ev: any) => (
+                  {evidence.map((ev: ControlEvidenceItem) => (
                     <div
                       key={ev.id}
                       className="flex items-center gap-2 text-xs border border-gray-100 rounded-lg px-3 py-2 bg-gray-50"
@@ -452,7 +464,7 @@ export function ControlReviewPanel({
                 </p>
               ) : (
                 <div className="space-y-1.5">
-                  {tests.map((t: any) => (
+                  {tests.map((t: ControlTestItem) => (
                     <div
                       key={t.id}
                       className="flex items-center gap-2 text-xs border border-gray-100 rounded-lg px-3 py-2"
@@ -488,7 +500,7 @@ export function ControlReviewPanel({
                   title={`Risks (${risks.length})`}
                 />
                 <div className="space-y-1.5">
-                  {risks.map((r: any) => (
+                  {risks.map((r: ControlRiskItem) => (
                     <div
                       key={r.id}
                       className="flex items-center gap-2 text-xs border border-gray-100 rounded-lg px-3 py-2"
@@ -536,7 +548,7 @@ export function ControlReviewPanel({
                 </p>
               ) : (
                 <div className="space-y-2">
-                  {findings.map((f: any) => (
+                  {(findings as FindingItem[]).map((f) => (
                     <FindingRow
                       key={f.id}
                       finding={f}

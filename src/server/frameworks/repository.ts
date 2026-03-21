@@ -14,7 +14,6 @@ import type {
   FrameworkDto,
   FrameworkRequirementDto,
   OrgFrameworkDto,
-  FrameworkEntitlementDto,
   RequirementStatusDto,
   CoverageSnapshotDto,
   BillingEntitlementDto,

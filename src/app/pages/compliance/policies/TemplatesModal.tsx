@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- legacy: to be typed progressively */
 import React, { useState, useEffect } from 'react';
 import { policiesService, PolicyTemplate } from '@/services/api/policies';
 import { Policy } from '@/services/api/types';

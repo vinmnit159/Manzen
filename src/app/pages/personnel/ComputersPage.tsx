@@ -87,8 +87,8 @@ function ReassignModal({ device, users, onClose, onSave }: ReassignModalProps) {
     try {
       await onSave(device.id, selectedUserId);
       onClose();
-    } catch (e: any) {
-      setError(e?.message ?? 'Failed to reassign owner');
+    } catch (e: unknown) {
+      setError((e as { message?: string })?.message ?? 'Failed to reassign owner');
     } finally {
       setSaving(false);
     }
@@ -193,7 +193,7 @@ export function ComputersPage() {
   const devices: ManagedDevice[] = devicesData ?? [];
   const users: UserWithGit[] = usersData ?? [];
   const error: string | null = devicesError
-    ? ((devicesError as any)?.message ?? 'Failed to load devices')
+    ? ((devicesError as { message?: string })?.message ?? 'Failed to load devices')
     : null;
 
   const toggleExpand = (id: string) => {
@@ -220,8 +220,8 @@ export function ComputersPage() {
       await mdmService.revokeDevice(device.id);
       // Invalidate so the cache gets fresh revocation status
       qc.invalidateQueries({ queryKey: QK.mdmDevices() });
-    } catch (e: any) {
-      alert(e?.message ?? 'Failed to revoke device');
+    } catch (e: unknown) {
+      alert((e as { message?: string })?.message ?? 'Failed to revoke device');
     } finally {
       setRevoking(null);
     }

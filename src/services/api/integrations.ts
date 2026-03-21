@@ -1,6 +1,35 @@
 import { apiClient, API_BASE_URL } from './client';
 import { getAuthToken } from '@/services/authStorage';
 
+export interface GitHubRepoScanResult {
+  compliant: boolean | null;
+  [key: string]: unknown;
+}
+
+export interface GitHubRepoBranchProtection {
+  result?: GitHubRepoScanResult;
+  enabled?: boolean;
+  requiredReviewsEnabled?: boolean;
+  requiredApprovingReviewCount?: number;
+  [key: string]: unknown;
+}
+
+export interface GitHubRepoRawData {
+  branchProtection?: GitHubRepoBranchProtection;
+  protection?: GitHubRepoBranchProtection;
+  commitSigning?: { result?: GitHubRepoScanResult };
+  cicd?: { result?: GitHubRepoScanResult };
+  accessControl?: { result?: GitHubRepoScanResult };
+  repoMeta?: { result?: GitHubRepoScanResult };
+  branchProtectionEnabled?: boolean;
+  requiredApprovingReviewCount?: number;
+  secretScanningEnabled?: boolean;
+  secretScanning?: boolean;
+  pushProtectionEnabled?: boolean;
+  secretScanningPushProtection?: boolean;
+  [key: string]: unknown;
+}
+
 export interface GitHubRepo {
   id: string;
   name: string;
@@ -9,7 +38,7 @@ export interface GitHubRepo {
   defaultBranch: string;
   visibility: string;
   lastScannedAt: string | null;
-  rawData: any;
+  rawData: GitHubRepoRawData;
 }
 
 export interface TriggerGitHubScanRequest {
@@ -33,7 +62,7 @@ export interface AutomatedTestResult {
   status: string;
   lastResult: 'Pass' | 'Fail' | 'Warning' | 'Not_Run';
   lastRunAt: string | null;
-  lastResultDetails: any;
+  lastResultDetails: Record<string, unknown> | null;
 }
 
 export interface TestRunRecord {
@@ -44,7 +73,7 @@ export interface TestRunRecord {
   summary: string;
   executedAt: string;
   durationMs: number;
-  rawPayload: any;
+  rawPayload: Record<string, unknown>;
 }
 
 export const integrationsService = {

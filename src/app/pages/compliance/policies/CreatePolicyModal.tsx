@@ -38,21 +38,21 @@ export function CreatePolicyModal({
         version: form.version,
         status: form.status,
         approvedBy: form.approvedBy || undefined,
-      }) as any;
-      const created: Policy = res.data;
+      });
+      const created: Policy = (res as { data: Policy }).data;
 
       if (file) {
         try {
-          const uploadRes = await policiesService.uploadPolicyDocument(created.id, file) as any;
-          onCreated(uploadRes.data.policy);
+          const uploadRes = await policiesService.uploadPolicyDocument(created.id, file);
+          onCreated((uploadRes as { data: { policy: Policy } }).data.policy);
         } catch {
           onCreated(created);
         }
       } else {
         onCreated(created);
       }
-    } catch (err: any) {
-      setError(err?.message ?? 'Failed to create policy');
+    } catch (err: unknown) {
+      setError((err as { message?: string })?.message ?? 'Failed to create policy');
       setSaving(false);
     }
   };

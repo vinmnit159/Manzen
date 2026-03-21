@@ -6,7 +6,8 @@ import {
   groupPreferences,
 } from '@/app/features/notifications/notificationHelpers';
 import { NOTIFICATION_EVENT_DEFINITIONS } from '@/domain/notifications/eventTypes';
-import type { NotificationDto, NotificationPreferenceDto } from '@/services/api/notifications';
+import type { NotificationDto, NotificationPreferenceDto, NotificationSeverity } from '@/services/api/notifications';
+import type { NotificationEventType } from '@/domain/notifications/eventTypes';
 
 // ── getNotificationSeverityMeta ───────────────────────────────────────────────
 
@@ -27,7 +28,7 @@ describe('getNotificationSeverityMeta', () => {
   });
 
   it('returns blue styles for unknown severity (default)', () => {
-    const meta = getNotificationSeverityMeta('unknown' as any);
+    const meta = getNotificationSeverityMeta('unknown' as NotificationSeverity);
     expect(meta.className).toContain('blue');
   });
 
@@ -79,7 +80,7 @@ describe('getNotificationTargetPath', () => {
   });
 
   it('returns /notifications for unknown resourceType', () => {
-    const n: NotifResource = { resourceType: 'unknown-type' as any, resourceId: null };
+    const n: NotifResource = { resourceType: 'unknown-type', resourceId: null };
     expect(getNotificationTargetPath(n)).toBe('/notifications');
   });
 });
@@ -107,7 +108,7 @@ describe('groupPreferences', () => {
       organizationId: 'org-1',
       userId: 'user-1',
       userEmail: 'user@test.com',
-      eventType: eventType as any,
+      eventType: eventType as NotificationEventType,
       emailEnabled: true,
       inAppEnabled: true,
       slackEnabled: false,

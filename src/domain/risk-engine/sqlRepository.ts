@@ -1,4 +1,17 @@
-import { riskEngineMappers, type SqlExecutor } from './persistence';
+import {
+  riskEngineMappers,
+  type SqlExecutor,
+  type SignalRow,
+  type TestResultRow,
+  type EvidenceSnapshotRow,
+  type RiskRuleRow,
+  type GeneratedRiskRow,
+  type RiskEngineEventRow,
+  type ProviderSyncStatusRow,
+  type ScanRunRow,
+  type IntegrationJobExecutionRow,
+  type SignalIngestionRow,
+} from './persistence';
 import type { RiskEngineRepository } from './repository';
 import type {
   ControlTestDefinition,
@@ -14,12 +27,24 @@ import type {
   TestResultRecord,
 } from './types';
 
+interface ControlTestVersionRow {
+  id: string;
+  control_id: string;
+  name: string;
+  version: number;
+  signal_type: string;
+  description: string;
+  framework_ids_json: string[];
+  severity_on_fail: string;
+  condition_json: Record<string, unknown>;
+}
+
 export class SqlRiskEngineRepository implements RiskEngineRepository {
   constructor(private readonly db: SqlExecutor) {}
 
   async listSignals(): Promise<NormalizedSignal[]> {
-    const result = await this.db.query('select * from signals_normalized order by collected_at desc');
-    return result.rows.map((row) => riskEngineMappers.fromSignalRow(row as any));
+    const result = await this.db.query<SignalRow>('select * from signals_normalized order by collected_at desc');
+    return result.rows.map((row) => riskEngineMappers.fromSignalRow(row));
   }
 
   async saveSignals(signals: NormalizedSignal[]): Promise<void> {
@@ -33,34 +58,34 @@ export class SqlRiskEngineRepository implements RiskEngineRepository {
   }
 
   async listTests(): Promise<ControlTestDefinition[]> {
-    const result = await this.db.query('select * from control_test_versions order by created_at desc');
-    return result.rows.map((row: any) => ({
+    const result = await this.db.query<ControlTestVersionRow>('select * from control_test_versions order by created_at desc');
+    return result.rows.map((row) => ({
       id: row.id,
       controlId: row.control_id,
       controlName: row.name,
       version: row.version,
-      signalType: row.signal_type,
+      signalType: row.signal_type as ControlTestDefinition['signalType'],
       name: row.name,
       description: row.description,
       frameworkIds: row.framework_ids_json,
-      severityOnFail: row.severity_on_fail,
-      condition: row.condition_json,
+      severityOnFail: row.severity_on_fail as ControlTestDefinition['severityOnFail'],
+      condition: row.condition_json as ControlTestDefinition['condition'],
     }));
   }
 
   async listRules(): Promise<RiskRuleRecord[]> {
-    const result = await this.db.query('select * from risk_rules order by created_at desc');
-    return result.rows.map((row) => riskEngineMappers.fromRuleRow(row as any));
+    const result = await this.db.query<RiskRuleRow>('select * from risk_rules order by created_at desc');
+    return result.rows.map((row) => riskEngineMappers.fromRuleRow(row));
   }
 
   async listEvidence(): Promise<EvidenceSnapshotRecord[]> {
-    const result = await this.db.query('select * from evidence_snapshots order by captured_at desc');
-    return result.rows.map((row) => riskEngineMappers.fromEvidenceRow(row as any));
+    const result = await this.db.query<EvidenceSnapshotRow>('select * from evidence_snapshots order by captured_at desc');
+    return result.rows.map((row) => riskEngineMappers.fromEvidenceRow(row));
   }
 
   async listIntegrationExecutions(): Promise<IntegrationJobExecutionRecord[]> {
-    const result = await this.db.query('select * from integration_job_executions order by completed_at desc');
-    return result.rows.map((row) => riskEngineMappers.fromIntegrationJobExecutionRow(row as any));
+    const result = await this.db.query<IntegrationJobExecutionRow>('select * from integration_job_executions order by completed_at desc');
+    return result.rows.map((row) => riskEngineMappers.fromIntegrationJobExecutionRow(row));
   }
 
   async saveIntegrationExecutions(executions: IntegrationJobExecutionRecord[]): Promise<void> {
@@ -74,8 +99,8 @@ export class SqlRiskEngineRepository implements RiskEngineRepository {
   }
 
   async listSignalIngestions(): Promise<SignalIngestionRecord[]> {
-    const result = await this.db.query('select * from signal_ingestion_records order by normalized_at desc');
-    return result.rows.map((row) => riskEngineMappers.fromSignalIngestionRow(row as any));
+    const result = await this.db.query<SignalIngestionRow>('select * from signal_ingestion_records order by normalized_at desc');
+    return result.rows.map((row) => riskEngineMappers.fromSignalIngestionRow(row));
   }
 
   async saveSignalIngestions(records: SignalIngestionRecord[]): Promise<void> {
@@ -89,8 +114,8 @@ export class SqlRiskEngineRepository implements RiskEngineRepository {
   }
 
   async listProviderStatuses(): Promise<ProviderSyncStatusRecord[]> {
-    const result = await this.db.query('select * from provider_sync_statuses order by last_sync_at desc');
-    return result.rows.map((row) => riskEngineMappers.fromProviderSyncStatusRow(row as any));
+    const result = await this.db.query<ProviderSyncStatusRow>('select * from provider_sync_statuses order by last_sync_at desc');
+    return result.rows.map((row) => riskEngineMappers.fromProviderSyncStatusRow(row));
   }
 
   async saveProviderStatuses(statuses: ProviderSyncStatusRecord[]): Promise<void> {
@@ -114,18 +139,18 @@ export class SqlRiskEngineRepository implements RiskEngineRepository {
   }
 
   async listScanRuns(): Promise<ScanRunRecord[]> {
-    const result = await this.db.query('select * from scan_runs order by completed_at desc');
-    return result.rows.map((row) => riskEngineMappers.fromScanRunRow(row as any));
+    const result = await this.db.query<ScanRunRow>('select * from scan_runs order by completed_at desc');
+    return result.rows.map((row) => riskEngineMappers.fromScanRunRow(row));
   }
 
   async listEvents(): Promise<RiskEngineEventRecord[]> {
-    const result = await this.db.query('select * from risk_engine_events order by created_at desc');
-    return result.rows.map((row) => riskEngineMappers.fromRiskEngineEventRow(row as any));
+    const result = await this.db.query<RiskEngineEventRow>('select * from risk_engine_events order by created_at desc');
+    return result.rows.map((row) => riskEngineMappers.fromRiskEngineEventRow(row));
   }
 
   async listTestResults(): Promise<TestResultRecord[]> {
-    const result = await this.db.query('select * from test_results order by executed_at desc');
-    return result.rows.map((row) => riskEngineMappers.fromTestResultRow(row as any));
+    const result = await this.db.query<TestResultRow>('select * from test_results order by executed_at desc');
+    return result.rows.map((row) => riskEngineMappers.fromTestResultRow(row));
   }
 
   async saveTestResults(results: TestResultRecord[]): Promise<void> {
@@ -139,8 +164,8 @@ export class SqlRiskEngineRepository implements RiskEngineRepository {
   }
 
   async listRisks(): Promise<RiskEngineRecord[]> {
-    const result = await this.db.query('select * from generated_risks order by score desc');
-    return result.rows.map((row) => riskEngineMappers.fromGeneratedRiskRow(row as any));
+    const result = await this.db.query<GeneratedRiskRow>('select * from generated_risks order by score desc');
+    return result.rows.map((row) => riskEngineMappers.fromGeneratedRiskRow(row));
   }
 
   async saveRisks(risks: RiskEngineRecord[]): Promise<void> {

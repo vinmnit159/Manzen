@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- legacy: to be typed progressively */
 import { Card } from '@/app/components/ui/card';
 import { Label } from '@/app/components/ui/label';
 import { Switch } from '@/app/components/ui/switch';

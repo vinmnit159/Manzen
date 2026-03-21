@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- legacy: to be typed progressively */
 import { useQuery } from '@tanstack/react-query';
 import {
   X,
@@ -103,7 +104,6 @@ export function PolicyDetailPanel({
   onClose: () => void;
   onMutated?: () => void;
 }) {
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const cfg = (STATUS_CONFIG[policy.status] ?? STATUS_CONFIG['DRAFT'])!;
   const StatusIcon = cfg.Icon;
   const [downloading, setDownloading] = useState(false);

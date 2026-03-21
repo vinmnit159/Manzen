@@ -154,7 +154,7 @@ function Task1Policies({
     policiesService
       .getPolicies({ status: 'PUBLISHED' })
       .then((res) => {
-        if (res.success && res.data) setPolicies(res.data as any);
+        if (res.success && res.data) setPolicies(res.data as { id: string; name: string; version: string; status: string }[]);
       })
       .catch(() => setError('Failed to load policies'))
       .finally(() => setLoading(false));
@@ -259,8 +259,8 @@ function Task1Policies({
                 Array.from(checked),
               );
               onDone(res.data);
-            } catch (e: any) {
-              setError(e?.message ?? 'Failed to save');
+            } catch (e: unknown) {
+              setError((e as { message?: string })?.message ?? 'Failed to save');
             } finally {
               setSaving(false);
             }
@@ -367,8 +367,8 @@ function Task3Training({
     try {
       const res = await onboardingService.recordTrainingComplete();
       onDone(res.data);
-    } catch (e: any) {
-      setError(e?.message ?? 'Failed to save completion');
+    } catch (e: unknown) {
+      setError((e as { message?: string })?.message ?? 'Failed to save completion');
     } finally {
       setSaving(false);
     }
@@ -508,8 +508,8 @@ function RemediationTasksSection() {
         await findingsService.startRemediation(finding.id);
       else await findingsService.submitForReview(finding.id);
       qc.invalidateQueries({ queryKey: ['findings'] });
-    } catch (e: any) {
-      setErr(e?.message ?? 'Action failed');
+    } catch (e: unknown) {
+      setErr((e as { message?: string })?.message ?? 'Action failed');
     } finally {
       setTransitioning(null);
     }

@@ -206,14 +206,14 @@ export function AuditFinalReportPage() {
 
   // Pre-fill form fields when data loads, respecting dirty state.
   useEffect(() => {
-    const a: AuditRecord | undefined = (data as any)?.data?.audit;
+    const a: AuditRecord | undefined = (data as { data?: { audit?: AuditRecord } } | undefined)?.data?.audit;
     if (!a) return;
     if (!summaryDirty) setSummary(a.executiveSummary ?? '');
     if (!conclusionDirty) setConclusion(a.auditConclusion ?? '');
     setPdfUrl(a.signedPdfUrl ?? '');
   }, [data]); // eslint-disable-line react-hooks/exhaustive-deps -- summaryDirty/conclusionDirty are intentionally excluded: we only want to pre-fill on first load
 
-  const report = (data as any)?.data;
+  const report = (data as { data?: { audit?: AuditRecord; metrics?: AuditReportMetrics } } | undefined)?.data;
   const audit: AuditRecord | undefined = report?.audit;
   const metrics: AuditReportMetrics | undefined = report?.metrics;
   // Prefer snapshot for locked audits
@@ -235,8 +235,8 @@ export function AuditFinalReportPage() {
       setSummaryDirty(false);
       setConclusionDirty(false);
       qc.invalidateQueries({ queryKey: ['audit-report', auditId] });
-    } catch (e: any) {
-      setErr(e?.message ?? 'Failed to save draft');
+    } catch (e: unknown) {
+      setErr((e as { message?: string })?.message ?? 'Failed to save draft');
     } finally {
       setSaving(false);
     }
@@ -263,8 +263,8 @@ export function AuditFinalReportPage() {
       qc.invalidateQueries({ queryKey: ['audit-report', auditId] });
       qc.invalidateQueries({ queryKey: ['audits'] });
       qc.invalidateQueries({ queryKey: ['auditor-audits'] });
-    } catch (e: any) {
-      setErr(e?.message ?? 'Failed to sign & complete');
+    } catch (e: unknown) {
+      setErr((e as { message?: string })?.message ?? 'Failed to sign & complete');
     } finally {
       setSigning(false);
     }

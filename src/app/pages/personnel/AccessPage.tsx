@@ -109,10 +109,10 @@ export function AccessPage() {
         const { [member.githubUsername]: _, ...errs } = prev.errors;
         return { saving: null, errors: errs };
       });
-    } catch (e: any) {
+    } catch (e: unknown) {
       setMapping((prev) => ({
         saving: null,
-        errors: { ...prev.errors, [member.githubUsername]: e?.message ?? "Failed to map" },
+        errors: { ...prev.errors, [member.githubUsername]: (e as { message?: string })?.message ?? "Failed to map" },
       }));
     }
   };
@@ -133,10 +133,10 @@ export function AccessPage() {
       setMembers(res.members);
       setUsers(usersRes);
       setMapping((prev) => ({ saving: null, errors: prev.errors }));
-    } catch (e: any) {
+    } catch (e: unknown) {
       setMapping((prev) => ({
         saving: null,
-        errors: { ...prev.errors, [member.githubUsername]: e?.message ?? "Failed to unmap" },
+        errors: { ...prev.errors, [member.githubUsername]: (e as { message?: string })?.message ?? "Failed to unmap" },
       }));
     }
   };
@@ -154,10 +154,10 @@ export function AccessPage() {
         const { [member.slackUserId]: _, ...errs } = prev.errors;
         return { saving: null, errors: errs };
       });
-    } catch (e: any) {
+    } catch (e: unknown) {
       setSlackMapping((prev) => ({
         saving: null,
-        errors: { ...prev.errors, [member.slackUserId]: e?.message ?? "Failed to map" },
+        errors: { ...prev.errors, [member.slackUserId]: (e as { message?: string })?.message ?? "Failed to map" },
       }));
     }
   };
@@ -170,10 +170,10 @@ export function AccessPage() {
       const res = await usersService.getSlackMembers();
       setSlackMembers(res.members);
       setSlackMapping((prev) => ({ saving: null, errors: prev.errors }));
-    } catch (e: any) {
+    } catch (e: unknown) {
       setSlackMapping((prev) => ({
         saving: null,
-        errors: { ...prev.errors, [member.slackUserId]: e?.message ?? "Failed to unmap" },
+        errors: { ...prev.errors, [member.slackUserId]: (e as { message?: string })?.message ?? "Failed to unmap" },
       }));
     }
   };

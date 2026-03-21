@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { type EngineerACardConfig, type WorkflowConfigResult } from '@/app/pages/integrations/integrations';
 import { workspaceDirectoryService } from '@/services/api/workspace-directory';
 import { oneLoginService } from '@/services/api/onelogin';

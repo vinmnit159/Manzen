@@ -10,8 +10,9 @@ import {
   AlertCircle,
   XCircle,
 } from 'lucide-react';
-import { testsService } from '@/services/api/tests';
+import { testsService, TestRecord } from '@/services/api/tests';
 import { policiesService } from '@/services/api/policies';
+import { Policy } from '@/services/api/types';
 import { evidenceService } from '@/services/api/evidence';
 import {
   Tabs,
@@ -20,6 +21,16 @@ import {
   TabsTrigger,
 } from '@/app/components/ui/tabs';
 import { Control } from './types';
+
+interface EvidenceItem {
+  id: string;
+  type: string;
+  fileName?: string | null;
+  fileUrl?: string | null;
+  createdAt: string;
+  controlId?: string;
+  control?: { id: string };
+}
 
 const STATUS_CONFIG = {
   IMPLEMENTED: {
@@ -117,8 +128,8 @@ export function ControlDetailPanel({
     staleTime: 30_000,
   });
 
-  const linkedTests = allTests.filter((t: any) =>
-    t.controls?.some((c: any) => c.controlId === control.id),
+  const linkedTests = (allTests as TestRecord[]).filter((t) =>
+    t.controls?.some((c) => c.controlId === control.id),
   );
 
   // Load policies
@@ -135,22 +146,23 @@ export function ControlDetailPanel({
   const { data: evidence = [], isLoading: evidenceLoading } = useQuery({
     queryKey: ['evidence', 'control', control.id],
     queryFn: async () => {
-      const r = (await evidenceService.getEvidence()) as { data?: unknown[] } | undefined;
-      const items: any[] = r?.data ?? [];
+      const r = (await evidenceService.getEvidence()) as { data?: EvidenceItem[] } | undefined;
+      const items = r?.data ?? [];
       return items.filter(
-        (e) => e.controlId === control.id || e.control?.id === control.id,
+        (e) =>
+          e.controlId === control.id ||
+          e.control?.id === control.id,
       );
     },
     staleTime: 30_000,
   });
 
   // Guess policy relevance by ISO reference in policy name / description
-  const ref = control.isoReference?.split('.')[0] ?? '';
+  const _ref = control.isoReference?.split('.')[0] ?? '';
   const relatedPolicies = allPolicies
     .filter(
-      (p: any) =>
-        p.name?.toLowerCase().includes(ref.toLowerCase()) ||
-        p.name?.toLowerCase().includes('access') ||
+      (_p) =>
+        // Currently returns all (true); future: filter by ref/name
         true,
     )
     .slice(0, 3);
@@ -294,7 +306,7 @@ export function ControlDetailPanel({
                   icon={<FlaskConical className="w-4 h-4 text-gray-500" />}
                 >
                   <ul className="space-y-2">
-                    {linkedTests.slice(0, 5).map((t: any) => {
+                    {linkedTests.slice(0, 5).map((t: TestRecord) => {
                       const statusColors: Record<string, string> = {
                         OK: 'bg-green-50 text-green-700',
                         Overdue: 'bg-red-50 text-red-700',
@@ -340,7 +352,7 @@ export function ControlDetailPanel({
                   </p>
                 </div>
               ) : (
-                linkedTests.map((t: any) => {
+                linkedTests.map((t: TestRecord) => {
                   const statusColors: Record<string, string> = {
                     OK: 'border-green-200 bg-green-50/50',
                     Overdue: 'border-red-200 bg-red-50/50',
@@ -402,7 +414,7 @@ export function ControlDetailPanel({
                   </p>
                 </div>
               ) : (
-                evidence.map((ev: any) => (
+                evidence.map((ev: EvidenceItem) => (
                   <div
                     key={ev.id}
                     className="flex items-center justify-between p-3 rounded-xl border border-gray-100 bg-gray-50"
@@ -443,7 +455,7 @@ export function ControlDetailPanel({
                   </p>
                 </div>
               ) : (
-                relatedPolicies.map((p: any) => {
+                relatedPolicies.map((p: Policy) => {
                   const statusColors: Record<string, string> = {
                     PUBLISHED: 'bg-green-50 text-green-700',
                     DRAFT: 'bg-gray-100 text-gray-600',

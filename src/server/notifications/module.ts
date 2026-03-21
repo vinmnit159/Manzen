@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- legacy: to be typed progressively */
 import { createPgExecutor, getPostgresPool, readPostgresRuntimeConfig } from '@/server/db/postgres';
 import type { RouteRegistrar } from '@/server/risk-engine/module';
 import { createNotificationHandlers, type NotificationHandlerDeps } from './handlers';

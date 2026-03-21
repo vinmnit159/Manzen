@@ -95,11 +95,11 @@ export function TestsPage() {
       throw new Error('Failed to load tests');
     },
     staleTime: STALE.TESTS,
-      retry: (count: number, err: any) => {
-        if (err?.statusCode === 401) { clearAuthSession(); navigate('/login'); return false; }
+      retry: (count: number, err: unknown) => {
+        if ((err as { statusCode?: number })?.statusCode === 401) { clearAuthSession(); navigate('/login'); return false; }
         return count < 1;
       },
-  } as any);
+  });
 
   // ── Summary query ──
   const { data: summary } = useQuery({
@@ -192,12 +192,16 @@ export function TestsPage() {
 
   const tests: TestRecord[] = (testsData ?? []) as TestRecord[];
 
-  // Client-side sort
+  // Client-side sort — cast through unknown to allow dynamic key access
   const sorted = [...tests].sort((a, b) => {
-    const aVal = (a as any)[sortColumn];
-    const bVal = (b as any)[sortColumn];
+    const aVal = (a as unknown as Record<string, unknown>)[sortColumn];
+    const bVal = (b as unknown as Record<string, unknown>)[sortColumn];
     if (aVal == null || bVal == null) return 0;
-    const cmp = typeof aVal === 'string' ? aVal.localeCompare(bVal) : aVal - bVal;
+    const cmp = typeof aVal === 'string' && typeof bVal === 'string'
+      ? aVal.localeCompare(bVal)
+      : typeof aVal === 'number' && typeof bVal === 'number'
+        ? aVal - bVal
+        : 0;
     return sortDir === 'desc' ? -cmp : cmp;
   });
 

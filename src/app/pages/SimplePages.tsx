@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- legacy: to be typed progressively */
 // This file contains simple page components for pages that don't need complex layouts
 import React from "react";
 import { PageTemplate } from "@/app/components/PageTemplate";

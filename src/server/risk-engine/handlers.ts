@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- legacy: to be typed progressively */
 import { riskEngineFoundationService } from '@/domain/risk-engine/service';
 import { getRiskEngineRuntimeService } from './runtime';
 import { riskEngineContracts } from './contracts';

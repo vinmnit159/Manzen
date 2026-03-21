@@ -201,8 +201,8 @@ export function EngineerAIntegrationCard({
       {connected && accounts.map((account) => (
         <div key={account.id} className="mb-3 flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 p-3">
           <div>
-            <p className="text-sm font-medium text-gray-900">{(account.metadata as any)?.label || config.name}</p>
-            <p className="text-xs text-gray-400">{(account.metadata as any)?.accountId || (account.metadata as any)?.tenant || 'Active account'}</p>
+            <p className="text-sm font-medium text-gray-900">{(account.metadata?.['label'] as string | undefined) || config.name}</p>
+            <p className="text-xs text-gray-400">{(account.metadata?.['accountId'] as string | undefined) || (account.metadata?.['tenant'] as string | undefined) || 'Active account'}</p>
           </div>
           <div className="flex flex-shrink-0 items-center gap-2">
             <Button variant="outline" size="sm" onClick={() => handleScan(account.id)} disabled={scanningId === account.id}>

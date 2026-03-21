@@ -7,6 +7,47 @@ export type AuditStatus  = 'DRAFT' | 'PLANNED' | 'IN_PROGRESS' | 'COMPLETED';
 export type AuditControlStatus = 'PENDING' | 'COMPLIANT' | 'NON_COMPLIANT' | 'NOT_APPLICABLE';
 export type FindingSeverity = 'MINOR' | 'MAJOR' | 'OBSERVATION' | 'OFI';
 
+// ── Nested item shapes returned by the API inside control sub-objects ─────────
+
+export interface ControlEvidenceItem {
+  id: string;
+  type: string;
+  fileName?: string | null;
+  fileUrl?: string | null;
+  automated?: boolean;
+  createdAt: string;
+}
+
+export interface ControlRiskItem {
+  id: string;
+  title: string;
+  status: string;
+  impact?: string | null;
+}
+
+export interface ControlRiskMappingItem {
+  risk: ControlRiskItem;
+}
+
+export interface ControlTestItem {
+  id: string;
+  name: string;
+  status: string;
+  completedAt?: string | null;
+}
+
+export interface ControlTestMappingItem {
+  test: ControlTestItem;
+}
+
+export interface ControlFindingItem {
+  id: string;
+  severity: string;
+  status: string;
+  description?: string;
+  remediation?: string;
+}
+
 export interface AuditSnapshot {
   id:                    string;
   auditId:               string;
@@ -56,10 +97,10 @@ export interface AuditControlRecord {
     title:        string;
     status:       string;
     description?: string;
-    evidence?:    any[];
-    riskMappings?: any[];
-    testMappings?: any[];
-    findings?:    any[];
+    evidence?:    ControlEvidenceItem[];
+    riskMappings?: ControlRiskMappingItem[];
+    testMappings?: ControlTestMappingItem[];
+    findings?:    ControlFindingItem[];
   };
 }
 

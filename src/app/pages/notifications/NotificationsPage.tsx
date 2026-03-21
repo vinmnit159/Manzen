@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- legacy: to be typed progressively */
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Bell, Loader2 } from 'lucide-react';
