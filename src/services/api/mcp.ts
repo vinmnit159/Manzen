@@ -55,14 +55,14 @@ export const mcpService = {
   // Settings
   async getSettings(): Promise<McpSettings> {
     const res = await apiClient.get<{ success: boolean; data: McpSettings }>(
-      '/mcp/settings',
+      '/api/mcp/settings',
     );
     return res.data;
   },
 
   async updateSettings(data: McpSettingsUpdate): Promise<McpSettings> {
     const res = await apiClient.put<{ success: boolean; data: McpSettings }>(
-      '/mcp/settings',
+      '/api/mcp/settings',
       data,
     );
     return res.data;
@@ -71,7 +71,7 @@ export const mcpService = {
   // API Keys
   async listKeys(): Promise<McpApiKey[]> {
     const res = await apiClient.get<{ success: boolean; data: McpApiKey[] }>(
-      '/mcp/keys',
+      '/api/mcp/keys',
     );
     return res.data;
   },
@@ -83,7 +83,7 @@ export const mcpService = {
       success: boolean;
       data: McpApiKeyCreateResponse;
       warning: string;
-    }>('/mcp/keys', data);
+    }>('/api/mcp/keys', data);
     return { data: res.data, warning: res.warning };
   },
 
