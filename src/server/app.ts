@@ -39,6 +39,19 @@ export async function createServerApp() {
   // and carries: sub/id, email, role, organizationId.
   app.addHook('preHandler', authenticate);
 
+  // ── Validation-error handler ───────────────────────────────────────────────
+  // Fastify surfaces AJV schema validation failures as errors with
+  // statusCode 400.  Without an explicit error handler the default behaviour
+  // returns a generic 500, losing the descriptive validation message.
+  app.setErrorHandler((error: { statusCode?: number; message?: string }, _request, reply) => {
+    const status = error.statusCode ?? 500;
+    reply.code(status).send({
+      statusCode: status,
+      error: status === 400 ? 'Bad Request' : 'Internal Server Error',
+      message: error.message ?? 'An unexpected error occurred',
+    });
+  });
+
   // ── Route modules ──────────────────────────────────────────────────────────
 
   registerRiskEngineModule({
@@ -46,6 +59,7 @@ export async function createServerApp() {
       app.route({
         method: definition.method,
         url: definition.url,
+        schema: definition.schema,
         handler: async (request) => definition.handler({
           body: (request as { body?: unknown }).body,
           params: (request as { params?: Record<string, string> }).params,
@@ -60,6 +74,7 @@ export async function createServerApp() {
       app.route({
         method: definition.method,
         url: definition.url,
+        schema: definition.schema,
         handler: async (request) => definition.handler({
           body: (request as { body?: unknown }).body,
           params: (request as { params?: Record<string, string> }).params,
@@ -101,6 +116,7 @@ export async function createServerApp() {
       app.route({
         method: definition.method,
         url: definition.url,
+        schema: definition.schema,
         handler: async (request) => definition.handler({
           body: (request as { body?: unknown }).body,
           params: (request as { params?: Record<string, string> }).params,
@@ -115,6 +131,7 @@ export async function createServerApp() {
       app.route({
         method: definition.method,
         url: definition.url,
+        schema: definition.schema,
         handler: async (request) => definition.handler({
           body: (request as { body?: unknown }).body,
           params: (request as { params?: Record<string, string> }).params,

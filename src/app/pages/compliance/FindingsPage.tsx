@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   AlertTriangle,
   ArrowRight,
@@ -20,58 +20,21 @@ import {
 import { PageTemplate } from '@/app/components/PageTemplate';
 import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
-import {
-  findingsService,
-  FindingRecord,
-  FindingSeverity,
-  FindingStatus,
-} from '@/services/api/findings';
-import {
-  remediationService,
-  RemediationAction,
-  RemediationActionStatus,
-} from '@/services/api/remediation';
-import {
-  aiService,
-  EvidenceSynthesisResult,
-  ControlCandidate,
-} from '@/services/api/ai';
+import { FindingRecord, FindingSeverity, FindingStatus } from '@/services/api/findings';
+import { remediationService, RemediationAction, RemediationActionStatus } from '@/services/api/remediation';
+import { ControlCandidate } from '@/services/api/ai';
 import { useCanAudit, useCurrentUser } from '@/hooks/useCurrentUser';
-
-function fmt(iso: string | null | undefined) {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-}
-
-function isOverdue(finding: FindingRecord) {
-  if (!finding.dueAt || finding.status === 'CLOSED') return false;
-  return new Date(finding.dueAt) < new Date();
-}
-
-const SEVERITY_META: Record<FindingSeverity, { label: string; color: string }> =
-  {
-    CRITICAL: { label: 'Critical', color: 'bg-red-100 text-red-700' },
-    HIGH: { label: 'High', color: 'bg-orange-100 text-orange-700' },
-    MEDIUM: { label: 'Medium', color: 'bg-amber-100 text-amber-700' },
-    LOW: { label: 'Low', color: 'bg-blue-100 text-blue-700' },
-  };
-
-const STATUS_META: Record<FindingStatus, { label: string; color: string }> = {
-  OPEN: { label: 'Open', color: 'bg-red-50 text-red-700' },
-  IN_REMEDIATION: {
-    label: 'In Remediation',
-    color: 'bg-amber-50 text-amber-700',
-  },
-  READY_FOR_REVIEW: {
-    label: 'Ready for Review',
-    color: 'bg-blue-50 text-blue-700',
-  },
-  CLOSED: { label: 'Closed', color: 'bg-green-50 text-green-700' },
-};
+import {
+  fmt,
+  isOverdue,
+  SEVERITY_META,
+  STATUS_META,
+  useFindingsData,
+  useFindingDetailActions,
+  useRemediationActions,
+  useEvidenceSynthesis,
+  type EvidenceSynthesisResult,
+} from './useFindingsData';
 
 function SeverityBadge({ severity }: { severity: FindingSeverity }) {
   const meta = SEVERITY_META[severity] ?? SEVERITY_META.LOW;
@@ -122,36 +85,7 @@ function RemediationPanel({
   finding: FindingRecord;
   canApprove: boolean;
 }) {
-  const qc = useQueryClient();
-  const [actionError, setActionError] = useState<string | null>(null);
-
-  const {
-    data: actions = [],
-    isLoading,
-    refetch,
-  } = useQuery({
-    queryKey: ['remediation-actions', finding.id],
-    queryFn: () => remediationService.listActions(finding.id),
-    refetchInterval: (query) => {
-      // Poll while any action is in a transitioning state
-      const transitioning = (query.state.data ?? []).some(
-        (a: RemediationAction) => ['PENDING', 'EXECUTING'].includes(a.status),
-      );
-      return transitioning ? 3000 : false;
-    },
-  });
-
-  async function doAction(fn: () => Promise<void>, _successMessage?: string) {
-    setActionError(null);
-    try {
-      await fn();
-      await refetch();
-      qc.invalidateQueries({ queryKey: ['findings'] });
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Action failed';
-      setActionError(msg);
-    }
-  }
+  const { actions, isLoading, actionError, doAction } = useRemediationActions(finding.id);
 
   if (isLoading) {
     return (
@@ -406,23 +340,27 @@ function EvidenceSynthesisPanel({ findingId }: { findingId: string }) {
     null,
   );
 
-  const synthesizeMutation = useMutation({
-    mutationFn: (summary: string) =>
-      aiService.synthesizeEvidence(findingId, summary),
-    onSuccess: (data) => {
-      setResult(data.data);
-      setShowInput(false);
-    },
-  });
+  const { synthesizeMutation: rawSynthesize, acceptMutation, dismissMutation: rawDismiss } =
+    useEvidenceSynthesis(findingId);
 
-  const acceptMutation = useMutation({
-    mutationFn: (id: string) => aiService.acceptSuggestion(id),
-  });
+  const synthesizeMutation = {
+    ...rawSynthesize,
+    mutate: (summary: string) =>
+      rawSynthesize.mutate(summary, {
+        onSuccess: (data: any) => {
+          setResult(data.data);
+          setShowInput(false);
+        },
+      }),
+  };
 
-  const dismissMutation = useMutation({
-    mutationFn: (id: string) => aiService.dismissSuggestion(id),
-    onSuccess: () => setResult(null),
-  });
+  const dismissMutation = {
+    ...rawDismiss,
+    mutate: (id: string) =>
+      rawDismiss.mutate(id, {
+        onSuccess: () => setResult(null),
+      }),
+  };
 
   if (!showInput && !result) {
     return (
@@ -608,7 +546,6 @@ function FindingDetailPanel({
   onClose: () => void;
   onUpdated: (finding: FindingRecord) => void;
 }) {
-  const qc = useQueryClient();
   const currentUser = useCurrentUser();
   const canAudit = useCanAudit();
   const [dueAt, setDueAt] = useState(
@@ -618,59 +555,19 @@ function FindingDetailPanel({
     finding.remediationOwner ?? '',
   );
   const [note, setNote] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const canEdit = canAudit;
 
-  async function updateStatus(status: FindingStatus) {
-    setSaving(true);
-    setError(null);
-    try {
-      const updated = await findingsService.update(finding.id, { status });
-      qc.invalidateQueries({ queryKey: ['findings'] });
-      onUpdated(updated);
-    } catch (err: any) {
-      setError(err?.message ?? 'Update failed');
-    } finally {
-      setSaving(false);
-    }
-  }
+  const { saving, error, updateStatus, saveMetadata: saveMetadataFn, addRemediation: addRemediationFn } =
+    useFindingDetailActions(finding, onUpdated);
 
   async function saveMetadata() {
-    setSaving(true);
-    setError(null);
-    try {
-      const updated = await findingsService.update(finding.id, {
-        dueAt: dueAt ? new Date(dueAt).toISOString() : null,
-        remediationOwner: remediationOwner || null,
-      });
-      qc.invalidateQueries({ queryKey: ['findings'] });
-      onUpdated(updated);
-    } catch (err: any) {
-      setError(err?.message ?? 'Save failed');
-    } finally {
-      setSaving(false);
-    }
+    await saveMetadataFn({ dueAt, remediationOwner });
   }
 
   async function addRemediation() {
-    if (!note.trim()) return;
-    setSaving(true);
-    setError(null);
-    try {
-      const updated = await findingsService.addRemediation(
-        finding.id,
-        note.trim(),
-      );
-      setNote('');
-      qc.invalidateQueries({ queryKey: ['findings'] });
-      onUpdated(updated);
-    } catch (err: any) {
-      setError(err?.message ?? 'Failed to add remediation note');
-    } finally {
-      setSaving(false);
-    }
+    await addRemediationFn(note);
+    setNote('');
   }
 
   return (
@@ -931,44 +828,11 @@ export function FindingsPage() {
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<FindingRecord | null>(null);
 
-  const {
-    data: findings = [],
-    isLoading,
-    error,
-  } = useQuery<FindingRecord[]>({
-    queryKey: ['findings', { filterSeverity, filterStatus }],
-    queryFn: () =>
-      findingsService.list({
-        severity: filterSeverity || undefined,
-        status: filterStatus || undefined,
-      }),
+  const { visible, stats, isLoading, error } = useFindingsData({
+    filterSeverity,
+    filterStatus,
+    search,
   });
-
-  const visible = useMemo(
-    () =>
-      findings.filter((finding) => {
-        if (!search) return true;
-        const query = search.toLowerCase();
-        return [
-          finding.title,
-          finding.description ?? '',
-          finding.control?.isoReference ?? '',
-          finding.control?.title ?? '',
-          finding.asset?.name ?? '',
-        ].some((value) => value.toLowerCase().includes(query));
-      }),
-    [findings, search],
-  );
-
-  const stats = {
-    total: findings.length,
-    open: findings.filter((finding) => finding.status === 'OPEN').length,
-    inRemediation: findings.filter(
-      (finding) => finding.status === 'IN_REMEDIATION',
-    ).length,
-    closed: findings.filter((finding) => finding.status === 'CLOSED').length,
-    overdue: findings.filter(isOverdue).length,
-  };
 
   return (
     <PageTemplate
