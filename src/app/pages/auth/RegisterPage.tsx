@@ -251,7 +251,7 @@ export function RegisterPage() {
             Register Organization
           </h1>
           <p className="text-gray-500 mt-1 text-sm">
-            Set up your ISMS workspace with ISO 27001 controls
+            AI-driven governance, compliance, risk, and audit readiness in one platform.
           </p>
         </div>
 
