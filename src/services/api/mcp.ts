@@ -96,7 +96,7 @@ export const mcpService = {
     const res = await apiClient.get<{
       success: boolean;
       data: McpExecutionLog[];
-    }>(`/mcp/logs?limit=${limit}`);
+    }>(`/api/mcp/logs?limit=${limit}`);
     return res.data;
   },
 };
