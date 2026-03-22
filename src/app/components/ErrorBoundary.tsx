@@ -21,8 +21,24 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    // Log to console in development; wire up to Sentry/Datadog in production
     console.error('[ErrorBoundary] Uncaught error:', error, info.componentStack);
+
+    if (import.meta.env.PROD) {
+      try {
+        navigator.sendBeacon(
+          `${import.meta.env.VITE_API_URL ?? ''}/api/client-errors`,
+          JSON.stringify({
+            message: error.message,
+            stack: error.stack?.slice(0, 2000),
+            componentStack: info.componentStack?.slice(0, 2000),
+            url: window.location.href,
+            timestamp: new Date().toISOString(),
+          }),
+        );
+      } catch {
+        // Beacon failed — don't break the error boundary
+      }
+    }
   }
 
   render() {

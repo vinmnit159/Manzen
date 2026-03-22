@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Card } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
 import { integrationsService, Integration } from '@/services/api/integrations';
+import { useConfirmDialog } from '@/app/hooks/useConfirmDialog';
 
 function GoogleDriveIcon({ className }: { className?: string }) {
   return (
@@ -27,6 +28,7 @@ export function GoogleDriveCard({
   onToast: (type: 'success' | 'error', msg: string) => void;
   onDisconnect: () => void;
 }) {
+  const confirm = useConfirmDialog();
   const [disconnecting, setDisconnecting] = useState(false);
   const isConnected = !!driveIntegration;
 
@@ -35,7 +37,13 @@ export function GoogleDriveCard({
   };
 
   const handleDisconnect = async () => {
-    if (!window.confirm('Disconnect Google Drive? Future uploads will revert to local storage.')) return;
+    const confirmed = await confirm({
+      title: 'Disconnect Google Drive',
+      description: 'Disconnect Google Drive? Future uploads will revert to local storage.',
+      confirmLabel: 'Disconnect',
+      variant: 'destructive',
+    });
+    if (!confirmed) return;
     setDisconnecting(true);
     try {
       await integrationsService.disconnectDrive();

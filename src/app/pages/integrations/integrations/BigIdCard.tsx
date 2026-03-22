@@ -3,6 +3,7 @@ import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
 import { bigIdService, BigIdIntegrationRecord } from '@/services/api/bigid';
+import { useConfirmDialog } from '@/app/hooks/useConfirmDialog';
 
 function BigIdConnectModal({
   onClose,
@@ -102,6 +103,7 @@ export function BigIdCard({
   onAccountRemoved: (integrationId: string) => void;
   onToast: (type: 'success' | 'error', msg: string) => void;
 }) {
+  const confirm = useConfirmDialog();
   const [scanningId, setScanningId] = useState<string | null>(null);
   const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
   const [showConnectModal, setShowConnectModal] = useState(false);
@@ -120,7 +122,13 @@ export function BigIdCard({
 
   async function handleDisconnect(integrationId: string, label: string | null, baseUrl: string) {
     const name = label ?? baseUrl;
-    if (!window.confirm(`Disconnect BigID (${name})? Automated data-privacy tests will stop running.`)) return;
+    const confirmed = await confirm({
+      title: 'Disconnect BigID',
+      description: `Disconnect BigID (${name})? Automated data-privacy tests will stop running.`,
+      confirmLabel: 'Disconnect',
+      variant: 'destructive',
+    });
+    if (!confirmed) return;
     setDisconnectingId(integrationId);
     try {
       await bigIdService.disconnect(integrationId);

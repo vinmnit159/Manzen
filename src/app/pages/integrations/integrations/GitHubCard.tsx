@@ -3,6 +3,7 @@ import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
 import { integrationsService, Integration, GitHubRepo } from '@/services/api/integrations';
+import { useConfirmDialog } from '@/app/hooks/useConfirmDialog';
 
 function GitHubIcon({ className }: { className?: string }) {
   return (
@@ -101,13 +102,20 @@ export function GitHubCard({
   onDisconnect: () => void;
   onToast: (type: 'success' | 'error', msg: string) => void;
 }) {
+  const confirm = useConfirmDialog();
   const [disconnecting, setDisconnecting] = useState(false);
   const [showRepos, setShowRepos] = useState(false);
   const [scanning, setScanning] = useState(false);
   const isConnected = !!githubIntegration;
 
   const handleDisconnect = async () => {
-    if (!window.confirm('Disconnect GitHub? Evidence collection will stop.')) return;
+    const confirmed = await confirm({
+      title: 'Disconnect GitHub',
+      description: 'Disconnect GitHub? Evidence collection will stop.',
+      confirmLabel: 'Disconnect',
+      variant: 'destructive',
+    });
+    if (!confirmed) return;
     setDisconnecting(true);
     try {
       await integrationsService.disconnect();

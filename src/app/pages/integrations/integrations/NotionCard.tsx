@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Card } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
 import { notionService, NotionStatus } from '@/services/api/notion';
+import { useConfirmDialog } from '@/app/hooks/useConfirmDialog';
 
 function NotionIcon({ className }: { className?: string }) {
   return (
@@ -45,6 +46,7 @@ export function NotionCard({
   onDisconnected: () => void;
   onToast: (type: 'success' | 'error', msg: string) => void;
 }) {
+  const confirm = useConfirmDialog();
   const [disconnecting, setDisconnecting] = useState(false);
 
   const handleConnect = async () => {
@@ -56,7 +58,13 @@ export function NotionCard({
   };
 
   const handleDisconnect = async () => {
-    if (!window.confirm('Disconnect Notion?')) return;
+    const confirmed = await confirm({
+      title: 'Disconnect Notion',
+      description: 'Disconnect Notion?',
+      confirmLabel: 'Disconnect',
+      variant: 'destructive',
+    });
+    if (!confirmed) return;
     setDisconnecting(true);
     try {
       await notionService.disconnect();

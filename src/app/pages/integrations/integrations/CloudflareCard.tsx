@@ -3,6 +3,7 @@ import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
 import { cloudflareService, CloudflareAccountRecord } from '@/services/api/cloudflare';
+import { useConfirmDialog } from '@/app/hooks/useConfirmDialog';
 
 function CloudflareIcon({ className }: { className?: string }) {
   return (
@@ -112,6 +113,7 @@ export function CloudflareCard({
   onAccountRemoved: (accountId: string) => void;
   onToast: (type: 'success' | 'error', msg: string) => void;
 }) {
+  const confirm = useConfirmDialog();
   const [showModal, setShowModal] = useState(false);
   const [scanningId, setScanningId] = useState<string | null>(null);
   const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
@@ -129,7 +131,13 @@ export function CloudflareCard({
   }
 
   async function handleDisconnect(accountId: string, label: string | null) {
-    if (!window.confirm(`Disconnect Cloudflare account ${label ?? accountId}? Automated tests will stop running.`)) return;
+    const confirmed = await confirm({
+      title: 'Disconnect Cloudflare',
+      description: `Disconnect Cloudflare account ${label ?? accountId}? Automated tests will stop running.`,
+      confirmLabel: 'Disconnect',
+      variant: 'destructive',
+    });
+    if (!confirmed) return;
     setDisconnectingId(accountId);
     try {
       await cloudflareService.disconnect(accountId);

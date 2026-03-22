@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- legacy: to be typed progressively */
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
+import { useConfirmDialog } from '@/app/hooks/useConfirmDialog';
 import { Button } from '@/app/components/ui/button';
 import {
   Calendar,
@@ -107,6 +108,7 @@ export function AuditDetailPanel({
   onRefresh: () => void;
 }) {
   const navigate = useNavigate();
+  const confirm = useConfirmDialog();
   const [acting, setActing] = useState(false);
 
   async function handleStart() {
@@ -122,7 +124,13 @@ export function AuditDetailPanel({
   }
 
   async function handleClose() {
-    if (!window.confirm('Mark this audit as Completed?')) return;
+    const confirmed = await confirm({
+      title: 'Complete Audit',
+      description: 'Mark this audit as Completed?',
+      confirmLabel: 'Complete',
+      variant: 'default',
+    });
+    if (!confirmed) return;
     setActing(true);
     try {
       await auditsService.close(audit.id);

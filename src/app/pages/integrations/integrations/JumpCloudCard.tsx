@@ -3,6 +3,7 @@ import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
 import { jumpCloudService, JumpCloudIntegrationRecord } from '@/services/api/jumpcloud';
+import { useConfirmDialog } from '@/app/hooks/useConfirmDialog';
 
 function JumpCloudConnectModal({ onClose, onConnected }: {
   onClose: () => void;
@@ -73,6 +74,7 @@ export function JumpCloudCard({
   onAccountRemoved: (id: string) => void;
   onToast: (type: 'success' | 'error', msg: string) => void;
 }) {
+  const confirm = useConfirmDialog();
   const [showModal, setShowModal] = useState(false);
   const [scanningId, setScanningId] = useState<string | null>(null);
   const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
@@ -86,7 +88,13 @@ export function JumpCloudCard({
   }
 
   async function handleDisconnect(id: string, label: string | null) {
-    if (!window.confirm(`Disconnect JumpCloud${label ? ` (${label})` : ''}? Automated tests will stop running.`)) return;
+    const confirmed = await confirm({
+      title: 'Disconnect JumpCloud',
+      description: `Disconnect JumpCloud${label ? ` (${label})` : ''}? Automated tests will stop running.`,
+      confirmLabel: 'Disconnect',
+      variant: 'destructive',
+    });
+    if (!confirmed) return;
     setDisconnectingId(id);
     try { await jumpCloudService.disconnect(id); onAccountRemoved(id); onToast('success', 'JumpCloud disconnected'); }
     catch { onToast('error', 'Failed to disconnect JumpCloud'); }

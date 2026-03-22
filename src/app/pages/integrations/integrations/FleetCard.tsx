@@ -3,6 +3,7 @@ import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
 import { fleetService, FleetIntegrationRecord } from '@/services/api/fleet';
+import { useConfirmDialog } from '@/app/hooks/useConfirmDialog';
 
 function FleetIcon({ className }: { className?: string }) {
   return (
@@ -121,6 +122,7 @@ export function FleetCard({
   onAccountRemoved: (integrationId: string) => void;
   onToast: (type: 'success' | 'error', msg: string) => void;
 }) {
+  const confirm = useConfirmDialog();
   const [showModal, setShowModal] = useState(false);
   const [scanningId, setScanningId] = useState<string | null>(null);
   const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
@@ -138,7 +140,13 @@ export function FleetCard({
   }
 
   async function handleDisconnect(integrationId: string, label: string | null, baseUrl: string) {
-    if (!window.confirm(`Disconnect Fleet${label ? ` (${label})` : ` (${baseUrl})`}? Automated endpoint tests will stop running.`)) return;
+    const confirmed = await confirm({
+      title: 'Disconnect Fleet',
+      description: `Disconnect Fleet${label ? ` (${label})` : ` (${baseUrl})`}? Automated endpoint tests will stop running.`,
+      confirmLabel: 'Disconnect',
+      variant: 'destructive',
+    });
+    if (!confirmed) return;
     setDisconnectingId(integrationId);
     try {
       await fleetService.disconnect(integrationId);

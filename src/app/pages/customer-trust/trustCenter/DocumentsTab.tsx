@@ -6,10 +6,12 @@ import { Card } from '@/app/components/ui/card';
 import { trustCenterService, TrustDocument } from '@/services/api/trustCenter';
 import { DOC_CATEGORY_LABELS, fmt } from './helpers';
 import { AddDocumentModal } from './AddDocumentModal';
+import { useConfirmDialog } from '@/app/hooks/useConfirmDialog';
 
 // ── Documents Tab ─────────────────────────────────────────────────────────────
 
 export function DocumentsTab() {
+  const confirm = useConfirmDialog();
   const qc = useQueryClient();
   const [showModal, setShowModal] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
@@ -33,7 +35,13 @@ export function DocumentsTab() {
   }
 
   async function handleDelete(id: string) {
-    if (!window.confirm('Delete this document?')) return;
+    const confirmed = await confirm({
+      title: 'Delete Document',
+      description: 'Delete this document?',
+      confirmLabel: 'Delete',
+      variant: 'destructive',
+    });
+    if (!confirmed) return;
     try {
       await trustCenterService.deleteDocument(id);
       qc.invalidateQueries({ queryKey: ['trust-documents'] });

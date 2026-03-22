@@ -32,7 +32,7 @@ vi.mock('@tanstack/react-query', () => ({
 }));
 
 // Track setState calls to verify page resets
-let latestSetPage: ((p: number) => void) | undefined;
+let _latestSetPage: ((p: number) => void) | undefined;
 let pageValue = 1;
 
 vi.mock('react', async () => {
@@ -44,7 +44,7 @@ vi.mock('react', async () => {
       if (typeof init === 'number') {
         pageValue = init;
         const setter = (v: number) => { pageValue = v; };
-        latestSetPage = setter;
+        _latestSetPage = setter;
         return [pageValue, setter];
       }
       // For sort column (string init)
@@ -64,7 +64,7 @@ import { usePaginatedList } from '@/app/hooks/usePaginatedList';
 
 const defaults = { search: '', status: '' };
 
-function makeHook() {
+function useTestHook() {
   return usePaginatedList({
     queryKey: (p) => ['tests', p],
     queryFn: async () => [],
@@ -81,18 +81,18 @@ beforeEach(() => {
 
 describe('usePaginatedList — default state', () => {
   it('returns page 1 and default pageSize 25', () => {
-    const result = makeHook();
+    const result = useTestHook();
     expect(result.page).toBe(1);
     expect(result.pageSize).toBe(25);
   });
 
   it('returns empty filters matching defaults', () => {
-    const result = makeHook();
+    const result = useTestHook();
     expect(result.filters).toEqual(defaults);
   });
 
   it('defaults sortColumn to empty and sortDir to asc', () => {
-    const result = makeHook();
+    const result = useTestHook();
     expect(result.sortColumn).toBe('');
     expect(result.sortDir).toBe('asc');
   });
@@ -100,7 +100,7 @@ describe('usePaginatedList — default state', () => {
 
 describe('usePaginatedList — updateFilter resets page', () => {
   it('calls urlUpdate and resets page to 1', () => {
-    const result = makeHook();
+    const result = useTestHook();
     result.updateFilter({ search: 'hello' });
 
     expect(mockUrlUpdate).toHaveBeenCalledWith({ search: 'hello' });
@@ -110,7 +110,7 @@ describe('usePaginatedList — updateFilter resets page', () => {
 
 describe('usePaginatedList — resetFilters', () => {
   it('calls urlReset and resets page to 1', () => {
-    const result = makeHook();
+    const result = useTestHook();
     result.resetFilters();
 
     expect(mockUrlReset).toHaveBeenCalled();
@@ -120,14 +120,14 @@ describe('usePaginatedList — resetFilters', () => {
 
 describe('usePaginatedList — toggleSort', () => {
   it('sets asc on a new column', () => {
-    const result = makeHook();
+    const result = useTestHook();
     result.toggleSort('name');
     // First toggle on a new column should be asc (default)
     expect(result.sortDir).toBe('asc');
   });
 
   it('returns hasNextPage false when rows are empty', () => {
-    const result = makeHook();
+    const result = useTestHook();
     expect(result.hasNextPage).toBe(false);
   });
 });

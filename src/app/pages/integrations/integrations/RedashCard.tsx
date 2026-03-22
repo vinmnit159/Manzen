@@ -3,6 +3,7 @@ import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
 import { redashService, RedashIntegrationRecord } from '@/services/api/redash';
+import { useConfirmDialog } from '@/app/hooks/useConfirmDialog';
 
 function RedashIcon({ className }: { className?: string }) {
   return (
@@ -123,6 +124,7 @@ export function RedashCard({
   onAccountRemoved: (integrationId: string) => void;
   onToast: (type: 'success' | 'error', msg: string) => void;
 }) {
+  const confirm = useConfirmDialog();
   const [showModal, setShowModal] = useState(false);
   const [scanningId, setScanningId] = useState<string | null>(null);
   const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
@@ -140,7 +142,13 @@ export function RedashCard({
   }
 
   async function handleDisconnect(integrationId: string, label: string | null, baseUrl: string) {
-    if (!window.confirm(`Disconnect Redash${label ? ` (${label})` : ` (${baseUrl})`}? Automated tests will stop running.`)) return;
+    const confirmed = await confirm({
+      title: 'Disconnect Redash',
+      description: `Disconnect Redash${label ? ` (${label})` : ` (${baseUrl})`}? Automated tests will stop running.`,
+      confirmLabel: 'Disconnect',
+      variant: 'destructive',
+    });
+    if (!confirmed) return;
     setDisconnectingId(integrationId);
     try {
       await redashService.disconnect(integrationId);

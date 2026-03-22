@@ -4,6 +4,7 @@ import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
 import { testsService, type WorkflowIntegrationProvider } from '@/services/api/tests';
 import { EngineerAIntegrationRecord } from '@/services/api/engineer-a-factory';
+import { useConfirmDialog } from '@/app/hooks/useConfirmDialog';
 
 export type WorkflowConfigResult = {
   provider: WorkflowIntegrationProvider;
@@ -61,6 +62,7 @@ export function EngineerAIntegrationCard({
     baseUrl: string;
   }) => WorkflowConfigResult | null;
 }) {
+  const confirm = useConfirmDialog();
   const [accounts, setAccounts] = useState<EngineerAIntegrationRecord[]>([]);
   const [showConnect, setShowConnect] = useState(false);
   const [apiKey, setApiKey] = useState('');
@@ -139,7 +141,13 @@ export function EngineerAIntegrationCard({
   }
 
   async function handleDisconnect(integrationId: string) {
-    if (!window.confirm(`Disconnect ${config.name}? Automated tests will stop running.`)) return;
+    const confirmed = await confirm({
+      title: `Disconnect ${config.name}`,
+      description: `Disconnect ${config.name}? Automated tests will stop running.`,
+      confirmLabel: 'Disconnect',
+      variant: 'destructive',
+    });
+    if (!confirmed) return;
     setDisconnectingId(integrationId);
     try {
       await config.service.disconnect(integrationId);

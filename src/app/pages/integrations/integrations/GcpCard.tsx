@@ -3,6 +3,7 @@ import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
 import { gcpService, GcpIntegrationRecord } from '@/services/api/gcp';
+import { useConfirmDialog } from '@/app/hooks/useConfirmDialog';
 
 function GcpConnectModal({
   onClose,
@@ -68,6 +69,7 @@ export function GcpCard({
   onAccountRemoved: (id: string) => void;
   onToast: (type: 'success' | 'error', msg: string) => void;
 }) {
+  const confirm = useConfirmDialog();
   const [scanningId, setScanningId] = useState<string | null>(null);
   const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
   const [showConnectModal, setShowConnectModal] = useState(false);
@@ -81,7 +83,13 @@ export function GcpCard({
   }
 
   async function handleDisconnect(id: string, label: string | null) {
-    if (!window.confirm(`Disconnect GCP (${label ?? id})? Automated cloud security tests will stop running.`)) return;
+    const confirmed = await confirm({
+      title: 'Disconnect GCP',
+      description: `Disconnect GCP (${label ?? id})? Automated cloud security tests will stop running.`,
+      confirmLabel: 'Disconnect',
+      variant: 'destructive',
+    });
+    if (!confirmed) return;
     setDisconnectingId(id);
     try { await gcpService.disconnect(id); onAccountRemoved(id); onToast('success', 'GCP disconnected'); }
     catch { onToast('error', 'Failed to disconnect GCP'); }

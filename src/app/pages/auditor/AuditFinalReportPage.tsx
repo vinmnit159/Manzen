@@ -43,6 +43,7 @@ import {
   AuditSnapshot,
 } from '@/services/api/audits';
 import { useCanAudit } from '@/hooks/useCurrentUser';
+import { useConfirmDialog } from '@/app/hooks/useConfirmDialog';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -186,6 +187,7 @@ export function AuditFinalReportPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const canAudit = useCanAudit();
+  const confirm = useConfirmDialog();
 
   // Form state
   const [summary, setSummary] = useState('');
@@ -244,12 +246,13 @@ export function AuditFinalReportPage() {
 
   async function handleSignAndComplete() {
     if (!auditId) return;
-    if (
-      !window.confirm(
-        'Sign and complete this audit? This action is irreversible — the audit and all its data will be locked.',
-      )
-    )
-      return;
+    const confirmed = await confirm({
+      title: 'Sign and Complete Audit',
+      description: 'Sign and complete this audit? This action is irreversible — the audit and all its data will be locked.',
+      confirmLabel: 'Sign & Complete',
+      variant: 'destructive',
+    });
+    if (!confirmed) return;
     setSigning(true);
     setErr(null);
     try {

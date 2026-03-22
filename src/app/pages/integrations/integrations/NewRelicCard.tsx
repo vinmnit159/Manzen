@@ -3,6 +3,7 @@ import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
 import { newRelicService, NewRelicStatus } from '@/services/api/newrelic';
+import { useConfirmDialog } from '@/app/hooks/useConfirmDialog';
 
 function NewRelicIcon({ className }: { className?: string }) {
   return (
@@ -87,11 +88,18 @@ export function NewRelicCard({
   onDisconnected: () => void;
   onToast: (type: 'success' | 'error', msg: string) => void;
 }) {
+  const confirm = useConfirmDialog();
   const [disconnecting, setDisconnecting] = useState(false);
   const [showConnectModal, setShowConnectModal] = useState(false);
 
   const handleDisconnect = async () => {
-    if (!window.confirm('Disconnect New Relic?')) return;
+    const confirmed = await confirm({
+      title: 'Disconnect New Relic',
+      description: 'Disconnect New Relic?',
+      confirmLabel: 'Disconnect',
+      variant: 'destructive',
+    });
+    if (!confirmed) return;
     setDisconnecting(true);
     try {
       await newRelicService.disconnect();

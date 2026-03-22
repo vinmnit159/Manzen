@@ -3,6 +3,7 @@ import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
 import { bamboohrService, HRIntegrationRecord } from '@/services/api/bamboohr';
+import { useConfirmDialog } from '@/app/hooks/useConfirmDialog';
 
 function BambooHRIcon({ className }: { className?: string }) {
   return (
@@ -121,6 +122,7 @@ export function BambooHRCard({
   onAccountRemoved: (integrationId: string) => void;
   onToast: (type: 'success' | 'error', msg: string) => void;
 }) {
+  const confirm = useConfirmDialog();
   const [showModal, setShowModal] = useState(false);
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const [scanningId, setScanningId] = useState<string | null>(null);
@@ -149,7 +151,13 @@ export function BambooHRCard({
   }
 
   async function handleDisconnect(integrationId: string, label: string | null) {
-    if (!window.confirm(`Disconnect BambooHR${label ? ` (${label})` : ''}? Automated HR tests will stop running.`)) return;
+    const confirmed = await confirm({
+      title: 'Disconnect BambooHR',
+      description: `Disconnect BambooHR${label ? ` (${label})` : ''}? Automated HR tests will stop running.`,
+      confirmLabel: 'Disconnect',
+      variant: 'destructive',
+    });
+    if (!confirmed) return;
     setDisconnectingId(integrationId);
     try {
       await bamboohrService.disconnect(integrationId);

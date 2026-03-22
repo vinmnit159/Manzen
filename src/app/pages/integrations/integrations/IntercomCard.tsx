@@ -4,6 +4,7 @@ import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
 import { intercomService, IntercomIntegrationRecord } from '@/services/api/intercom';
+import { useConfirmDialog } from '@/app/hooks/useConfirmDialog';
 
 function IntercomIcon({ className }: { className?: string }) {
   return (
@@ -25,6 +26,7 @@ export function IntercomCard({
   onAccountRemoved: (integrationId: string) => void;
   onToast: (type: 'success' | 'error', msg: string) => void;
 }) {
+  const confirm = useConfirmDialog();
   const [scanningId, setScanningId] = useState<string | null>(null);
   const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
   const [syncingId, setSyncingId] = useState<string | null>(null);
@@ -52,7 +54,13 @@ export function IntercomCard({
   }
 
   async function handleDisconnect(integrationId: string, workspaceName: string | null) {
-    if (!window.confirm(`Disconnect Intercom${workspaceName ? ` (${workspaceName})` : ''}? Automated Policy tests will stop running.`)) return;
+    const confirmed = await confirm({
+      title: 'Disconnect Intercom',
+      description: `Disconnect Intercom${workspaceName ? ` (${workspaceName})` : ''}? Automated Policy tests will stop running.`,
+      confirmLabel: 'Disconnect',
+      variant: 'destructive',
+    });
+    if (!confirmed) return;
     setDisconnectingId(integrationId);
     try {
       await intercomService.disconnect(integrationId);

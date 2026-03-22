@@ -3,6 +3,7 @@ import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
 import { opsgenieService, OpsgenieIntegrationRecord } from '@/services/api/opsgenie';
+import { useConfirmDialog } from '@/app/hooks/useConfirmDialog';
 
 function OpsgenieConnectModal({
   onClose,
@@ -82,6 +83,7 @@ export function OpsgenieCard({
   onAccountRemoved: (id: string) => void;
   onToast: (type: 'success' | 'error', msg: string) => void;
 }) {
+  const confirm = useConfirmDialog();
   const [scanningId, setScanningId] = useState<string | null>(null);
   const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
   const [showConnectModal, setShowConnectModal] = useState(false);
@@ -95,7 +97,13 @@ export function OpsgenieCard({
   }
 
   async function handleDisconnect(id: string, label: string | null) {
-    if (!window.confirm(`Disconnect Opsgenie (${label ?? id})? Automated incident tests will stop running.`)) return;
+    const confirmed = await confirm({
+      title: 'Disconnect Opsgenie',
+      description: `Disconnect Opsgenie (${label ?? id})? Automated incident tests will stop running.`,
+      confirmLabel: 'Disconnect',
+      variant: 'destructive',
+    });
+    if (!confirmed) return;
     setDisconnectingId(id);
     try { await opsgenieService.disconnect(id); onAccountRemoved(id); onToast('success', 'Opsgenie disconnected'); }
     catch { onToast('error', 'Failed to disconnect Opsgenie'); }

@@ -2,6 +2,32 @@ import { createContext, useContext, useState, Suspense } from "react";
 import { Outlet } from "react-router";
 import { Sidebar } from "@/app/components/Sidebar";
 import { Header } from "@/app/components/Header";
+import { ErrorBoundary } from "@/app/components/ErrorBoundary";
+
+function RouteErrorFallback() {
+  return (
+    <div className="flex flex-col items-center justify-center h-64 gap-4">
+      <div className="text-center">
+        <h2 className="text-lg font-semibold text-gray-900">Something went wrong</h2>
+        <p className="text-sm text-gray-500 mt-1">An error occurred while loading this page.</p>
+      </div>
+      <div className="flex gap-2">
+        <button
+          onClick={() => window.location.reload()}
+          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+        >
+          Try again
+        </button>
+        <a
+          href="/"
+          className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+        >
+          Go to dashboard
+        </a>
+      </div>
+    </div>
+  );
+}
 
 // Shared context so Header can toggle the sidebar
 interface SidebarContextValue {
@@ -91,13 +117,15 @@ export function Layout() {
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
           <Header />
           <main id="main-content" className="flex-1 overflow-y-auto">
-            <Suspense fallback={
-              <div className="flex items-center justify-center h-64">
-                <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-              </div>
-            }>
-              <Outlet />
-            </Suspense>
+            <ErrorBoundary fallback={<RouteErrorFallback />}>
+              <Suspense fallback={
+                <div className="flex items-center justify-center h-64">
+                  <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                </div>
+              }>
+                <Outlet />
+              </Suspense>
+            </ErrorBoundary>
           </main>
         </div>
       </div>

@@ -3,6 +3,7 @@ import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
 import { servicenowIncidentService, ServiceNowIntegrationRecord } from '@/services/api/servicenow-incident';
+import { useConfirmDialog } from '@/app/hooks/useConfirmDialog';
 
 function ServiceNowConnectModal({
   onClose,
@@ -109,6 +110,7 @@ export function ServiceNowIncidentCard({
   onAccountRemoved: (id: string) => void;
   onToast: (type: 'success' | 'error', msg: string) => void;
 }) {
+  const confirm = useConfirmDialog();
   const [scanningId, setScanningId] = useState<string | null>(null);
   const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
   const [showConnectModal, setShowConnectModal] = useState(false);
@@ -123,7 +125,13 @@ export function ServiceNowIncidentCard({
 
   async function handleDisconnect(id: string, label: string | null, instanceUrl: string) {
     const name = label ?? instanceUrl;
-    if (!window.confirm(`Disconnect ServiceNow (${name})? Automated incident tests will stop running.`)) return;
+    const confirmed = await confirm({
+      title: 'Disconnect ServiceNow',
+      description: `Disconnect ServiceNow (${name})? Automated incident tests will stop running.`,
+      confirmLabel: 'Disconnect',
+      variant: 'destructive',
+    });
+    if (!confirmed) return;
     setDisconnectingId(id);
     try { await servicenowIncidentService.disconnect(id); onAccountRemoved(id); onToast('success', 'ServiceNow disconnected'); }
     catch { onToast('error', 'Failed to disconnect ServiceNow'); }

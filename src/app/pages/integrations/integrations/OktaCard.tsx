@@ -3,6 +3,7 @@ import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
 import { oktaService, OktaIntegrationRecord } from '@/services/api/okta';
+import { useConfirmDialog } from '@/app/hooks/useConfirmDialog';
 
 function OktaIcon({ className }: { className?: string }) {
   return (
@@ -90,6 +91,7 @@ export function OktaCard({
   onAccountRemoved: (id: string) => void;
   onToast: (type: 'success' | 'error', msg: string) => void;
 }) {
+  const confirm = useConfirmDialog();
   const [showModal, setShowModal] = useState(false);
   const [scanningId, setScanningId] = useState<string | null>(null);
   const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
@@ -103,7 +105,13 @@ export function OktaCard({
   }
 
   async function handleDisconnect(id: string, label: string | null) {
-    if (!window.confirm(`Disconnect Okta${label ? ` (${label})` : ''}? Automated tests will stop running.`)) return;
+    const confirmed = await confirm({
+      title: 'Disconnect Okta',
+      description: `Disconnect Okta${label ? ` (${label})` : ''}? Automated tests will stop running.`,
+      confirmLabel: 'Disconnect',
+      variant: 'destructive',
+    });
+    if (!confirmed) return;
     setDisconnectingId(id);
     try { await oktaService.disconnect(id); onAccountRemoved(id); onToast('success', 'Okta disconnected'); }
     catch { onToast('error', 'Failed to disconnect Okta'); }

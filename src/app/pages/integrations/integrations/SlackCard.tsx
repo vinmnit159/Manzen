@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
+import { useConfirmDialog } from '@/app/hooks/useConfirmDialog';
 import {
   slackService,
   SlackIntegration,
@@ -170,18 +171,20 @@ export function SlackCard({
   onChannelsChange: (channels: SlackChannel[]) => void;
   onToast: (type: 'success' | 'error', msg: string) => void;
 }) {
+  const confirm = useConfirmDialog();
   const isConnected = !!slackIntegration;
   const [disconnecting, setDisconnecting] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showChannels, setShowChannels] = useState(false);
 
   async function handleDisconnect() {
-    if (
-      !window.confirm(
-        'Disconnect Slack? This will remove all channel mappings.',
-      )
-    )
-      return;
+    const confirmed = await confirm({
+      title: 'Disconnect Slack',
+      description: 'Disconnect Slack? This will remove all channel mappings.',
+      confirmLabel: 'Disconnect',
+      variant: 'destructive',
+    });
+    if (!confirmed) return;
     setDisconnecting(true);
     try {
       await slackService.disconnect();

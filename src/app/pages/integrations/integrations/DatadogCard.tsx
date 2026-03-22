@@ -3,6 +3,7 @@ import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
 import { datadogIncidentsService, DatadogIntegrationRecord } from '@/services/api/datadog-incidents';
+import { useConfirmDialog } from '@/app/hooks/useConfirmDialog';
 
 function DatadogConnectModal({
   onClose,
@@ -90,6 +91,7 @@ export function DatadogIncidentsCard({
   onAccountRemoved: (id: string) => void;
   onToast: (type: 'success' | 'error', msg: string) => void;
 }) {
+  const openConfirm = useConfirmDialog();
   const [scanningId, setScanningId] = useState<string | null>(null);
   const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
   const [showConnectModal, setShowConnectModal] = useState(false);
@@ -103,7 +105,13 @@ export function DatadogIncidentsCard({
   }
 
   async function handleDisconnect(id: string, label: string | null) {
-    if (!window.confirm(`Disconnect Datadog (${label ?? id})? Automated incident tests will stop running.`)) return;
+    const confirmed = await openConfirm({
+      title: 'Disconnect Datadog',
+      description: `Disconnect Datadog (${label ?? id})? Automated incident tests will stop running.`,
+      confirmLabel: 'Disconnect',
+      variant: 'destructive',
+    });
+    if (!confirmed) return;
     setDisconnectingId(id);
     try { await datadogIncidentsService.disconnect(id); onAccountRemoved(id); onToast('success', 'Datadog disconnected'); }
     catch { onToast('error', 'Failed to disconnect Datadog'); }

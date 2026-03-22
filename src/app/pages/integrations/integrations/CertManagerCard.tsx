@@ -3,6 +3,7 @@ import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
 import { certManagerService, CertManagerIntegrationRecord } from '@/services/api/certmanager';
+import { useConfirmDialog } from '@/app/hooks/useConfirmDialog';
 
 function CertManagerConnectModal({
   onClose,
@@ -123,6 +124,7 @@ export function CertManagerCard({
   onAccountRemoved: (id: string) => void;
   onToast: (type: 'success' | 'error', msg: string) => void;
 }) {
+  const confirm = useConfirmDialog();
   const [scanningId, setScanningId] = useState<string | null>(null);
   const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
   const [showConnectModal, setShowConnectModal] = useState(false);
@@ -136,7 +138,13 @@ export function CertManagerCard({
   }
 
   async function handleDisconnect(id: string, label: string | null) {
-    if (!window.confirm(`Disconnect Certificate Manager (${label ?? id})? Automated certificate tests will stop running.`)) return;
+    const confirmed = await confirm({
+      title: 'Disconnect Certificate Manager',
+      description: `Disconnect Certificate Manager (${label ?? id})? Automated certificate tests will stop running.`,
+      confirmLabel: 'Disconnect',
+      variant: 'destructive',
+    });
+    if (!confirmed) return;
     setDisconnectingId(id);
     try { await certManagerService.disconnect(id); onAccountRemoved(id); onToast('success', 'Certificate Manager disconnected'); }
     catch { onToast('error', 'Failed to disconnect Certificate Manager'); }

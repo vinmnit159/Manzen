@@ -3,6 +3,7 @@ import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
 import { wizService, WizIntegrationRecord } from '@/services/api/wiz';
+import { useConfirmDialog } from '@/app/hooks/useConfirmDialog';
 
 function WizConnectModal({
   onClose,
@@ -78,6 +79,7 @@ export function WizCard({
   onAccountRemoved: (id: string) => void;
   onToast: (type: 'success' | 'error', msg: string) => void;
 }) {
+  const confirm = useConfirmDialog();
   const [scanningId, setScanningId] = useState<string | null>(null);
   const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
   const [showConnectModal, setShowConnectModal] = useState(false);
@@ -91,7 +93,13 @@ export function WizCard({
   }
 
   async function handleDisconnect(id: string, label: string | null) {
-    if (!window.confirm(`Disconnect Wiz (${label ?? id})? Automated cloud security tests will stop running.`)) return;
+    const confirmed = await confirm({
+      title: 'Disconnect Wiz',
+      description: `Disconnect Wiz (${label ?? id})? Automated cloud security tests will stop running.`,
+      confirmLabel: 'Disconnect',
+      variant: 'destructive',
+    });
+    if (!confirmed) return;
     setDisconnectingId(id);
     try { await wizService.disconnect(id); onAccountRemoved(id); onToast('success', 'Wiz disconnected'); }
     catch { onToast('error', 'Failed to disconnect Wiz'); }

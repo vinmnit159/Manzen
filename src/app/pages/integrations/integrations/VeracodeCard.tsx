@@ -3,6 +3,7 @@ import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
 import { veracodeService, VeracodeIntegrationRecord } from '@/services/api/veracode';
+import { useConfirmDialog } from '@/app/hooks/useConfirmDialog';
 
 function VeracodeConnectModal({
   onClose,
@@ -72,6 +73,7 @@ export function VeracodeCard({
   onAccountRemoved: (id: string) => void;
   onToast: (type: 'success' | 'error', msg: string) => void;
 }) {
+  const confirm = useConfirmDialog();
   const [scanningId, setScanningId] = useState<string | null>(null);
   const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
   const [showConnectModal, setShowConnectModal] = useState(false);
@@ -85,7 +87,13 @@ export function VeracodeCard({
   }
 
   async function handleDisconnect(id: string, label: string | null) {
-    if (!window.confirm(`Disconnect Veracode (${label ?? id})? Automated code security tests will stop running.`)) return;
+    const confirmed = await confirm({
+      title: 'Disconnect Veracode',
+      description: `Disconnect Veracode (${label ?? id})? Automated code security tests will stop running.`,
+      confirmLabel: 'Disconnect',
+      variant: 'destructive',
+    });
+    if (!confirmed) return;
     setDisconnectingId(id);
     try { await veracodeService.disconnect(id); onAccountRemoved(id); onToast('success', 'Veracode disconnected'); }
     catch { onToast('error', 'Failed to disconnect Veracode'); }

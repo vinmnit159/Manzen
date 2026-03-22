@@ -6,10 +6,12 @@ import { Card } from '@/app/components/ui/card';
 import { trustCenterService, TrustAnnouncement } from '@/services/api/trustCenter';
 import { ANNOUNCEMENT_TYPE_META, fmt } from './helpers';
 import { AddAnnouncementModal } from './AddAnnouncementModal';
+import { useConfirmDialog } from '@/app/hooks/useConfirmDialog';
 
 // ── Announcements Tab ─────────────────────────────────────────────────────────
 
 export function AnnouncementsTab() {
+  const confirm = useConfirmDialog();
   const qc = useQueryClient();
   const [showModal, setShowModal] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
@@ -33,7 +35,13 @@ export function AnnouncementsTab() {
   }
 
   async function handleDelete(id: string) {
-    if (!window.confirm('Delete this announcement?')) return;
+    const confirmed = await confirm({
+      title: 'Delete Announcement',
+      description: 'Delete this announcement?',
+      confirmLabel: 'Delete',
+      variant: 'destructive',
+    });
+    if (!confirmed) return;
     try {
       await trustCenterService.deleteAnnouncement(id);
       qc.invalidateQueries({ queryKey: ['trust-announcements'] });

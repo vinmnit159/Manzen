@@ -3,6 +3,7 @@ import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
 import { azureAdService, AzureAdIntegrationRecord } from '@/services/api/azuread';
+import { useConfirmDialog } from '@/app/hooks/useConfirmDialog';
 
 function AzureAdIcon({ className }: { className?: string }) {
   return (
@@ -96,6 +97,7 @@ export function AzureAdCard({
   onAccountRemoved: (id: string) => void;
   onToast: (type: 'success' | 'error', msg: string) => void;
 }) {
+  const confirm = useConfirmDialog();
   const [showModal, setShowModal] = useState(false);
   const [scanningId, setScanningId] = useState<string | null>(null);
   const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
@@ -109,7 +111,13 @@ export function AzureAdCard({
   }
 
   async function handleDisconnect(id: string, label: string | null) {
-    if (!window.confirm(`Disconnect Azure AD${label ? ` (${label})` : ''}? Automated tests will stop running.`)) return;
+    const confirmed = await confirm({
+      title: 'Disconnect Azure AD',
+      description: `Disconnect Azure AD${label ? ` (${label})` : ''}? Automated tests will stop running.`,
+      confirmLabel: 'Disconnect',
+      variant: 'destructive',
+    });
+    if (!confirmed) return;
     setDisconnectingId(id);
     try { await azureAdService.disconnect(id); onAccountRemoved(id); onToast('success', 'Azure AD disconnected'); }
     catch { onToast('error', 'Failed to disconnect Azure AD'); }

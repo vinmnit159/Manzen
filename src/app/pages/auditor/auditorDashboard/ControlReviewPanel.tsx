@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
+import { useConfirmDialog } from '@/app/hooks/useConfirmDialog';
 import {
   X,
   FileText,
@@ -178,10 +179,17 @@ export function FindingRow({
   auditId: string;
   onDeleted: () => void;
 }) {
+  const confirm = useConfirmDialog();
   const [deleting, setDeleting] = useState(false);
 
   async function handleDelete() {
-    if (!window.confirm('Delete this finding?')) return;
+    const confirmed = await confirm({
+      title: 'Delete Finding',
+      description: 'Delete this finding?',
+      confirmLabel: 'Delete',
+      variant: 'destructive',
+    });
+    if (!confirmed) return;
     setDeleting(true);
     try {
       await auditsService.deleteFinding(auditId, finding.id);
