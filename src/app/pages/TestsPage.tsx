@@ -251,7 +251,7 @@ export function TestsPage() {
   const renderCell = (test: TestRecord, col: ColumnConfig) => {
     switch (col.id) {
       case 'name':
-        return <span className="font-medium text-gray-900 text-sm leading-snug">{test.name}</span>;
+        return <span className="font-medium text-foreground text-sm leading-snug">{test.name}</span>;
       case 'category':
         return (
           <span className={`px-2 py-0.5 rounded text-xs font-medium ${CATEGORY_COLOR[test.category]}`}>
@@ -260,20 +260,20 @@ export function TestsPage() {
         );
       case 'type':
         return (
-          <span className="px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
+          <span className="px-2 py-0.5 rounded text-xs font-medium bg-muted text-muted-foreground">
             {test.type}
           </span>
         );
       case 'owner':
         return (
-          <span className="text-sm text-gray-600">
+          <span className="text-sm text-muted-foreground">
             {test.owner?.name ?? test.ownerId}
           </span>
         );
       case 'status':
         return <StatusBadge status={test.status} />;
       case 'dueDate':
-        return <span className="text-sm text-gray-500 whitespace-nowrap">{fmtDate(test.dueDate)}</span>;
+        return <span className="text-sm text-muted-foreground whitespace-nowrap">{fmtDate(test.dueDate)}</span>;
       case 'actions':
         return (
           <div className="flex items-center gap-2">
@@ -317,12 +317,12 @@ export function TestsPage() {
   };
 
   return (
-    <div className="flex flex-col bg-gray-50">
+    <div className="flex flex-col bg-muted">
       {/* ── App Bar ── */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
+      <div className="bg-card border-b border-border px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900 tracking-tight">Tests</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Compliance and security test management</p>
+          <h1 className="text-xl font-semibold text-foreground tracking-tight">Tests</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Compliance and security test management</p>
         </div>
         <div className="flex items-center gap-2">
           {hasActiveFilters && (
@@ -333,21 +333,21 @@ export function TestsPage() {
           )}
           <button
             onClick={() => navigate('/compliance/frameworks')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 transition-colors shadow-sm"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-border bg-card hover:bg-muted text-foreground transition-colors shadow-sm"
           >
             <Database className="w-4 h-4" />
             <span className="hidden sm:inline">Frameworks</span>
           </button>
           <button
             onClick={() => downloadExport('csv')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 transition-colors shadow-sm"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-border bg-card hover:bg-muted text-foreground transition-colors shadow-sm"
           >
             <span className="hidden sm:inline">Export CSV</span>
             <span className="sm:hidden">CSV</span>
           </button>
           <button
             onClick={() => downloadExport('pdf')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 transition-colors shadow-sm"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-border bg-card hover:bg-muted text-foreground transition-colors shadow-sm"
           >
             <span className="hidden sm:inline">Export PDF</span>
             <span className="sm:hidden">PDF</span>
@@ -356,7 +356,7 @@ export function TestsPage() {
             <button
               onClick={() => seedMutation.mutate()}
               disabled={seedMutation.isPending}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 transition-colors shadow-sm disabled:opacity-50"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-border bg-card hover:bg-muted text-foreground transition-colors shadow-sm disabled:opacity-50"
               title="Seed 14 predefined Policy tests"
             >
               <Database className="w-4 h-4" />
@@ -366,7 +366,7 @@ export function TestsPage() {
           <button
             onClick={() => { qc.invalidateQueries({ queryKey: ['tests'] }); refetch(); }}
             disabled={isFetching}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 transition-colors shadow-sm disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-border bg-card hover:bg-muted text-foreground transition-colors shadow-sm disabled:opacity-50"
           >
             <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline">Refresh</span>
@@ -411,13 +411,13 @@ export function TestsPage() {
                   type="date"
                   value={filter.dueFrom}
                   onChange={(event) => { update({ dueFrom: event.target.value }); setPage(1); }}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm"
                 />
                 <input
                   type="date"
                   value={filter.dueTo}
                   onChange={(event) => { update({ dueTo: event.target.value }); setPage(1); }}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm"
                 />
               </div>
             </div>
@@ -435,15 +435,15 @@ export function TestsPage() {
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
 
             {/* Pass % */}
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-4">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Pass Rate</p>
+            <div className="bg-card rounded-xl border border-border shadow-sm px-5 py-4">
+              <p className="text-xs font-semibold text-muted-foreground/70 uppercase tracking-wider mb-3">Pass Rate</p>
               <div className="flex items-end gap-4">
                 <div>
-                  <p className="text-4xl font-bold text-gray-900">{summary.passPercentage}%</p>
-                  <p className="text-sm text-gray-500 mt-1">{summary.completed} of {summary.total} completed</p>
+                  <p className="text-4xl font-bold text-foreground">{summary.passPercentage}%</p>
+                  <p className="text-sm text-muted-foreground mt-1">{summary.completed} of {summary.total} completed</p>
                 </div>
                 <div className="flex-1 mb-2">
-                  <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-3 bg-muted rounded-full overflow-hidden">
                     <div
                       className="h-full rounded-full bg-green-500 transition-all duration-500"
                       style={{ width: `${summary.passPercentage}%` }}
@@ -454,8 +454,8 @@ export function TestsPage() {
             </div>
 
             {/* Needs attention */}
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-4">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Needs Attention</p>
+            <div className="bg-card rounded-xl border border-border shadow-sm px-5 py-4">
+              <p className="text-xs font-semibold text-muted-foreground/70 uppercase tracking-wider mb-3">Needs Attention</p>
               <div className="flex gap-4">
                 <button
                   onClick={() => { setStatusFilterOverride('Overdue'); setPage(1); }}
@@ -576,17 +576,17 @@ export function TestsPage() {
             <EmptyState hasFilters={hasActiveFilters} onClear={clearFilters} onSeed={isAdmin ? () => seedMutation.mutate() : undefined} />
           ) : (
             <>
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="min-w-full text-sm">
                     <thead>
-                      <tr className="border-b border-gray-200 bg-gray-50">
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-12">
+                      <tr className="border-b border-border bg-muted">
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider w-12">
                           <input
                             type="checkbox"
                             checked={allVisibleSelected}
                             onChange={toggleSelectAllVisible}
-                            className="w-4 h-4 rounded border-gray-300 text-blue-600"
+                            className="w-4 h-4 rounded border-border text-blue-600"
                             aria-label="Select all visible tests"
                           />
                         </th>
@@ -596,8 +596,8 @@ export function TestsPage() {
                             style={{ minWidth: col.minWidth }}
                             onClick={() => col.sortable && handleSort(col.id)}
                             className={[
-                              'px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider select-none',
-                              col.sortable ? 'cursor-pointer hover:bg-gray-100 transition-colors' : '',
+                              'px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider select-none',
+                              col.sortable ? 'cursor-pointer hover:bg-accent transition-colors' : '',
                             ].join(' ')}
                           >
                             <span className="flex items-center gap-1.5">
@@ -608,7 +608,7 @@ export function TestsPage() {
                         ))}
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
+                    <tbody className="divide-y divide-border">
                       {sorted.map(test => (
                         <tr
                           key={test.id}
@@ -620,7 +620,7 @@ export function TestsPage() {
                               type="checkbox"
                               checked={selectedIds.includes(test.id)}
                               onChange={() => toggleSelection(test.id)}
-                              className="w-4 h-4 rounded border-gray-300 text-blue-600"
+                              className="w-4 h-4 rounded border-border text-blue-600"
                               aria-label={`Select ${test.name}`}
                             />
                           </td>
@@ -642,25 +642,25 @@ export function TestsPage() {
               </div>
 
               {/* Pagination */}
-              <div className="flex items-center justify-between px-4 py-2 bg-white rounded-xl border border-gray-200 shadow-sm">
-                <span className="text-sm text-gray-500">
-                  Page <span className="font-medium text-gray-800">{page}</span>
+              <div className="flex items-center justify-between px-4 py-2 bg-card rounded-xl border border-border shadow-sm">
+                <span className="text-sm text-muted-foreground">
+                  Page <span className="font-medium text-foreground">{page}</span>
                   {' · '}
-                  Showing <span className="font-medium text-gray-800">{sorted.length}</span> test{sorted.length !== 1 ? 's' : ''}
+                  Showing <span className="font-medium text-foreground">{sorted.length}</span> test{sorted.length !== 1 ? 's' : ''}
                   {hasActiveFilters && ' (filtered)'}
                 </span>
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => setPage(p => Math.max(1, p - 1))}
                     disabled={page === 1}
-                    className="p-1.5 rounded-md border border-gray-300 text-gray-500 hover:bg-gray-50 disabled:opacity-40 transition-colors"
+                    className="p-1.5 rounded-md border border-border text-muted-foreground hover:bg-muted disabled:opacity-40 transition-colors"
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => setPage(p => p + 1)}
                     disabled={sorted.length < PAGE_SIZE}
-                    className="p-1.5 rounded-md border border-gray-300 text-gray-500 hover:bg-gray-50 disabled:opacity-40 transition-colors"
+                    className="p-1.5 rounded-md border border-border text-muted-foreground hover:bg-muted disabled:opacity-40 transition-colors"
                   >
                     <ChevronRight className="w-4 h-4" />
                   </button>

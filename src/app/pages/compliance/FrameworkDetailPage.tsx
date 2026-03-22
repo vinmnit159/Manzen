@@ -131,9 +131,9 @@ class TabErrorBoundary extends Component<
 function TabSkeleton() {
   return (
     <div className="animate-pulse space-y-3">
-      <div className="h-28 w-full rounded-xl bg-gray-100" />
-      <div className="h-20 w-full rounded-xl bg-gray-100" />
-      <div className="h-20 w-2/3 rounded-xl bg-gray-100" />
+      <div className="h-28 w-full rounded-xl bg-muted" />
+      <div className="h-20 w-full rounded-xl bg-muted" />
+      <div className="h-20 w-2/3 rounded-xl bg-muted" />
     </div>
   );
 }
@@ -182,20 +182,20 @@ export function FrameworkDetailPage() {
     return (
       <PageTemplate title="Framework">
         <div className="animate-pulse space-y-5">
-          <div className="h-8 w-32 rounded-md bg-gray-100" />
+          <div className="h-8 w-32 rounded-md bg-muted" />
           <div className="space-y-2">
-            <div className="h-6 w-56 rounded bg-gray-200" />
-            <div className="h-4 w-80 rounded bg-gray-100" />
+            <div className="h-6 w-56 rounded bg-muted" />
+            <div className="h-4 w-80 rounded bg-muted" />
           </div>
           <div className="flex gap-2 flex-wrap">
             {[...Array(8)].map((_, i) => (
-              <div key={i} className="h-8 w-24 rounded-lg bg-gray-100" />
+              <div key={i} className="h-8 w-24 rounded-lg bg-muted" />
             ))}
           </div>
           <div className="space-y-3 pt-2">
-            <div className="h-32 w-full rounded-xl bg-gray-100" />
-            <div className="h-24 w-full rounded-xl bg-gray-100" />
-            <div className="h-24 w-2/3 rounded-xl bg-gray-100" />
+            <div className="h-32 w-full rounded-xl bg-muted" />
+            <div className="h-24 w-full rounded-xl bg-muted" />
+            <div className="h-24 w-2/3 rounded-xl bg-muted" />
           </div>
         </div>
       </PageTemplate>
@@ -205,10 +205,10 @@ export function FrameworkDetailPage() {
   if (!fw) {
     return (
       <PageTemplate title="Framework not found">
-        <Card className="border-gray-200">
+        <Card className="border-border">
           <CardContent className="py-16 text-center">
             <AlertTriangle className="w-10 h-10 text-amber-400 mx-auto mb-3" />
-            <p className="text-sm font-medium text-gray-700">
+            <p className="text-sm font-medium text-foreground">
               Framework "{slug}" not found
             </p>
             <Button
@@ -252,7 +252,7 @@ export function FrameworkDetailPage() {
       <Button
         variant="ghost"
         size="sm"
-        className="mb-4 -ml-2 text-gray-500"
+        className="mb-4 -ml-2 text-muted-foreground"
         onClick={() => navigate('/compliance/frameworks')}
       >
         <ArrowLeft className="w-4 h-4 mr-1" /> All frameworks

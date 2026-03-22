@@ -140,7 +140,7 @@ export function AuditsPage() {
       {/* Stat strip */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
         {[
-          { label: 'Total', value: counts.total, color: 'text-gray-900' },
+          { label: 'Total', value: counts.total, color: 'text-foreground' },
           { label: 'Planned', value: counts.planned, color: 'text-blue-700' },
           {
             label: 'In Progress',
@@ -154,7 +154,7 @@ export function AuditsPage() {
           },
         ].map((s) => (
           <Card key={s.label} className="p-4">
-            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">
+            <p className="text-xs font-medium text-muted-foreground/70 uppercase tracking-wide">
               {s.label}
             </p>
             <p className={`text-2xl font-bold mt-0.5 ${s.color}`}>{s.value}</p>
@@ -200,21 +200,21 @@ export function AuditsPage() {
       {/* Table */}
       <Card className="overflow-hidden">
         {isLoading ? (
-          <div className="p-8 text-center text-sm text-gray-400">
+          <div className="p-8 text-center text-sm text-muted-foreground/70">
             Loading audits…
           </div>
         ) : filtered.length === 0 ? (
           <div className="p-12 text-center">
-            <Shield className="w-10 h-10 mx-auto mb-3 text-gray-200" />
-            <p className="text-sm font-medium text-gray-600">No audits found</p>
-            <p className="text-xs text-gray-400 mt-1">
+            <Shield className="w-10 h-10 mx-auto mb-3 text-muted-foreground/70" />
+            <p className="text-sm font-medium text-muted-foreground">No audits found</p>
+            <p className="text-xs text-muted-foreground/70 mt-1">
               Click "Schedule New Audit" to get started.
             </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b border-gray-100">
+              <thead className="bg-muted border-b border-border">
                 <tr>
                   {[
                     'Name',
@@ -228,14 +228,14 @@ export function AuditsPage() {
                   ].map((h) => (
                     <th
                       key={h}
-                      className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide"
+                      className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide"
                     >
                       {h}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
+              <tbody className="divide-y divide-border">
                 {filtered.map((audit) => {
                   const findings = audit.findings ?? [];
                   const majorCount = findings.filter(
@@ -253,27 +253,27 @@ export function AuditsPage() {
                   return (
                     <tr
                       key={audit.id}
-                      className="hover:bg-gray-50 cursor-pointer"
+                      className="hover:bg-muted cursor-pointer"
                       onClick={() => setSelected(audit)}
                     >
-                      <td className="px-4 py-3 font-medium text-gray-900 max-w-[200px] truncate">
+                      <td className="px-4 py-3 font-medium text-foreground max-w-[200px] truncate">
                         {audit.name}
                       </td>
-                      <td className="px-4 py-3 text-gray-600 text-xs">
+                      <td className="px-4 py-3 text-muted-foreground text-xs">
                         {audit.frameworkName ?? '—'}
                       </td>
-                      <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">
+                      <td className="px-4 py-3 text-muted-foreground text-xs whitespace-nowrap">
                         {audit.periodStart
                           ? `${fmt(audit.periodStart)} → ${fmt(audit.periodEnd)}`
                           : fmt(audit.startDate)}
                       </td>
-                      <td className="px-4 py-3 text-gray-600 text-xs">
+                      <td className="px-4 py-3 text-muted-foreground text-xs">
                         {AUDIT_TYPE_LABELS[audit.type]}
                       </td>
                       <td className="px-4 py-3">
                         <StatusBadge status={audit.status} />
                       </td>
-                      <td className="px-4 py-3 text-gray-600 text-xs max-w-[140px] truncate">
+                      <td className="px-4 py-3 text-muted-foreground text-xs max-w-[140px] truncate">
                         {auditorLabel}
                       </td>
                       <td className="px-4 py-3">
@@ -291,11 +291,11 @@ export function AuditsPage() {
                             )}
                           </div>
                         ) : (
-                          <span className="text-gray-400 text-xs">—</span>
+                          <span className="text-muted-foreground/70 text-xs">—</span>
                         )}
                       </td>
                       <td className="px-4 py-3">
-                        <ChevronRight className="w-4 h-4 text-gray-300" />
+                        <ChevronRight className="w-4 h-4 text-muted-foreground/70" />
                       </td>
                     </tr>
                   );

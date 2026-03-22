@@ -210,14 +210,14 @@ export function HomePage() {
                 </div>
                 {isLive ? (
                   <div className="flex items-center gap-2 h-9 mb-1">
-                    <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                    <Loader2 className="w-5 h-5 animate-spin text-muted-foreground/70" />
                   </div>
                 ) : (
-                  <div className="text-3xl font-bold text-gray-900 mb-1">
+                  <div className="text-3xl font-bold text-foreground mb-1">
                     {stat.value}
                   </div>
                 )}
-                <div className="text-sm text-gray-600">{stat.label}</div>
+                <div className="text-sm text-muted-foreground">{stat.label}</div>
               </Card>
             );
           })}
@@ -229,21 +229,21 @@ export function HomePage() {
           <Card className="p-6 flex flex-col h-72">
             {/* fixed header */}
             <div className="flex items-center justify-between mb-4 shrink-0">
-              <h2 className="text-lg font-semibold text-gray-900">
+              <h2 className="text-lg font-semibold text-foreground">
                 Recent Activity
               </h2>
-              <Activity className="w-5 h-5 text-gray-400" />
+              <Activity className="w-5 h-5 text-muted-foreground/70" />
             </div>
 
             {/* scrollable body — only this area scrolls */}
             <div className="flex-1 overflow-y-auto min-h-0 pr-1 scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent">
               {loadingActivity ? (
-                <div className="flex items-center gap-3 py-6 text-sm text-gray-400">
+                <div className="flex items-center gap-3 py-6 text-sm text-muted-foreground/70">
                   <Loader2 className="w-4 h-4 animate-spin" />
                   Loading activity…
                 </div>
               ) : recentActivity.length === 0 ? (
-                <p className="text-sm text-gray-400 py-6 text-center">
+                <p className="text-sm text-muted-foreground/70 py-6 text-center">
                   No activity yet. Actions like creating risks, policies, or
                   uploading files will appear here.
                 </p>
@@ -261,10 +261,10 @@ export function HomePage() {
                         }`}
                       />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-gray-900 leading-snug">
+                        <p className="text-sm text-foreground leading-snug">
                           {activity.label}
                         </p>
-                        <p className="text-xs text-gray-400 mt-0.5">
+                        <p className="text-xs text-muted-foreground/70 mt-0.5">
                           {activity.user.name} · {activity.timeAgo}
                         </p>
                       </div>
@@ -282,21 +282,21 @@ export function HomePage() {
           >
             {/* fixed header */}
             <div className="flex items-center justify-between mb-4 shrink-0">
-              <h2 className="text-lg font-semibold text-gray-900">
+              <h2 className="text-lg font-semibold text-foreground">
                 Risk Distribution
               </h2>
-              <TrendingUp className="w-5 h-5 text-gray-400" />
+              <TrendingUp className="w-5 h-5 text-muted-foreground/70" />
             </div>
 
             {/* body */}
             <div className="flex-1 overflow-y-auto min-h-0">
               {loadingRisks ? (
-                <div className="flex items-center gap-3 py-6 text-sm text-gray-400">
+                <div className="flex items-center gap-3 py-6 text-sm text-muted-foreground/70">
                   <Loader2 className="w-4 h-4 animate-spin" />
                   Loading risk data…
                 </div>
               ) : !riskOverview ? (
-                <p className="text-sm text-gray-400 py-6">
+                <p className="text-sm text-muted-foreground/70 py-6">
                   Could not load risk data.
                 </p>
               ) : (
@@ -325,15 +325,15 @@ export function HomePage() {
                   ].map((risk) => (
                     <div key={risk.level} className="flex items-center gap-3">
                       <div className={`w-3 h-3 rounded-full ${risk.color}`} />
-                      <span className="text-sm text-gray-700 flex-1">
+                      <span className="text-sm text-foreground flex-1">
                         {risk.level}
                       </span>
-                      <span className="text-sm font-semibold text-gray-900">
+                      <span className="text-sm font-semibold text-foreground">
                         {risk.count}
                       </span>
                     </div>
                   ))}
-                  <div className="pt-2 border-t text-xs text-gray-500 flex justify-between">
+                  <div className="pt-2 border-t text-xs text-muted-foreground flex justify-between">
                     <span>{riskOverview.open} open</span>
                     <span>{riskOverview.mitigated} mitigated</span>
                     <span>{riskOverview.total} total</span>
@@ -350,24 +350,24 @@ export function HomePage() {
           >
             {/* fixed header */}
             <div className="flex items-center justify-between mb-4 shrink-0">
-              <h2 className="text-lg font-semibold text-gray-900">
+              <h2 className="text-lg font-semibold text-foreground">
                 Framework Readiness
               </h2>
-              <ShieldCheck className="w-5 h-5 text-gray-400" />
+              <ShieldCheck className="w-5 h-5 text-muted-foreground/70" />
             </div>
 
             {/* body */}
             <div className="flex-1 overflow-y-auto min-h-0">
               {loadingReadiness ? (
-                <div className="flex items-center gap-3 py-6 text-sm text-gray-400">
+                <div className="flex items-center gap-3 py-6 text-sm text-muted-foreground/70">
                   <Loader2 className="w-4 h-4 animate-spin" />
                   Loading framework data…
                 </div>
               ) : readiness.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-6 text-center">
-                  <ShieldCheck className="w-8 h-8 text-gray-200 mb-2" />
-                  <p className="text-sm text-gray-400">No active frameworks</p>
-                  <p className="text-xs text-gray-300 mt-1">
+                  <ShieldCheck className="w-8 h-8 text-muted-foreground/70 mb-2" />
+                  <p className="text-sm text-muted-foreground/70">No active frameworks</p>
+                  <p className="text-xs text-muted-foreground/70 mt-1">
                     Add a framework to track readiness
                   </p>
                 </div>
@@ -376,7 +376,7 @@ export function HomePage() {
                   {readiness.map((fw) => (
                     <div key={fw.slug} className="space-y-1">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-gray-700 truncate">
+                        <span className="text-sm font-medium text-foreground truncate">
                           {fw.name}
                         </span>
                         <span className="text-xs font-semibold text-blue-700 ml-2 shrink-0">
@@ -385,13 +385,13 @@ export function HomePage() {
                             : '—'}
                         </span>
                       </div>
-                      <div className="w-full bg-gray-100 rounded-full h-1.5">
+                      <div className="w-full bg-muted rounded-full h-1.5">
                         <div
                           className="bg-blue-500 h-1.5 rounded-full transition-all"
                           style={{ width: `${fw.controlCoveragePct ?? 0}%` }}
                         />
                       </div>
-                      <div className="flex justify-between text-[11px] text-gray-400">
+                      <div className="flex justify-between text-[11px] text-muted-foreground/70">
                         <span>{fw.openGaps ?? 0} open gaps</span>
                         <span>
                           {fw.covered ?? 0}/{fw.applicable ?? 0} covered
@@ -408,7 +408,7 @@ export function HomePage() {
           <Card className="p-6 flex flex-col h-72">
             {/* fixed header */}
             <div className="shrink-0 mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">
+              <h2 className="text-lg font-semibold text-foreground">
                 Quick Actions
               </h2>
             </div>

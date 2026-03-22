@@ -82,7 +82,7 @@ export function PoliciesPage() {
   const archived  = policies.filter(p => p.status === 'ARCHIVED').length;
 
   return (
-    <div className="flex flex-col bg-gray-50">
+    <div className="flex flex-col bg-muted">
 
       {/* Modals */}
       {uploadPolicy && (
@@ -115,10 +115,10 @@ export function PoliciesPage() {
       )}
 
       {/* ── Top App Bar ── */}
-      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
+      <div className="bg-card border-b border-border px-4 sm:px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900 tracking-tight">Policies</h1>
-          <p className="text-sm text-gray-500 mt-0.5 hidden sm:block">Security policy management and lifecycle tracking</p>
+          <h1 className="text-xl font-semibold text-foreground tracking-tight">Policies</h1>
+          <p className="text-sm text-muted-foreground mt-0.5 hidden sm:block">Security policy management and lifecycle tracking</p>
         </div>
         <div className="flex items-center gap-2">
           {hasActiveFilters && (
@@ -130,7 +130,7 @@ export function PoliciesPage() {
           <button
             onClick={fetchPolicies}
             disabled={isFetching}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 transition-colors shadow-sm disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-border bg-card hover:bg-muted text-foreground transition-colors shadow-sm disabled:opacity-50"
             title="Refresh policies"
           >
             <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
@@ -138,7 +138,7 @@ export function PoliciesPage() {
           </button>
           <button
             onClick={() => setShowTemplates(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 transition-colors shadow-sm"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-border bg-card hover:bg-muted text-foreground transition-colors shadow-sm"
           >
             <LayoutTemplate className="w-4 h-4" />
             <span className="hidden sm:inline">Use Template</span>
@@ -154,7 +154,7 @@ export function PoliciesPage() {
             onClick={() => setFilterOpen((v) => !v)}
             className={[
               'lg:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors',
-              hasActiveFilters ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50',
+              hasActiveFilters ? 'bg-blue-600 text-white border-blue-600' : 'bg-card text-foreground border-border hover:bg-muted',
             ].join(' ')}
           >
             <SlidersHorizontal className="w-4 h-4" />
@@ -172,19 +172,19 @@ export function PoliciesPage() {
       {!loading && !error && policies.length > 0 && (
         <div className="px-6 pt-4 pb-2 space-y-3">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <SummaryCard label="Total Policies"   value={policies.length}   color="text-gray-900"  bg="bg-white"    accent="border-gray-200" />
+            <SummaryCard label="Total Policies"   value={policies.length}   color="text-foreground"  bg="bg-card"    accent="border-border" />
             <SummaryCard label="Published"         value={published}         color="text-green-700" bg="bg-green-50"  accent="border-green-200" />
             <SummaryCard label="In Review"         value={inReview}          color="text-amber-700" bg="bg-amber-50"  accent="border-amber-200" />
-            <SummaryCard label="Draft / Archived"  value={draft + archived}  color="text-gray-600"  bg="bg-gray-50"   accent="border-gray-200" />
+            <SummaryCard label="Draft / Archived"  value={draft + archived}  color="text-muted-foreground"  bg="bg-muted"   accent="border-border" />
           </div>
-          <div className="bg-white rounded-xl border border-gray-200 px-4 py-3 shadow-sm">
+          <div className="bg-card rounded-xl border border-border px-4 py-3 shadow-sm">
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-sm font-medium text-gray-700">Publication rate</span>
+              <span className="text-sm font-medium text-foreground">Publication rate</span>
               <span className="text-sm font-semibold text-blue-700">
                 {Math.round((published / policies.length) * 100)}%
               </span>
             </div>
-            <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+            <div className="h-2 bg-muted rounded-full overflow-hidden">
               <div className="h-full rounded-full bg-blue-500 transition-all duration-500"
                 style={{ width: `${Math.round((published / policies.length) * 100)}%` }} />
             </div>
@@ -205,9 +205,9 @@ export function PoliciesPage() {
           'transition-transform duration-300 ease-in-out lg:transition-none lg:translate-y-0',
           filterOpen ? 'translate-y-0' : 'translate-y-full lg:translate-y-0',
         ].join(' ')}>
-          <div className="lg:hidden flex items-center justify-between px-5 pt-4 pb-2 bg-white rounded-t-2xl border-t border-x border-gray-200 shadow-lg">
-            <span className="text-sm font-semibold text-gray-900">Filters</span>
-            <button onClick={() => setFilterOpen(false)} className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100">
+          <div className="lg:hidden flex items-center justify-between px-5 pt-4 pb-2 bg-card rounded-t-2xl border-t border-x border-border shadow-lg">
+            <span className="text-sm font-semibold text-foreground">Filters</span>
+            <button onClick={() => setFilterOpen(false)} className="p-1.5 rounded-md text-muted-foreground/70 hover:text-muted-foreground hover:bg-accent">
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -231,9 +231,9 @@ export function PoliciesPage() {
                 onUpload={setUploadPolicy}
                 onSelect={setSelectedPolicy}
               />
-              <div className="flex items-center justify-between px-4 py-2 bg-white rounded-xl border border-gray-200 shadow-sm">
-                <span className="text-sm text-gray-500">
-                  Showing <span className="font-medium text-gray-800">{policies.length}</span>{' '}
+              <div className="flex items-center justify-between px-4 py-2 bg-card rounded-xl border border-border shadow-sm">
+                <span className="text-sm text-muted-foreground">
+                  Showing <span className="font-medium text-foreground">{policies.length}</span>{' '}
                   polic{policies.length !== 1 ? 'ies' : 'y'}
                   {hasActiveFilters && ' (filtered)'}
                 </span>

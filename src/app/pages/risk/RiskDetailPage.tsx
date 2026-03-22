@@ -157,9 +157,9 @@ function EditStakeholdersDialog({
           {draft.map((person, index) => (
             <div
               key={person.role}
-              className="space-y-2 rounded-xl border border-gray-100 p-4"
+              className="space-y-2 rounded-xl border border-border p-4"
             >
-              <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 {person.role}
               </p>
 
@@ -168,7 +168,7 @@ function EditStakeholdersDialog({
                 <select
                   value={person.userId ?? ''}
                   onChange={(e) => selectUser(index, e.target.value)}
-                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full rounded-md border border-border bg-card px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Select user...</option>
                   {usersData.map((u) => (
@@ -183,7 +183,7 @@ function EditStakeholdersDialog({
                   value={person.name}
                   onChange={(e) => updateRole(index, 'name', e.target.value)}
                   placeholder="Name"
-                  className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full rounded-md border border-border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               )}
 
@@ -192,7 +192,7 @@ function EditStakeholdersDialog({
                 value={person.team}
                 onChange={(e) => updateRole(index, 'team', e.target.value)}
                 placeholder="Team"
-                className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-md border border-border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
           ))}
@@ -253,7 +253,7 @@ function activityDotColor(type: string): string {
     case 'ASSIGNED':
       return 'bg-green-500';
     default:
-      return 'bg-gray-900';
+      return 'bg-foreground';
   }
 }
 
@@ -290,10 +290,10 @@ export function RiskDetailPage() {
     >
       {isLoading ? (
         <div className="flex h-48 items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/70" />
         </div>
       ) : !data ? (
-        <Card className="p-10 text-center text-sm text-gray-500">
+        <Card className="p-10 text-center text-sm text-muted-foreground">
           Risk not found.
         </Card>
       ) : (
@@ -312,13 +312,13 @@ export function RiskDetailPage() {
                   <Badge variant="outline">{data.risk.category}</Badge>
                   <Badge variant="outline">{trendLabel(data.risk.trend)}</Badge>
                 </div>
-                <h2 className="mt-4 text-2xl font-semibold text-gray-900">
+                <h2 className="mt-4 text-2xl font-semibold text-foreground">
                   {data.risk.title}
                 </h2>
-                <p className="mt-2 text-sm leading-6 text-gray-600">
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
                   {data.risk.description}
                 </p>
-                <div className="mt-4 flex flex-wrap gap-5 text-sm text-gray-500">
+                <div className="mt-4 flex flex-wrap gap-5 text-sm text-muted-foreground">
                   <span>Asset: {data.risk.assetName}</span>
                   <span>Owner: {data.risk.owner.name}</span>
                   <span>
@@ -329,29 +329,29 @@ export function RiskDetailPage() {
               </div>
               <div className="grid min-w-[260px] gap-3 sm:grid-cols-2">
                 <Card className="gap-2 p-4">
-                  <p className="text-xs uppercase tracking-wide text-gray-500">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
                     Inherent risk
                   </p>
-                  <p className="text-2xl font-semibold text-gray-900">
+                  <p className="text-2xl font-semibold text-foreground">
                     {data.summary.inherentRisk}
                   </p>
                 </Card>
                 <Card className="gap-2 p-4">
-                  <p className="text-xs uppercase tracking-wide text-gray-500">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
                     Residual risk
                   </p>
-                  <p className="text-2xl font-semibold text-gray-900">
+                  <p className="text-2xl font-semibold text-foreground">
                     {data.summary.residualRisk}
                   </p>
                 </Card>
                 <Card className="gap-2 p-4 sm:col-span-2">
-                  <p className="text-xs uppercase tracking-wide text-gray-500">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
                     Blast radius
                   </p>
-                  <p className="text-sm text-gray-700">
+                  <p className="text-sm text-foreground">
                     {data.summary.blastRadius}
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-muted-foreground">
                     {data.summary.exceptionStatus}
                   </p>
                 </Card>
@@ -363,7 +363,7 @@ export function RiskDetailPage() {
           <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
             {/* Controls & framework mapping */}
             <Card className="p-6">
-              <div className="flex items-center gap-2 text-gray-900">
+              <div className="flex items-center gap-2 text-foreground">
                 <ShieldCheck className="h-4 w-4" />
                 <h3 className="text-base font-semibold">
                   Control and framework mapping
@@ -371,7 +371,7 @@ export function RiskDetailPage() {
               </div>
               <div className="mt-5 space-y-5">
                 <div>
-                  <p className="text-xs uppercase tracking-wide text-gray-500">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
                     Linked controls
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2">
@@ -383,7 +383,7 @@ export function RiskDetailPage() {
                   </div>
                 </div>
                 <div>
-                  <p className="text-xs uppercase tracking-wide text-gray-500">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
                     Impacted frameworks
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2">
@@ -395,10 +395,10 @@ export function RiskDetailPage() {
                   </div>
                 </div>
                 <div>
-                  <p className="text-xs uppercase tracking-wide text-gray-500">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
                     Treatment posture
                   </p>
-                  <p className="mt-2 text-sm text-gray-700">
+                  <p className="mt-2 text-sm text-foreground">
                     {data.risk.treatment}
                   </p>
                 </div>
@@ -408,7 +408,7 @@ export function RiskDetailPage() {
             {/* Stakeholders — editable for admins */}
             <Card className="p-6">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-gray-900">
+                <div className="flex items-center gap-2 text-foreground">
                   <Users className="h-4 w-4" />
                   <h3 className="text-base font-semibold">Stakeholders</h3>
                 </div>
@@ -425,16 +425,16 @@ export function RiskDetailPage() {
               </div>
               <div className="mt-5 grid gap-3 md:grid-cols-2">
                 {data.stakeholders.map((person) => (
-                  <div key={person.role} className="rounded-xl bg-gray-50 p-4">
-                    <p className="text-xs uppercase tracking-wide text-gray-500">
+                  <div key={person.role} className="rounded-xl bg-muted p-4">
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
                       {person.role}
                     </p>
-                    <p className="mt-2 font-medium text-gray-900">
+                    <p className="mt-2 font-medium text-foreground">
                       {person.name}
                     </p>
-                    <p className="mt-1 text-sm text-gray-500">{person.team}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">{person.team}</p>
                     {person.userId && (
-                      <p className="mt-1 text-xs text-gray-400">
+                      <p className="mt-1 text-xs text-muted-foreground/70">
                         ID: {person.userId}
                       </p>
                     )}
@@ -455,7 +455,7 @@ export function RiskDetailPage() {
             {/* ── Evidence tab ───────────────────────────────────────────── */}
             <TabsContent value="evidence">
               <Card className="p-6">
-                <div className="flex items-center gap-2 text-gray-900">
+                <div className="flex items-center gap-2 text-foreground">
                   <FileText className="h-4 w-4" />
                   <h3 className="text-base font-semibold">Evidence timeline</h3>
                 </div>
@@ -463,20 +463,20 @@ export function RiskDetailPage() {
                   {data.evidence.map((item) => (
                     <div
                       key={item.id}
-                      className="rounded-xl border border-gray-100 p-4"
+                      className="rounded-xl border border-border p-4"
                     >
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div>
-                          <p className="font-medium text-gray-900">
+                          <p className="font-medium text-foreground">
                             {item.title}
                           </p>
-                          <p className="mt-1 text-sm text-gray-500">
+                          <p className="mt-1 text-sm text-muted-foreground">
                             {item.summary}
                           </p>
                         </div>
                         <Badge variant="outline">{item.provider}</Badge>
                       </div>
-                      <div className="mt-3 flex flex-wrap gap-5 text-xs text-gray-500">
+                      <div className="mt-3 flex flex-wrap gap-5 text-xs text-muted-foreground">
                         <span>
                           Captured {new Date(item.capturedAt).toLocaleString()}
                         </span>
@@ -491,7 +491,7 @@ export function RiskDetailPage() {
             {/* ── Activity tab (enhanced with stakeholder change rendering) ── */}
             <TabsContent value="activity">
               <Card className="p-6">
-                <div className="flex items-center gap-2 text-gray-900">
+                <div className="flex items-center gap-2 text-foreground">
                   <Clock3 className="h-4 w-4" />
                   <h3 className="text-base font-semibold">Activity history</h3>
                 </div>
@@ -499,14 +499,14 @@ export function RiskDetailPage() {
                   {data.activities.map((item) => (
                     <div
                       key={item.id}
-                      className="flex gap-4 rounded-xl border border-gray-100 p-4"
+                      className="flex gap-4 rounded-xl border border-border p-4"
                     >
                       <div
                         className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${activityDotColor(item.type)}`}
                       />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <p className="font-medium text-gray-900">
+                          <p className="font-medium text-foreground">
                             {item.title}
                           </p>
                           {item.type === 'STAKEHOLDER_CHANGED' && (
@@ -515,20 +515,20 @@ export function RiskDetailPage() {
                             </Badge>
                           )}
                         </div>
-                        <p className="mt-1 text-sm text-gray-500">
+                        <p className="mt-1 text-sm text-muted-foreground">
                           {item.actor} &middot;{' '}
                           {new Date(item.timestamp).toLocaleString()}
                         </p>
                         {/* Audit detail for stakeholder changes */}
                         {item.meta && (
-                          <div className="mt-2 rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-600">
+                          <div className="mt-2 rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">
                             <span className="font-medium">
                               {item.meta.field}:
                             </span>{' '}
                             <span className="line-through text-red-600">
                               {item.meta.oldValue}
                             </span>{' '}
-                            <ArrowRight className="inline h-3 w-3 text-gray-400" />{' '}
+                            <ArrowRight className="inline h-3 w-3 text-muted-foreground/70" />{' '}
                             <span className="text-green-700">
                               {item.meta.newValue}
                             </span>
@@ -546,53 +546,53 @@ export function RiskDetailPage() {
               <div className="space-y-6">
                 {/* Generated-from origin panel */}
                 <Card className="p-6">
-                  <div className="flex items-center gap-2 text-gray-900">
+                  <div className="flex items-center gap-2 text-foreground">
                     <Link2 className="h-4 w-4" />
                     <h3 className="text-base font-semibold">Generated from</h3>
                   </div>
-                  <p className="mt-1 text-sm text-gray-500">
+                  <p className="mt-1 text-sm text-muted-foreground">
                     This risk was created by the risk engine from a failing
                     control test.
                   </p>
                   <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    <div className="rounded-xl border border-gray-100 p-4">
-                      <p className="text-xs uppercase tracking-wide text-gray-500">
+                    <div className="rounded-xl border border-border p-4">
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">
                         Test name
                       </p>
-                      <p className="mt-1 text-sm font-medium text-gray-900">
+                      <p className="mt-1 text-sm font-medium text-foreground">
                         {data.origin.testName}
                       </p>
-                      <p className="mt-0.5 text-xs text-gray-400">
+                      <p className="mt-0.5 text-xs text-muted-foreground/70">
                         ID: {data.origin.testId}
                       </p>
                     </div>
-                    <div className="rounded-xl border border-gray-100 p-4">
-                      <p className="text-xs uppercase tracking-wide text-gray-500">
+                    <div className="rounded-xl border border-border p-4">
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">
                         Control
                       </p>
-                      <p className="mt-1 text-sm font-medium text-gray-900">
+                      <p className="mt-1 text-sm font-medium text-foreground">
                         {data.origin.controlName}
                       </p>
-                      <p className="mt-0.5 text-xs text-gray-400">
+                      <p className="mt-0.5 text-xs text-muted-foreground/70">
                         ID: {data.origin.controlId}
                       </p>
                     </div>
-                    <div className="rounded-xl border border-gray-100 p-4">
-                      <p className="text-xs uppercase tracking-wide text-gray-500">
+                    <div className="rounded-xl border border-border p-4">
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">
                         Provider / Integration
                       </p>
-                      <p className="mt-1 text-sm font-medium text-gray-900">
+                      <p className="mt-1 text-sm font-medium text-foreground">
                         {data.origin.provider}
                       </p>
-                      <p className="mt-0.5 text-xs text-gray-400">
+                      <p className="mt-0.5 text-xs text-muted-foreground/70">
                         Signal: {data.origin.signalId}
                       </p>
                     </div>
-                    <div className="rounded-xl border border-gray-100 p-4 sm:col-span-2 lg:col-span-3">
-                      <p className="text-xs uppercase tracking-wide text-gray-500">
+                    <div className="rounded-xl border border-border p-4 sm:col-span-2 lg:col-span-3">
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">
                         Last failing execution
                       </p>
-                      <p className="mt-1 text-sm text-gray-700">
+                      <p className="mt-1 text-sm text-foreground">
                         {new Date(data.origin.lastFailedAt).toLocaleString()}
                       </p>
                       <p className="mt-1 text-sm text-red-600">
@@ -622,7 +622,7 @@ export function RiskDetailPage() {
 
                 {/* Enriched remediation workflow */}
                 <Card className="p-6">
-                  <div className="flex items-center gap-2 text-gray-900">
+                  <div className="flex items-center gap-2 text-foreground">
                     <Workflow className="h-4 w-4" />
                     <h3 className="text-base font-semibold">
                       Remediation workflow
@@ -632,20 +632,20 @@ export function RiskDetailPage() {
                     {data.enrichedRemediationSteps.map((step, index) => (
                       <div
                         key={step.label}
-                        className="rounded-xl border border-gray-100 p-4"
+                        className="rounded-xl border border-border p-4"
                       >
                         <div className="flex gap-4">
-                          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gray-900 text-xs font-semibold text-white">
+                          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-foreground text-xs font-semibold text-white">
                             {index + 1}
                           </div>
                           <div className="min-w-0 flex-1 space-y-2">
-                            <p className="text-sm font-medium text-gray-900">
+                            <p className="text-sm font-medium text-foreground">
                               {step.label}
                             </p>
 
                             {/* Linked test/control */}
                             {(step.linkedTestId || step.linkedControlName) && (
-                              <div className="flex flex-wrap gap-3 text-xs text-gray-500">
+                              <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
                                 {step.linkedTestId && (
                                   <span className="flex items-center gap-1">
                                     <ShieldCheck className="h-3 w-3" />
@@ -671,9 +671,9 @@ export function RiskDetailPage() {
 
                             {/* Affected resource */}
                             {step.affectedResource && (
-                              <p className="text-xs text-gray-500">
+                              <p className="text-xs text-muted-foreground">
                                 Affected resource:{' '}
-                                <span className="font-medium text-gray-700">
+                                <span className="font-medium text-foreground">
                                   {step.affectedResource}
                                 </span>
                               </p>
@@ -681,14 +681,14 @@ export function RiskDetailPage() {
 
                             {/* Recommended fix */}
                             {step.recommendedFix && (
-                              <p className="text-xs text-gray-600">
+                              <p className="text-xs text-muted-foreground">
                                 Recommended: {step.recommendedFix}
                               </p>
                             )}
 
                             {/* Evidence snapshot */}
                             {step.evidenceSummary && (
-                              <div className="rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-600">
+                              <div className="rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">
                                 <span className="font-medium">Evidence:</span>{' '}
                                 {step.evidenceSummary}
                               </div>

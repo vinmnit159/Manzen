@@ -69,7 +69,7 @@ function OnboardingBadge({ count, total }: { count: number; total: number }) {
       </span>
     );
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-50 text-gray-400 border border-gray-200">
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-muted text-muted-foreground/70 border border-border">
       <Circle className="w-3 h-3" /> {count}/{total}
     </span>
   );
@@ -96,23 +96,23 @@ function TaskRow({
 }: TaskRowProps) {
   return (
     <div
-      className={`flex items-start gap-3 p-3 rounded-xl border ${done ? 'border-green-200 bg-green-50/40' : inProgress ? 'border-amber-200 bg-amber-50/30' : 'border-gray-200 bg-white'}`}
+      className={`flex items-start gap-3 p-3 rounded-xl border ${done ? 'border-green-200 bg-green-50/40' : inProgress ? 'border-amber-200 bg-amber-50/30' : 'border-border bg-card'}`}
     >
       <div
-        className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 ${done ? 'bg-green-100' : inProgress ? 'bg-amber-100' : 'bg-gray-100'}`}
+        className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 ${done ? 'bg-green-100' : inProgress ? 'bg-amber-100' : 'bg-muted'}`}
       >
         {done ? (
           <CheckCircle2 className="w-4 h-4 text-green-600" />
         ) : inProgress ? (
           <Clock className="w-4 h-4 text-amber-600" />
         ) : (
-          <Circle className="w-4 h-4 text-gray-400" />
+          <Circle className="w-4 h-4 text-muted-foreground/70" />
         )}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <Icon className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-          <span className="text-sm font-medium text-gray-900">{title}</span>
+          <Icon className="w-3.5 h-3.5 text-muted-foreground/70 flex-shrink-0" />
+          <span className="text-sm font-medium text-foreground">{title}</span>
           {done && (
             <span className="text-xs text-green-700 bg-green-50 border border-green-200 rounded-full px-1.5 py-0.5">
               Completed
@@ -124,14 +124,14 @@ function TaskRow({
             </span>
           )}
           {!done && !inProgress && (
-            <span className="text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-full px-1.5 py-0.5">
+            <span className="text-xs text-muted-foreground bg-muted border border-border rounded-full px-1.5 py-0.5">
               Not Started
             </span>
           )}
         </div>
-        {detail && <p className="text-xs text-gray-500 mt-0.5">{detail}</p>}
+        {detail && <p className="text-xs text-muted-foreground mt-0.5">{detail}</p>}
         {subDetail && (
-          <p className="text-xs text-gray-400 mt-0.5 font-mono">{subDetail}</p>
+          <p className="text-xs text-muted-foreground/70 mt-0.5 font-mono">{subDetail}</p>
         )}
       </div>
     </div>
@@ -159,41 +159,41 @@ function UserDetailPanel({
       {/* Backdrop */}
       <div className="fixed inset-0 bg-black/30 z-30" onClick={onClose} />
       {/* Panel */}
-      <div className="fixed right-0 top-0 bottom-0 z-40 w-full max-w-md bg-white shadow-2xl flex flex-col">
+      <div className="fixed right-0 top-0 bottom-0 z-40 w-full max-w-md bg-card shadow-2xl flex flex-col">
         {/* Header */}
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-200 flex-shrink-0">
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-border flex-shrink-0">
           <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center font-bold text-blue-700 text-sm flex-shrink-0">
             {(user.name ?? user.email).slice(0, 2).toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-gray-900 truncate">
+            <p className="text-sm font-semibold text-foreground truncate">
               {user.name ?? (
-                <span className="italic text-gray-400">No name</span>
+                <span className="italic text-muted-foreground/70">No name</span>
               )}
             </p>
-            <p className="text-xs text-gray-500 truncate">{user.email}</p>
+            <p className="text-xs text-muted-foreground truncate">{user.email}</p>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"
+            className="p-1.5 rounded-lg hover:bg-accent text-muted-foreground/70"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Summary bar */}
-        <div className="px-5 py-3 bg-gray-50 border-b border-gray-200 flex-shrink-0">
+        <div className="px-5 py-3 bg-muted border-b border-border flex-shrink-0">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-xs font-semibold text-gray-700">
+            <span className="text-xs font-semibold text-foreground">
               Security Onboarding
             </span>
             <span className="text-xs font-bold text-blue-700">
               {ob.completedCount}/{ob.totalCount} complete
             </span>
           </div>
-          <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+          <div className="h-2 bg-muted rounded-full overflow-hidden">
             <div
-              className={`h-full rounded-full transition-all duration-500 ${ob.allComplete ? 'bg-green-500' : ob.completedCount > 0 ? 'bg-blue-500' : 'bg-gray-300'}`}
+              className={`h-full rounded-full transition-all duration-500 ${ob.allComplete ? 'bg-green-500' : ob.completedCount > 0 ? 'bg-blue-500' : 'bg-muted'}`}
               style={{
                 width: `${Math.round((ob.completedCount / ob.totalCount) * 100)}%`,
               }}
@@ -208,7 +208,7 @@ function UserDetailPanel({
 
         {/* Task detail */}
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
             Task Status
           </p>
 
@@ -260,20 +260,20 @@ function UserDetailPanel({
           />
 
           {/* User info */}
-          <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+          <div className="mt-4 pt-4 border-t border-border space-y-2">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
               User Info
             </p>
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div>
-                <p className="text-gray-400">Role</p>
-                <p className="font-medium text-gray-700">
+                <p className="text-muted-foreground/70">Role</p>
+                <p className="font-medium text-foreground">
                   {roleLabel(user.role)}
                 </p>
               </div>
               <div>
-                <p className="text-gray-400">Joined</p>
-                <p className="font-medium text-gray-700">
+                <p className="text-muted-foreground/70">Joined</p>
+                <p className="font-medium text-foreground">
                   {new Date(user.createdAt).toLocaleDateString()}
                 </p>
               </div>
@@ -391,34 +391,34 @@ export function PeoplePage() {
       <Card>
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b">
+            <thead className="bg-muted border-b">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Name / Email
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Role
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   GitHub Accounts
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Onboarding
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Joined
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-card divide-y divide-border">
               {loading ? (
                 <tr>
                   <td
                     colSpan={6}
-                    className="px-6 py-10 text-center text-sm text-gray-400"
+                    className="px-6 py-10 text-center text-sm text-muted-foreground/70"
                   >
                     Loading users…
                   </td>
@@ -427,7 +427,7 @@ export function PeoplePage() {
                 <tr>
                   <td
                     colSpan={6}
-                    className="px-6 py-10 text-center text-sm text-gray-400"
+                    className="px-6 py-10 text-center text-sm text-muted-foreground/70"
                   >
                     No users found.
                   </td>
@@ -439,7 +439,7 @@ export function PeoplePage() {
                   return (
                     <tr
                       key={user.id}
-                      className={`hover:bg-gray-50 ${hasOnboarding ? 'cursor-pointer' : ''}`}
+                      className={`hover:bg-muted ${hasOnboarding ? 'cursor-pointer' : ''}`}
                       onClick={
                         hasOnboarding
                           ? () => handleRowClick(user.id)
@@ -448,14 +448,14 @@ export function PeoplePage() {
                     >
                       {/* Name / Email */}
                       <td className="px-6 py-4">
-                        <div className="text-sm font-medium text-gray-900">
+                        <div className="text-sm font-medium text-foreground">
                           {user.name ?? (
-                            <span className="text-gray-400 italic">
+                            <span className="text-muted-foreground/70 italic">
                               No name
                             </span>
                           )}
                         </div>
-                        <div className="text-xs text-gray-500">
+                        <div className="text-xs text-muted-foreground">
                           {user.email}
                         </div>
                       </td>
@@ -479,7 +479,7 @@ export function PeoplePage() {
                                 // silently fail — user sees no change
                               }
                             }}
-                            className="text-xs font-medium px-2 py-1 rounded-md border border-gray-300 bg-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="text-xs font-medium px-2 py-1 rounded-md border border-border bg-card cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
                             title="Change role"
                           >
                             {ALL_ROLES.map((r) => (
@@ -501,7 +501,7 @@ export function PeoplePage() {
                         onClick={(e) => e.stopPropagation()}
                       >
                         {user.gitAccounts.length === 0 ? (
-                          <span className="text-xs text-gray-400">—</span>
+                          <span className="text-xs text-muted-foreground/70">—</span>
                         ) : (
                           <div className="flex flex-col gap-1">
                             {user.gitAccounts.map((ga) => (
@@ -556,24 +556,24 @@ export function PeoplePage() {
                               ].map(({ done, icon: Icon }, i) => (
                                 <span
                                   key={i}
-                                  className={`w-5 h-5 rounded-md flex items-center justify-center ${done ? 'bg-green-100' : 'bg-gray-100'}`}
+                                  className={`w-5 h-5 rounded-md flex items-center justify-center ${done ? 'bg-green-100' : 'bg-muted'}`}
                                   title={['Policies', 'MDM', 'Training'][i]}
                                 >
                                   <Icon
-                                    className={`w-3 h-3 ${done ? 'text-green-600' : 'text-gray-400'}`}
+                                    className={`w-3 h-3 ${done ? 'text-green-600' : 'text-muted-foreground/70'}`}
                                   />
                                 </span>
                               ))}
                             </div>
-                            <ChevronRight className="w-3.5 h-3.5 text-gray-300" />
+                            <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/70" />
                           </div>
                         ) : (
-                          <span className="text-xs text-gray-400">—</span>
+                          <span className="text-xs text-muted-foreground/70">—</span>
                         )}
                       </td>
 
                       {/* Joined */}
-                      <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500">
+                      <td className="px-6 py-4 whitespace-nowrap text-xs text-muted-foreground">
                         {new Date(user.createdAt).toLocaleDateString()}
                       </td>
 
@@ -601,10 +601,10 @@ export function PeoplePage() {
         </div>
 
         {!loading && users.length > 0 && (
-          <div className="px-6 py-3 bg-gray-50 border-t text-xs text-gray-500">
+          <div className="px-6 py-3 bg-muted border-t text-xs text-muted-foreground">
             {users.length} member{users.length !== 1 ? 's' : ''}
             {onboardingMap.size > 0 && (
-              <span className="ml-2 text-gray-400">
+              <span className="ml-2 text-muted-foreground/70">
                 ·{' '}
                 {
                   Array.from(onboardingMap.values()).filter(

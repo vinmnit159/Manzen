@@ -131,15 +131,15 @@ export function ControlsPage() {
     : 0;
 
   return (
-    <div className="flex flex-col bg-gray-50">
+    <div className="flex flex-col bg-muted">
       {selectedControl && (
         <ControlDetailPanel control={selectedControl} onClose={() => setSelectedControl(null)} />
       )}
       {/* ── Top App Bar (Material-style) ── */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
+      <div className="bg-card border-b border-border px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900 tracking-tight">Controls</h1>
-          <p className="text-sm text-gray-500 mt-0.5">ISO 27001 security control management</p>
+          <h1 className="text-xl font-semibold text-foreground tracking-tight">Controls</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">ISO 27001 security control management</p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -152,7 +152,7 @@ export function ControlsPage() {
           <button
             onClick={fetchControls}
             disabled={isFetching}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 transition-colors shadow-sm disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-border bg-card hover:bg-muted text-foreground transition-colors shadow-sm disabled:opacity-50"
             title="Refresh controls"
           >
             <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
@@ -203,8 +203,8 @@ export function ControlsPage() {
             <SummaryCard
               label="Total Controls"
                value={filteredControls.length}
-              color="text-gray-900"
-              bg="bg-white"
+              color="text-foreground"
+              bg="bg-card"
             />
             <SummaryCard
               label="Implemented"
@@ -230,12 +230,12 @@ export function ControlsPage() {
           </div>
 
           {/* Compliance progress bar */}
-          <div className="mt-3 bg-white rounded-xl border border-gray-200 px-4 py-3 shadow-sm">
+          <div className="mt-3 bg-card rounded-xl border border-border px-4 py-3 shadow-sm">
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-sm font-medium text-gray-700">Compliance score</span>
+              <span className="text-sm font-medium text-foreground">Compliance score</span>
               <span className="text-sm font-semibold text-blue-700">{compliancePct}%</span>
             </div>
-            <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+            <div className="h-2 bg-muted rounded-full overflow-hidden">
               <div
                 className="h-full rounded-full bg-blue-500 transition-all duration-500"
                 style={{ width: `${compliancePct}%` }}
@@ -265,10 +265,10 @@ export function ControlsPage() {
                 sortDirection={sortDirection}
                 onSelect={setSelectedControl}
               />
-              <div className="flex items-center justify-between px-4 py-2 bg-white rounded-xl border border-gray-200 shadow-sm">
-                <span className="text-sm text-gray-500">
+              <div className="flex items-center justify-between px-4 py-2 bg-card rounded-xl border border-border shadow-sm">
+                <span className="text-sm text-muted-foreground">
                   Showing{' '}
-                  <span className="font-medium text-gray-800">{filteredControls.length}</span>{' '}
+                  <span className="font-medium text-foreground">{filteredControls.length}</span>{' '}
                   control{filteredControls.length !== 1 ? 's' : ''}
                   {hasActiveFilters && ' (filtered)'}
                 </span>
@@ -288,7 +288,7 @@ function SummaryCard({
   value,
   color,
   bg,
-  accent = 'border-gray-200',
+  accent = 'border-border',
 }: {
   label: string;
   value: number;
@@ -298,7 +298,7 @@ function SummaryCard({
 }) {
   return (
     <div className={`rounded-xl border ${accent} ${bg} px-4 py-3 shadow-sm`}>
-      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">{label}</p>
+      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</p>
       <p className={`text-2xl font-bold mt-1 ${color}`}>{value}</p>
     </div>
   );
@@ -306,23 +306,23 @@ function SummaryCard({
 
 function LoadingState() {
   return (
-    <div className="flex-1 flex flex-col items-center justify-center py-20 bg-white rounded-xl border border-gray-200 shadow-sm">
+    <div className="flex-1 flex flex-col items-center justify-center py-20 bg-card rounded-xl border border-border shadow-sm">
       <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4" />
-      <p className="text-sm text-gray-500">Loading controls...</p>
+      <p className="text-sm text-muted-foreground">Loading controls...</p>
     </div>
   );
 }
 
 function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
   return (
-    <div className="flex-1 flex flex-col items-center justify-center py-20 bg-white rounded-xl border border-red-200 shadow-sm">
+    <div className="flex-1 flex flex-col items-center justify-center py-20 bg-card rounded-xl border border-red-200 shadow-sm">
       <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mb-4">
         <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
       </div>
-      <p className="text-base font-medium text-gray-900 mb-1">Failed to load controls</p>
-      <p className="text-sm text-gray-500 mb-4 text-center max-w-xs">{message}</p>
+      <p className="text-base font-medium text-foreground mb-1">Failed to load controls</p>
+      <p className="text-sm text-muted-foreground mb-4 text-center max-w-xs">{message}</p>
       <button
         onClick={onRetry}
         className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors shadow-sm"
@@ -335,20 +335,20 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
 
 function EmptyState({ hasFilters, onClear }: { hasFilters: boolean; onClear: () => void }) {
   return (
-    <div className="flex-1 flex flex-col items-center justify-center py-20 bg-white rounded-xl border border-gray-200 shadow-sm">
-      <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-        <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div className="flex-1 flex flex-col items-center justify-center py-20 bg-card rounded-xl border border-border shadow-sm">
+      <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
+        <svg className="w-6 h-6 text-muted-foreground/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
         </svg>
       </div>
-      <p className="text-base font-medium text-gray-900 mb-1">No controls found</p>
-      <p className="text-sm text-gray-500 mb-4">
+      <p className="text-base font-medium text-foreground mb-1">No controls found</p>
+      <p className="text-sm text-muted-foreground mb-4">
         {hasFilters ? 'No controls match your current filters.' : 'No controls have been created yet.'}
       </p>
       {hasFilters && (
         <button
           onClick={onClear}
-          className="px-5 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors"
+          className="px-5 py-2 rounded-lg border border-border text-foreground text-sm font-medium hover:bg-muted transition-colors"
         >
           Clear filters
         </button>

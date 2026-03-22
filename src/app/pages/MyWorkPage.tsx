@@ -52,7 +52,7 @@ function OnboardingTaskRow({
   linkTo: string;
 }) {
   return (
-    <div className="flex items-start gap-3 py-3 border-b border-gray-100 last:border-0">
+    <div className="flex items-start gap-3 py-3 border-b border-border last:border-0">
       <div className={`mt-0.5 flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${done ? 'bg-green-100' : 'bg-amber-100'}`}>
         {done
           ? <CheckCircle className="w-3.5 h-3.5 text-green-600" />
@@ -60,8 +60,8 @@ function OnboardingTaskRow({
         }
       </div>
       <div className="flex-1 min-w-0">
-        <p className={`text-sm font-medium ${done ? 'text-gray-400 line-through' : 'text-gray-800'}`}>{label}</p>
-        <p className="text-xs text-gray-400 mt-0.5">{done ? `Completed ${fmtDate(doneAt)}` : description}</p>
+        <p className={`text-sm font-medium ${done ? 'text-muted-foreground/70 line-through' : 'text-foreground'}`}>{label}</p>
+        <p className="text-xs text-muted-foreground/70 mt-0.5">{done ? `Completed ${fmtDate(doneAt)}` : description}</p>
       </div>
       {!done && (
         <a
@@ -130,13 +130,13 @@ export function MyWorkPage() {
             label: 'Total Pending',
             value: testsLoading || onboardingLoading ? '…' : totalPending,
             icon: <ClipboardList className="w-4 h-4" />,
-            cls: 'text-gray-700 bg-white',
+            cls: 'text-foreground bg-card',
           },
           {
             label: 'Overdue Tests',
             value: testsLoading ? '…' : overdue.length,
             icon: <AlertTriangle className="w-4 h-4" />,
-            cls: overdue.length > 0 ? 'text-red-700 bg-red-50' : 'text-gray-700 bg-white',
+            cls: overdue.length > 0 ? 'text-red-700 bg-red-50' : 'text-foreground bg-card',
           },
           {
             label: 'Due Soon',
@@ -176,10 +176,10 @@ export function MyWorkPage() {
               </div>
               {testsLoading ? (
                 <div className="p-4 space-y-2">
-                  {[...Array(2)].map((_, i) => <div key={i} className="h-10 bg-gray-100 rounded animate-pulse" />)}
+                  {[...Array(2)].map((_, i) => <div key={i} className="h-10 bg-muted rounded animate-pulse" />)}
                 </div>
               ) : (
-                <div className="divide-y divide-gray-100">
+                <div className="divide-y divide-border">
                   {overdue.map(test => (
                     <TestRow key={test.id} test={test} onView={() => setSelectedTestId(test.id)} />
                   ))}
@@ -190,22 +190,22 @@ export function MyWorkPage() {
 
           {/* Due Soon / In Progress */}
           <Card className="overflow-hidden">
-            <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
-              <ClipboardList className="w-4 h-4 text-gray-500" />
-              <h2 className="text-sm font-semibold text-gray-700">Assigned Tests</h2>
-              {!testsLoading && <span className="ml-auto text-xs text-gray-400">{pendingTests.length} pending</span>}
+            <div className="px-4 py-3 bg-muted border-b border-border flex items-center gap-2">
+              <ClipboardList className="w-4 h-4 text-muted-foreground" />
+              <h2 className="text-sm font-semibold text-foreground">Assigned Tests</h2>
+              {!testsLoading && <span className="ml-auto text-xs text-muted-foreground/70">{pendingTests.length} pending</span>}
             </div>
             {testsLoading ? (
               <div className="p-4 space-y-2">
-                {[...Array(3)].map((_, i) => <div key={i} className="h-10 bg-gray-100 rounded animate-pulse" />)}
+                {[...Array(3)].map((_, i) => <div key={i} className="h-10 bg-muted rounded animate-pulse" />)}
               </div>
             ) : pendingTests.length === 0 ? (
-              <div className="p-8 text-center text-sm text-gray-400">
+              <div className="p-8 text-center text-sm text-muted-foreground/70">
                 <CheckCircle className="w-8 h-8 text-green-400 mx-auto mb-2" />
                 No pending tests assigned to you.
               </div>
             ) : (
-              <div className="divide-y divide-gray-100">
+              <div className="divide-y divide-border">
                 {pendingTests.map(test => (
                   <TestRow key={test.id} test={test} onView={() => setSelectedTestId(test.id)} />
                 ))}
@@ -217,9 +217,9 @@ export function MyWorkPage() {
         {/* ── Security Onboarding ── */}
         <div>
           <Card className="overflow-hidden">
-            <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-gray-500" />
-              <h2 className="text-sm font-semibold text-gray-700">Security Onboarding</h2>
+            <div className="px-4 py-3 bg-muted border-b border-border flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-muted-foreground" />
+              <h2 className="text-sm font-semibold text-foreground">Security Onboarding</h2>
               {onboarding && (
                 <span className={`ml-auto text-xs font-medium ${onboarding.allComplete ? 'text-green-600' : 'text-amber-600'}`}>
                   {onboarding.allComplete ? 'Complete' : `${3 - onboardingPendingCount}/3 done`}
@@ -229,13 +229,13 @@ export function MyWorkPage() {
 
             {onboardingLoading ? (
               <div className="p-4 space-y-2">
-                {[...Array(3)].map((_, i) => <div key={i} className="h-10 bg-gray-100 rounded animate-pulse" />)}
+                {[...Array(3)].map((_, i) => <div key={i} className="h-10 bg-muted rounded animate-pulse" />)}
               </div>
             ) : onboarding ? (
               <div className="px-4 py-2">
                 {/* Progress bar */}
                 <div className="mb-3 mt-1">
-                  <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                     <div
                       className="h-full bg-green-500 rounded-full transition-all"
                       style={{ width: `${((3 - onboardingPendingCount) / 3) * 100}%` }}
@@ -265,7 +265,7 @@ export function MyWorkPage() {
                 />
               </div>
             ) : (
-              <p className="p-4 text-sm text-gray-400">Could not load onboarding status.</p>
+              <p className="p-4 text-sm text-muted-foreground/70">Could not load onboarding status.</p>
             )}
           </Card>
         </div>
@@ -288,16 +288,16 @@ export function MyWorkPage() {
 function TestRow({ test, onView }: { test: TestRecord; onView: () => void }) {
   const overdue = isOverdue(test.dueDate) && test.status !== 'OK';
   return (
-    <div className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors">
+    <div className="flex items-center gap-3 px-4 py-3 hover:bg-muted transition-colors">
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-gray-800 truncate">{test.name}</p>
-        <p className={`text-xs mt-0.5 ${overdue ? 'text-red-500 font-medium' : 'text-gray-400'}`}>
+        <p className="text-sm font-medium text-foreground truncate">{test.name}</p>
+        <p className={`text-xs mt-0.5 ${overdue ? 'text-red-500 font-medium' : 'text-muted-foreground/70'}`}>
           Due {fmtDate(test.dueDate)}
           {overdue && ' · Overdue'}
         </p>
       </div>
       <div className="flex items-center gap-2 flex-shrink-0">
-        <span className="hidden sm:inline-block text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded">
+        <span className="hidden sm:inline-block text-xs text-muted-foreground/70 bg-muted px-2 py-0.5 rounded">
           {test.category}
         </span>
         <StatusBadge status={test.status} />

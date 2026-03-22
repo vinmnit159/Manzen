@@ -81,7 +81,7 @@ export function RisksPage() {
       }
     >
       {isLoading ? (
-        <div className="flex h-48 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-gray-400" /></div>
+        <div className="flex h-48 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground/70" /></div>
       ) : (
         <div className="space-y-6">
           <PageFilterBar
@@ -114,51 +114,51 @@ export function RisksPage() {
           <Card>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[1100px]">
-                <thead className="border-b bg-gray-50">
+                <thead className="border-b bg-muted">
                   <tr>
                     {['Risk', 'Category', 'Asset', 'Owner', 'Score', 'Status', 'Evidence', 'Frameworks', 'Due'].map((header) => (
-                      <th key={header} className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">{header}</th>
+                      <th key={header} className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">{header}</th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200 bg-white">
+                <tbody className="divide-y divide-border bg-card">
                   {filtered.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="px-6 py-14 text-center text-sm text-gray-400">No risks matched the current filters.</td>
+                      <td colSpan={9} className="px-6 py-14 text-center text-sm text-muted-foreground/70">No risks matched the current filters.</td>
                     </tr>
                   ) : filtered.map((risk) => (
-                    <tr key={risk.id} className="align-top hover:bg-gray-50">
+                    <tr key={risk.id} className="align-top hover:bg-muted">
                       <td className="px-6 py-4 text-sm">
-                        <button type="button" onClick={() => navigate(`/risk/risks/${risk.id}`)} className="text-left font-medium text-gray-900 hover:text-blue-700">
+                        <button type="button" onClick={() => navigate(`/risk/risks/${risk.id}`)} className="text-left font-medium text-foreground hover:text-blue-700">
                           {risk.title}
                         </button>
-                        <p className="mt-1 max-w-md text-xs leading-5 text-gray-500">{risk.description}</p>
+                        <p className="mt-1 max-w-md text-xs leading-5 text-muted-foreground">{risk.description}</p>
                         <div className="mt-2 flex flex-wrap gap-2">
                           <Badge variant={riskLevelVariant(risk.impact)}>{risk.impact}</Badge>
                           <Badge variant="outline">{trendLabel(risk.trend)}</Badge>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">{risk.category}</td>
-                      <td className="px-6 py-4 text-sm text-gray-600">
+                      <td className="px-6 py-4 text-sm text-muted-foreground">{risk.category}</td>
+                      <td className="px-6 py-4 text-sm text-muted-foreground">
                         <p>{risk.assetName}</p>
-                        <p className="mt-1 text-xs text-gray-400">{risk.assetType} · {risk.assetCriticality}</p>
+                        <p className="mt-1 text-xs text-muted-foreground/70">{risk.assetType} · {risk.assetCriticality}</p>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">
+                      <td className="px-6 py-4 text-sm text-muted-foreground">
                         <p>{risk.owner.name}</p>
-                        <p className="mt-1 text-xs text-gray-400">{risk.owner.team}</p>
+                        <p className="mt-1 text-xs text-muted-foreground/70">{risk.owner.team}</p>
                       </td>
-                      <td className="px-6 py-4 text-sm font-semibold text-gray-900">{risk.riskScore}</td>
+                      <td className="px-6 py-4 text-sm font-semibold text-foreground">{risk.riskScore}</td>
                       <td className="px-6 py-4"><Badge variant={riskStatusVariant(risk.status)}>{risk.status}</Badge></td>
-                      <td className="px-6 py-4 text-sm text-gray-600">
+                      <td className="px-6 py-4 text-sm text-muted-foreground">
                         <p>{risk.evidenceCount} snapshots</p>
-                        <p className="mt-1 text-xs text-gray-400">Seen {risk.exposureDays}d</p>
+                        <p className="mt-1 text-xs text-muted-foreground/70">Seen {risk.exposureDays}d</p>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">
+                      <td className="px-6 py-4 text-sm text-muted-foreground">
                         <div className="flex max-w-xs flex-wrap gap-2">
                           {risk.frameworks.slice(0, 2).map((framework) => <Badge key={framework} variant="outline">{framework}</Badge>)}
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">{new Date(risk.dueDate).toLocaleDateString()}</td>
+                      <td className="px-6 py-4 text-sm text-muted-foreground">{new Date(risk.dueDate).toLocaleDateString()}</td>
                     </tr>
                   ))}
                 </tbody>

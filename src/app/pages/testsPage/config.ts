@@ -1,12 +1,15 @@
 import type { TestStatus, TestCategory, TestType } from '@/services/api/tests';
+import { getStatusColors, getCategoryColor } from '@/app/theme/semantic-colors';
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
+const _sc = (status: string) => getStatusColors(status);
+
 export const STATUS_CONFIG: Record<TestStatus, { label: string; bg: string; text: string; dot: string }> = {
-  OK:                { label: 'OK',                bg: 'bg-green-50',  text: 'text-green-700',  dot: 'bg-green-500'  },
-  Due_soon:          { label: 'Due Soon',          bg: 'bg-amber-50',  text: 'text-amber-700',  dot: 'bg-amber-500'  },
-  Overdue:           { label: 'Overdue',           bg: 'bg-red-50',    text: 'text-red-700',    dot: 'bg-red-500'    },
-  Needs_remediation: { label: 'Needs Remediation', bg: 'bg-purple-50', text: 'text-purple-700', dot: 'bg-purple-500' },
+  OK:                { label: 'OK',                ..._sc('OK')                },
+  Due_soon:          { label: 'Due Soon',          ..._sc('Due_soon')          },
+  Overdue:           { label: 'Overdue',           ..._sc('Overdue')           },
+  Needs_remediation: { label: 'Needs Remediation', ..._sc('Needs_remediation') },
 };
 
 export const CATEGORY_OPTIONS: TestCategory[] = ['Custom', 'Engineering', 'HR', 'IT', 'Policy', 'Risks'];
@@ -14,12 +17,12 @@ export const STATUS_OPTIONS: TestStatus[] = ['OK', 'Due_soon', 'Overdue', 'Needs
 export const TYPE_OPTIONS: TestType[] = ['Document', 'Automated', 'Pipeline'];
 
 export const CATEGORY_COLOR: Record<TestCategory, string> = {
-  Custom:      'bg-gray-100 text-gray-700',
-  Engineering: 'bg-blue-100 text-blue-700',
-  HR:          'bg-pink-100 text-pink-700',
-  IT:          'bg-cyan-100 text-cyan-700',
-  Policy:      'bg-indigo-100 text-indigo-700',
-  Risks:       'bg-orange-100 text-orange-700',
+  Custom:      getCategoryColor('Custom'),
+  Engineering: getCategoryColor('Engineering'),
+  HR:          getCategoryColor('HR'),
+  IT:          getCategoryColor('IT'),
+  Policy:      getCategoryColor('Policy'),
+  Risks:       getCategoryColor('Risks'),
 };
 
 // ─── Column config ────────────────────────────────────────────────────────────
@@ -34,5 +37,3 @@ export const DEFAULT_COLUMNS: ColumnConfig[] = [
   { id: 'dueDate',  label: 'Due Date',  visible: true,  sortable: true,  minWidth: 110 },
   { id: 'actions',  label: 'Actions',   visible: true,  sortable: false, minWidth: 120 },
 ];
-
-

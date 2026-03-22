@@ -1,5 +1,6 @@
 import React from 'react';
 import { CheckCircle2, Clock, Edit3, AlertCircle, FileText } from 'lucide-react';
+import { getStatusColors } from '@/app/theme/semantic-colors';
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -12,16 +13,18 @@ export type SortKey = 'name' | 'version' | 'status' | 'createdAt';
 
 export const POLICY_STATUSES = ['PUBLISHED', 'DRAFT', 'REVIEW', 'ARCHIVED'] as const;
 
+const _sc = (s: string) => getStatusColors(s);
+
 export const STATUS_CONFIG: Record<
   string,
   { label: string; bg: string; text: string; dot: string; icon: React.ElementType }
 > = {
-  PUBLISHED: { label: 'Published',  bg: 'bg-green-50',  text: 'text-green-700',  dot: 'bg-green-500',  icon: CheckCircle2 },
-  DRAFT:     { label: 'Draft',      bg: 'bg-gray-50',   text: 'text-gray-600',   dot: 'bg-gray-400',   icon: Edit3 },
-  REVIEW:    { label: 'In Review',  bg: 'bg-amber-50',  text: 'text-amber-700',  dot: 'bg-amber-500',  icon: Clock },
-  ARCHIVED:  { label: 'Archived',   bg: 'bg-red-50',    text: 'text-red-600',    dot: 'bg-red-400',    icon: AlertCircle },
+  PUBLISHED: { label: 'Published',  ..._sc('PUBLISHED'), icon: CheckCircle2 },
+  DRAFT:     { label: 'Draft',      ..._sc('DRAFT'),     icon: Edit3 },
+  REVIEW:    { label: 'In Review',  ..._sc('REVIEW'),    icon: Clock },
+  ARCHIVED:  { label: 'Archived',   ..._sc('ARCHIVED'),  icon: AlertCircle },
 };
 
 export function getStatusCfg(status: string) {
-  return STATUS_CONFIG[status] ?? { label: status, bg: 'bg-gray-50', text: 'text-gray-600', dot: 'bg-gray-400', icon: FileText };
+  return STATUS_CONFIG[status] ?? { label: status, ..._sc('UNKNOWN'), icon: FileText };
 }

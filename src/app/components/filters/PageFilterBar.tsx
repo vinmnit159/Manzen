@@ -61,7 +61,7 @@ export function PageFilterBar({
           <div className="grid flex-1 gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1.4fr)_repeat(3,minmax(0,0.6fr))]">
             {onSearchChange ? (
               <div className="relative md:col-span-2 xl:col-span-1">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" />
                 <Input
                   value={searchValue ?? ''}
                   onChange={(event) => onSearchChange(event.target.value)}
@@ -96,8 +96,8 @@ export function PageFilterBar({
 
           <div className="flex items-center justify-between gap-3 xl:min-w-[12rem] xl:justify-end">
             {typeof resultCount === 'number' ? (
-              <div className="text-sm text-gray-500">
-                <span className="font-semibold text-gray-900">{resultCount}</span> {resultLabel}
+              <div className="text-sm text-muted-foreground">
+                <span className="font-semibold text-foreground">{resultCount}</span> {resultLabel}
               </div>
             ) : null}
             {onClearAll ? (
@@ -111,8 +111,8 @@ export function PageFilterBar({
         {auxiliary ? <div>{auxiliary}</div> : null}
 
         {activeFilters.length > 0 ? (
-          <div className="flex flex-wrap items-center gap-2 border-t border-gray-100 pt-4">
-            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-400">Active filters</span>
+          <div className="flex flex-wrap items-center gap-2 border-t border-border pt-4">
+            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground/70">Active filters</span>
             {activeFilters.map((filter) => (
               <button
                 key={filter.key}

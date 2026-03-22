@@ -59,7 +59,7 @@ export function Layout() {
 
   return (
     <SidebarContext.Provider value={ctx}>
-      <div className="flex h-screen bg-gray-50 overflow-hidden">
+      <div className="flex h-screen bg-muted overflow-hidden">
         {/* Overlay (mobile only) */}
         {sidebarOpen && (
           <div
@@ -86,7 +86,7 @@ export function Layout() {
           <main className="flex-1 overflow-y-auto">
             <Suspense fallback={
               <div className="flex items-center justify-center h-64">
-                <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
               </div>
             }>
               <Outlet />

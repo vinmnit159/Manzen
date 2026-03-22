@@ -4,7 +4,7 @@ import { Search, X } from 'lucide-react';
 
 export function FilterChip({ label, onRemove }: { label: string; onRemove: () => void }) {
   return (
-    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20">
       {label}
       <button onClick={onRemove} className="ml-0.5 text-blue-500 hover:text-blue-700">
         <X className="w-3 h-3" />
@@ -23,38 +23,38 @@ export function FilterPanel({
   mobileDrawer?: boolean;
 }) {
   return (
-    <div className={`bg-white border border-gray-200 shadow-sm overflow-hidden ${mobileDrawer ? 'rounded-b-xl lg:rounded-xl' : 'rounded-xl'}`}>
-      <div className={`px-5 py-4 border-b border-gray-100 flex items-center justify-between ${mobileDrawer ? 'hidden lg:flex' : ''}`}>
-        <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">Filters</h2>
+    <div className={`bg-card border border-border shadow-sm overflow-hidden ${mobileDrawer ? 'rounded-b-xl lg:rounded-xl' : 'rounded-xl'}`}>
+      <div className={`px-5 py-4 border-b border-border flex items-center justify-between ${mobileDrawer ? 'hidden lg:flex' : ''}`}>
+        <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide">Filters</h2>
         {hasActiveFilters && (
           <button onClick={onClear} className="text-xs font-medium text-blue-600 hover:text-blue-700">Clear all</button>
         )}
       </div>
       <div className="px-5 py-4 space-y-5">
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1.5 uppercase tracking-wide">Search</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wide">Search</label>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/70 pointer-events-none" />
             <input
               type="text"
               value={filter.search}
               onChange={e => onChange('search', e.target.value)}
               placeholder="Search by policy name…"
-              className="w-full pl-9 pr-8 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400"
+              className="w-full pl-9 pr-8 py-2.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-muted-foreground/70"
             />
             {filter.search && (
-              <button onClick={() => onChange('search', '')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+              <button onClick={() => onChange('search', '')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/70 hover:text-muted-foreground">
                 <X className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1.5 uppercase tracking-wide">Status</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wide">Status</label>
           <select
             value={filter.status}
             onChange={e => onChange('status', e.target.value)}
-            className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            className="w-full px-3 py-2.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-card"
           >
             <option value="">All statuses</option>
             {POLICY_STATUSES.map(s => (

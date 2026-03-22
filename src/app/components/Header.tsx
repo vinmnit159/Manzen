@@ -101,12 +101,12 @@ export function Header() {
   };
 
   return (
-    <header className="bg-white border-b border-gray-200 px-3 sm:px-6 py-3">
+    <header className="bg-card border-b border-border px-3 sm:px-6 py-3">
       <div className="flex items-center gap-2 sm:gap-3">
         {/* Navigation toggle — mobile drawer + desktop collapse */}
         <button
           onClick={toggleSidebar}
-          className="p-2 text-gray-600 hover:bg-gray-100 rounded-md flex-shrink-0"
+          className="p-2 text-muted-foreground hover:bg-accent rounded-md flex-shrink-0"
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
@@ -116,7 +116,7 @@ export function Header() {
         {/* Search — hidden on xs, visible from sm */}
         <div className="hidden sm:block flex-1 max-w-xl" ref={searchRef}>
           <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground/70 z-10" />
             <Input
               type="text"
               placeholder="Search pages..."
@@ -131,25 +131,25 @@ export function Header() {
             />
             
             {showSuggestions && filteredResults.length > 0 && (
-              <div className="absolute top-full mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg z-50 max-h-96 overflow-y-auto">
+              <div className="absolute top-full mt-1 w-full bg-card border border-border rounded-md shadow-lg z-50 max-h-96 overflow-y-auto">
                 <div className="py-2">
                   {filteredResults.map((result) => (
                     <button
                       key={result.path}
-                      className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center justify-between group transition-colors"
+                      className="w-full px-4 py-3 text-left hover:bg-muted flex items-center justify-between group transition-colors"
                       onClick={() => handleSearch(result.path)}
                     >
                       <div className="flex items-center gap-3">
                         <div className="flex flex-col">
-                          <span className="text-sm font-medium text-gray-900 group-hover:text-blue-600">
+                          <span className="text-sm font-medium text-foreground group-hover:text-primary">
                             {result.title}
                           </span>
-                          <span className="text-xs text-gray-500">
+                          <span className="text-xs text-muted-foreground">
                             {result.category}
                           </span>
                         </div>
                       </div>
-                      <span className="text-xs text-gray-400 group-hover:text-blue-600">
+                      <span className="text-xs text-muted-foreground/70 group-hover:text-primary">
                         {result.path}
                       </span>
                     </button>
@@ -161,7 +161,7 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-1 sm:gap-2 ml-auto flex-shrink-0">
-          <button className="hidden sm:flex relative p-2 text-gray-600 hover:bg-gray-100 rounded-md" title="Help">
+          <button className="hidden sm:flex relative p-2 text-muted-foreground hover:bg-accent rounded-md" title="Help">
             <HelpCircle className="w-5 h-5" />
           </button>
 
@@ -169,7 +169,7 @@ export function Header() {
 
           <button
             onClick={() => navigate("/settings/profile")}
-            className="hidden sm:flex p-2 text-gray-600 hover:bg-gray-100 rounded-md"
+            className="hidden sm:flex p-2 text-muted-foreground hover:bg-accent rounded-md"
             title="Settings"
             aria-label="Open settings"
           >
@@ -177,13 +177,13 @@ export function Header() {
           </button>
 
           {/* User info + logout */}
-          <div className="flex items-center gap-1 sm:gap-2 pl-2 sm:ml-2 sm:pl-2 border-l border-gray-200">
+          <div className="flex items-center gap-1 sm:gap-2 pl-2 sm:ml-2 sm:pl-2 border-l border-border">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
                 <User className="w-4 h-4 text-blue-600" />
               </div>
               {cachedUser && (
-                <span className="text-sm font-medium text-gray-700 hidden md:block max-w-[120px] truncate">
+                <span className="text-sm font-medium text-foreground hidden md:block max-w-[120px] truncate">
                   {cachedUser.name || cachedUser.email}
                 </span>
               )}
@@ -191,7 +191,7 @@ export function Header() {
             <button
               onClick={handleLogout}
               title="Sign out"
-              className="p-2 text-gray-500 hover:bg-red-50 hover:text-red-600 rounded-md transition-colors"
+              className="p-2 text-muted-foreground hover:bg-red-50 hover:text-red-600 rounded-md transition-colors"
             >
               <LogOut className="w-4 h-4" />
             </button>

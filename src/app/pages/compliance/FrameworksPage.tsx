@@ -117,7 +117,7 @@ function statusBadge(status: OrgFrameworkDto['status']) {
       </Badge>
     );
   return (
-    <Badge variant="outline" className="text-gray-500">
+    <Badge variant="outline" className="text-muted-foreground">
       Archived
     </Badge>
   );
@@ -142,7 +142,7 @@ function ActiveFrameworkCard({
   const Icon = meta.icon;
 
   return (
-    <Card className="border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+    <Card className="border-border shadow-sm hover:shadow-md transition-shadow">
       <CardHeader className="pb-3 bg-gradient-to-br from-slate-50 to-white">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -155,7 +155,7 @@ function ActiveFrameworkCard({
               <CardTitle className="text-base leading-tight">
                 {orgFw.frameworkName}
               </CardTitle>
-              <p className="text-xs text-gray-500 mt-0.5">
+              <p className="text-xs text-muted-foreground mt-0.5">
                 v{orgFw.frameworkVersion}
               </p>
             </div>
@@ -175,9 +175,9 @@ function ActiveFrameworkCard({
       </CardHeader>
       <CardContent className="space-y-4 pt-4">
         <div>
-          <div className="flex justify-between text-xs text-gray-500 mb-1.5">
+          <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
             <span>Coverage</span>
-            <span className="font-semibold text-gray-900">
+            <span className="font-semibold text-foreground">
               {orgFw.controlCoveragePct != null
                 ? `${orgFw.controlCoveragePct}%`
                 : '—%'}
@@ -190,13 +190,13 @@ function ActiveFrameworkCard({
             </p>
           )}
           {orgFw.controlCoveragePct == null && (
-            <p className="text-[11px] text-gray-400 mt-1">
+            <p className="text-[11px] text-muted-foreground/70 mt-1">
               No coverage snapshot yet
             </p>
           )}
         </div>
         {orgFw.activatedAt && (
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-muted-foreground/70">
             Activated {new Date(orgFw.activatedAt).toLocaleDateString()}
           </p>
         )}
@@ -216,7 +216,7 @@ function ActiveFrameworkCard({
             <Button
               size="sm"
               variant="ghost"
-              className="text-gray-400 hover:text-red-600"
+              className="text-muted-foreground/70 hover:text-red-600"
               onClick={() => (entitled ? onRemove(orgFw) : onUpgrade(orgFw))}
               title={
                 entitled
@@ -257,7 +257,7 @@ function AvailableFrameworkCard({
   const Icon = meta.icon;
 
   return (
-    <Card className="border-gray-200 shadow-sm opacity-90">
+    <Card className="border-border shadow-sm opacity-90">
       <CardHeader className="pb-3">
         <div className="flex items-start gap-3">
           <div
@@ -267,17 +267,17 @@ function AvailableFrameworkCard({
           </div>
           <div className="flex-1 min-w-0">
             <CardTitle className="text-sm leading-tight">{fw.name}</CardTitle>
-            <p className="text-xs text-gray-400 mt-0.5">
+            <p className="text-xs text-muted-foreground/70 mt-0.5">
               v{fw.version} · {meta.requirementCount} requirements
             </p>
           </div>
           {!entitled && (
-            <Lock className="w-4 h-4 text-gray-300 flex-shrink-0 mt-1" />
+            <Lock className="w-4 h-4 text-muted-foreground/70 flex-shrink-0 mt-1" />
           )}
         </div>
       </CardHeader>
       <CardContent className="pt-0 space-y-3">
-        <p className="text-xs text-gray-500 leading-relaxed">
+        <p className="text-xs text-muted-foreground leading-relaxed">
           {fw.description ?? meta.description}
         </p>
         <Button
@@ -339,7 +339,7 @@ function EntitlementDialog({
             <Lock className="w-5 h-5 text-amber-500" />
             {canManageScope ? 'Upgrade required' : 'Admin action required'}
           </DialogTitle>
-          <DialogDescription className="text-sm text-gray-600 pt-1">
+          <DialogDescription className="text-sm text-muted-foreground pt-1">
             {canManageScope
               ? `${name} is not included in your current entitlement. Upgrade your plan to activate or manage this framework.`
               : `${name} can be viewed, but only an org admin can add or remove frameworks from active scope.`}
@@ -381,7 +381,7 @@ function RemoveDialog({
             <AlertTriangle className="w-5 h-5 text-amber-500" />
             Remove from active scope?
           </DialogTitle>
-          <DialogDescription className="text-sm text-gray-600 pt-1">
+          <DialogDescription className="text-sm text-muted-foreground pt-1">
             <strong>{orgFw.frameworkName}</strong> will be moved to Archived.
             All controls, tests, policies, evidence, and historical reports will
             be preserved. This framework can be re-added at any time.
@@ -526,7 +526,7 @@ export function FrameworksPage() {
     >
       {loading && (
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-7 h-7 animate-spin text-gray-400" />
+          <Loader2 className="w-7 h-7 animate-spin text-muted-foreground/70" />
         </div>
       )}
 
@@ -536,7 +536,7 @@ export function FrameworksPage() {
           <section>
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+                <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-green-600" />
                   Active Frameworks
                   {orgFrameworks.length > 0 && (
@@ -545,7 +545,7 @@ export function FrameworksPage() {
                     </Badge>
                   )}
                 </h2>
-                <p className="text-xs text-gray-500 mt-0.5">
+                <p className="text-xs text-muted-foreground mt-0.5">
                   Frameworks currently in scope. Dashboards, filters, and
                   reports are built around these.
                 </p>
@@ -553,13 +553,13 @@ export function FrameworksPage() {
             </div>
 
             {orgFrameworks.length === 0 ? (
-              <Card className="border-dashed border-gray-300 bg-gray-50">
+              <Card className="border-dashed border-border bg-muted">
                 <CardContent className="py-12 text-center">
-                  <ShieldCheck className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-                  <p className="text-sm font-medium text-gray-600">
+                  <ShieldCheck className="w-10 h-10 text-muted-foreground/70 mx-auto mb-3" />
+                  <p className="text-sm font-medium text-muted-foreground">
                     No frameworks in scope yet
                   </p>
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className="text-xs text-muted-foreground/70 mt-1">
                     Add a framework from the Available section below to get
                     started.
                   </p>
@@ -585,11 +585,11 @@ export function FrameworksPage() {
           {available.length > 0 && (
             <section>
               <div className="mb-4">
-                <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2">
-                  <BookOpen className="w-4 h-4 text-gray-500" />
+                <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
+                  <BookOpen className="w-4 h-4 text-muted-foreground" />
                   Available Frameworks
                 </h2>
-                <p className="text-xs text-gray-500 mt-0.5">
+                <p className="text-xs text-muted-foreground mt-0.5">
                   Add a framework to start tracking requirements, mappings, and
                   coverage.
                 </p>

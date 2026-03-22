@@ -48,42 +48,20 @@ import {
 
 type TabKey = 'ALL' | 'DUE' | 'HIGH_RISK';
 
+import { getStatusColors, getSeverityColors } from '@/app/theme/semantic-colors';
+
 const statusMeta: Record<VendorStatus, { label: string; className: string }> = {
-  MONITORED: {
-    label: 'Monitored',
-    className: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  },
-  ASSESSMENT_DUE: {
-    label: 'Assessment due',
-    className: 'bg-amber-50 text-amber-700 border-amber-200',
-  },
-  IN_REVIEW: {
-    label: 'In review',
-    className: 'bg-blue-50 text-blue-700 border-blue-200',
-  },
-  BLOCKED: {
-    label: 'Blocked',
-    className: 'bg-red-50 text-red-700 border-red-200',
-  },
+  MONITORED:      { label: 'Monitored',      className: getStatusColors('MONITORED').className },
+  ASSESSMENT_DUE: { label: 'Assessment due',  className: getStatusColors('ASSESSMENT_DUE').className },
+  IN_REVIEW:      { label: 'In review',       className: getStatusColors('IN_REVIEW').className },
+  BLOCKED:        { label: 'Blocked',         className: getStatusColors('BLOCKED').className },
 };
 
 const tierMeta: Record<VendorTier, { label: string; className: string }> = {
-  LOW: {
-    label: 'Low',
-    className: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  },
-  MEDIUM: {
-    label: 'Medium',
-    className: 'bg-amber-50 text-amber-700 border-amber-200',
-  },
-  HIGH: {
-    label: 'High',
-    className: 'bg-orange-50 text-orange-700 border-orange-200',
-  },
-  CRITICAL: {
-    label: 'Critical',
-    className: 'bg-red-50 text-red-700 border-red-200',
-  },
+  LOW:      { label: 'Low',      className: getSeverityColors('LOW').className },
+  MEDIUM:   { label: 'Medium',   className: getSeverityColors('MEDIUM').className },
+  HIGH:     { label: 'High',     className: getSeverityColors('HIGH').className },
+  CRITICAL: { label: 'Critical', className: getSeverityColors('CRITICAL').className },
 };
 
 const emptyVendorInput: CreateVendorInput = {
@@ -270,13 +248,13 @@ export function VendorsPage() {
         </div>
       )}
       <div className="space-y-6">
-        <Card className="border-slate-200 bg-gradient-to-r from-slate-50 via-white to-emerald-50/60">
+        <Card className="border-border bg-gradient-to-r from-muted via-card to-emerald-50/60">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-slate-900">
+            <CardTitle className="flex items-center gap-2 text-foreground">
               <Sparkles className="h-4 w-4 text-emerald-600" />
               Third-party risk command center
             </CardTitle>
-            <CardDescription className="text-slate-600">
+            <CardDescription className="text-muted-foreground">
               Track questionnaire coverage, pending reviews, and critical vendor
               exposure in one workflow.
             </CardDescription>
@@ -286,24 +264,24 @@ export function VendorsPage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardContent className="pt-6">
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 Vendors
               </p>
               <div className="mt-2 flex items-center justify-between">
-                <p className="text-2xl font-semibold text-slate-900">
+                <p className="text-2xl font-semibold text-foreground">
                   {vendors.length}
                 </p>
-                <Building2 className="h-5 w-5 text-slate-500" />
+                <Building2 className="h-5 w-5 text-muted-foreground" />
               </div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-6">
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 High risk
               </p>
               <div className="mt-2 flex items-center justify-between">
-                <p className="text-2xl font-semibold text-slate-900">
+                <p className="text-2xl font-semibold text-foreground">
                   {stats.highRisk}
                 </p>
                 <AlertTriangle className="h-5 w-5 text-orange-500" />
@@ -312,11 +290,11 @@ export function VendorsPage() {
           </Card>
           <Card>
             <CardContent className="pt-6">
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 Assessments due (30d)
               </p>
               <div className="mt-2 flex items-center justify-between">
-                <p className="text-2xl font-semibold text-slate-900">
+                <p className="text-2xl font-semibold text-foreground">
                   {stats.dueSoon}
                 </p>
                 <CalendarClock className="h-5 w-5 text-amber-500" />
@@ -325,11 +303,11 @@ export function VendorsPage() {
           </Card>
           <Card>
             <CardContent className="pt-6">
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 Avg security score
               </p>
               <div className="mt-2 flex items-center justify-between">
-                <p className="text-2xl font-semibold text-slate-900">
+                <p className="text-2xl font-semibold text-foreground">
                   {stats.avgScore}
                 </p>
                 <ShieldCheck className="h-5 w-5 text-emerald-500" />
@@ -400,7 +378,7 @@ export function VendorsPage() {
             <div className="mt-4 overflow-x-auto">
               <table className="w-full min-w-[900px] text-sm">
                 <thead>
-                  <tr className="border-b text-left text-xs uppercase tracking-wide text-slate-500">
+                  <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
                     <th className="py-3 pr-4">Vendor</th>
                     <th className="py-3 pr-4">Category</th>
                     <th className="py-3 pr-4">Tier</th>
@@ -417,7 +395,7 @@ export function VendorsPage() {
                     <tr>
                       <td
                         colSpan={9}
-                        className="py-10 text-center text-slate-500"
+                        className="py-10 text-center text-muted-foreground"
                       >
                         No vendors match this view.
                       </td>
@@ -427,19 +405,19 @@ export function VendorsPage() {
                   {filteredVendors.map((vendor) => (
                     <tr
                       key={vendor.id}
-                      className="border-b last:border-b-0 hover:bg-slate-50/60"
+                      className="border-b last:border-b-0 hover:bg-muted"
                     >
                       <td className="py-3 pr-4">
                         <div>
-                          <p className="font-medium text-slate-900">
+                          <p className="font-medium text-foreground">
                             {vendor.name}
                           </p>
-                          <p className="text-xs text-slate-500">
+                          <p className="text-xs text-muted-foreground">
                             Owner: {vendor.owner}
                           </p>
                         </div>
                       </td>
-                      <td className="py-3 pr-4 text-slate-700">
+                      <td className="py-3 pr-4 text-foreground">
                         {vendor.category}
                       </td>
                       <td className="py-3 pr-4">
@@ -450,21 +428,21 @@ export function VendorsPage() {
                           {tierMeta[vendor.tier].label}
                         </Badge>
                       </td>
-                      <td className="py-3 pr-4 font-medium text-slate-900">
+                      <td className="py-3 pr-4 font-medium text-foreground">
                         {vendor.securityScore}
                       </td>
                       <td className="py-3 pr-4">
                         <div className="w-28">
                           <Progress value={vendor.questionnaireCompletion} />
-                          <p className="mt-1 text-xs text-slate-500">
+                          <p className="mt-1 text-xs text-muted-foreground">
                             {vendor.questionnaireCompletion}%
                           </p>
                         </div>
                       </td>
-                      <td className="py-3 pr-4 text-slate-700">
+                      <td className="py-3 pr-4 text-foreground">
                         {vendor.openFindings}
                       </td>
-                      <td className="py-3 pr-4 text-slate-700">
+                      <td className="py-3 pr-4 text-foreground">
                         {new Date(vendor.nextAssessmentAt).toLocaleDateString()}
                       </td>
                       <td className="py-3 pr-4">
@@ -495,11 +473,11 @@ export function VendorsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              <ClipboardCheck className="h-4 w-4 text-slate-600" />
+              <ClipboardCheck className="h-4 w-4 text-muted-foreground" />
               Immediate actions
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2 text-sm text-slate-700">
+          <CardContent className="space-y-2 text-sm text-foreground">
             <p>- Trigger reassessment for vendors due in the next 30 days.</p>
             <p>- Prioritize vendors with PII data class and score below 70.</p>
             <p>
@@ -555,7 +533,7 @@ export function VendorsPage() {
                     businessCriticality: e.target.value as any,
                   }))
                 }
-                className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+                className="rounded-md border border-border px-3 py-2 text-sm"
               >
                 <option value="Mission-critical">Mission-critical</option>
                 <option value="Business-important">Business-important</option>
@@ -567,7 +545,7 @@ export function VendorsPage() {
                 onChange={(e) =>
                   setForm((p) => ({ ...p, dataClass: e.target.value as any }))
                 }
-                className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+                className="rounded-md border border-border px-3 py-2 text-sm"
               >
                 <option value="PII">PII</option>
                 <option value="Sensitive">Sensitive</option>
@@ -604,7 +582,7 @@ export function VendorsPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <Card>
                     <CardContent className="pt-4">
-                      <p className="text-xs text-slate-500">Risk tier</p>
+                      <p className="text-xs text-muted-foreground">Risk tier</p>
                       <Badge
                         variant="outline"
                         className={`mt-2 ${tierMeta[selected.tier].className}`}
@@ -615,7 +593,7 @@ export function VendorsPage() {
                   </Card>
                   <Card>
                     <CardContent className="pt-4">
-                      <p className="text-xs text-slate-500">Status</p>
+                      <p className="text-xs text-muted-foreground">Status</p>
                       <Badge
                         variant="outline"
                         className={`mt-2 ${statusMeta[selected.status].className}`}
@@ -632,20 +610,20 @@ export function VendorsPage() {
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div>
-                      <div className="mb-1 flex items-center justify-between text-xs text-slate-500">
+                      <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
                         <span>Security score</span>
                         <span>{selected.securityScore}/100</span>
                       </div>
                       <Progress value={selected.securityScore} />
                     </div>
                     <div>
-                      <div className="mb-1 flex items-center justify-between text-xs text-slate-500">
+                      <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
                         <span>Questionnaire completion</span>
                         <span>{selected.questionnaireCompletion}%</span>
                       </div>
                       <Progress value={selected.questionnaireCompletion} />
                     </div>
-                    <p className="text-xs text-slate-600">
+                    <p className="text-xs text-muted-foreground">
                       Open findings: {selected.openFindings}
                     </p>
                   </CardContent>
@@ -655,31 +633,31 @@ export function VendorsPage() {
                   <CardHeader>
                     <CardTitle className="text-sm">Risk context</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-2 text-slate-700">
+                  <CardContent className="space-y-2 text-foreground">
                     <p>
-                      <span className="text-slate-500">
+                      <span className="text-muted-foreground">
                         Business criticality:
                       </span>{' '}
                       {selected.businessCriticality}
                     </p>
                     <p>
-                      <span className="text-slate-500">Data class:</span>{' '}
+                      <span className="text-muted-foreground">Data class:</span>{' '}
                       {selected.dataClass}
                     </p>
                     <p>
-                      <span className="text-slate-500">Sub-processors:</span>{' '}
+                      <span className="text-muted-foreground">Sub-processors:</span>{' '}
                       {selected.subprocessors}
                     </p>
                     <p>
-                      <span className="text-slate-500">DPA signed:</span>{' '}
+                      <span className="text-muted-foreground">DPA signed:</span>{' '}
                       {selected.dpaSigned ? 'Yes' : 'No'}
                     </p>
                     <p>
-                      <span className="text-slate-500">Last assessment:</span>{' '}
+                      <span className="text-muted-foreground">Last assessment:</span>{' '}
                       {new Date(selected.lastAssessmentAt).toLocaleDateString()}
                     </p>
                     <p>
-                      <span className="text-slate-500">Next assessment:</span>{' '}
+                      <span className="text-muted-foreground">Next assessment:</span>{' '}
                       {new Date(selected.nextAssessmentAt).toLocaleDateString()}
                     </p>
                   </CardContent>
@@ -691,7 +669,7 @@ export function VendorsPage() {
                       <CardTitle className="text-sm">Notes</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-slate-700">{selected.notes}</p>
+                      <p className="text-foreground">{selected.notes}</p>
                     </CardContent>
                   </Card>
                 )}

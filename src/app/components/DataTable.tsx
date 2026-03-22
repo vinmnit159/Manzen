@@ -36,8 +36,8 @@ import React from 'react';
 function SortIndicator({ active, direction }: { active: boolean; direction?: 'asc' | 'desc' }) {
   return (
     <span className={`inline-flex flex-col -space-y-1 ml-1 ${active ? 'opacity-100' : 'opacity-30'}`}>
-      <svg className={`w-3 h-3 ${active && direction === 'asc' ? 'text-blue-600' : 'text-gray-400'}`} fill="currentColor" viewBox="0 0 20 20"><path d="M10 3l6 6H4l6-6z" /></svg>
-      <svg className={`w-3 h-3 ${active && direction === 'desc' ? 'text-blue-600' : 'text-gray-400'}`} fill="currentColor" viewBox="0 0 20 20"><path d="M10 17l6-6H4l6 6z" /></svg>
+      <svg className={`w-3 h-3 ${active && direction === 'asc' ? 'text-primary' : 'text-muted-foreground/70'}`} fill="currentColor" viewBox="0 0 20 20"><path d="M10 3l6 6H4l6-6z" /></svg>
+      <svg className={`w-3 h-3 ${active && direction === 'desc' ? 'text-primary' : 'text-muted-foreground/70'}`} fill="currentColor" viewBox="0 0 20 20"><path d="M10 17l6-6H4l6 6z" /></svg>
     </span>
   );
 }
@@ -134,15 +134,15 @@ export function DataTable<T extends object>({
   }
 
   return (
-    <div className={`overflow-x-auto rounded-lg border border-gray-200 ${className}`}>
+    <div className={`overflow-x-auto rounded-lg border border-border ${className}`}>
       <table
-        className="min-w-full divide-y divide-gray-200"
+        className="min-w-full divide-y divide-border"
         role="table"
         aria-label={ariaLabel}
         aria-busy={loading}
       >
         {/* Header */}
-        <thead className="bg-gray-50 border-b border-gray-200" role="rowgroup">
+        <thead className="bg-muted border-b border-border" role="rowgroup">
           <tr role="row">
             {visibleColumns.map((col) => {
               const isSortActive = sort?.column === String(col.key);
@@ -153,7 +153,7 @@ export function DataTable<T extends object>({
                   role="columnheader"
                   aria-sort={isSortActive ? (sort!.direction === 'asc' ? 'ascending' : 'descending') : undefined}
                   style={col.width ? { width: col.width } : undefined}
-                  className={`px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${col.sortable ? 'cursor-pointer select-none hover:text-gray-700' : ''} ${col.headerClass ?? ''}`}
+                  className={`px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider ${col.sortable ? 'cursor-pointer select-none hover:text-foreground' : ''} ${col.headerClass ?? ''}`}
                   onClick={col.sortable ? () => handleHeaderClick(col) : undefined}
                 >
                   <span className="inline-flex items-center gap-0.5">
@@ -169,13 +169,13 @@ export function DataTable<T extends object>({
         </thead>
 
         {/* Body */}
-        <tbody className="bg-white divide-y divide-gray-200" role="rowgroup">
+        <tbody className="bg-card divide-y divide-border" role="rowgroup">
           {loading ? (
             Array.from({ length: skeletonRows }).map((_, i) => (
               <tr key={`skeleton-${i}`} role="row" aria-hidden="true">
                 {visibleColumns.map((col) => (
                   <td key={String(col.key)} className="px-6 py-4" role="cell">
-                    <div className="h-4 bg-gray-200 rounded animate-pulse" />
+                    <div className="h-4 bg-muted rounded animate-pulse" />
                   </td>
                 ))}
               </tr>
@@ -184,7 +184,7 @@ export function DataTable<T extends object>({
             <tr role="row">
               <td
                 colSpan={visibleColumns.length}
-                className="px-6 py-10 text-center text-sm text-gray-400"
+                className="px-6 py-10 text-center text-sm text-muted-foreground/70"
                 role="cell"
               >
                 {emptyMessage}
@@ -196,7 +196,7 @@ export function DataTable<T extends object>({
                 key={getRowKey(row, rowIndex)}
                 role="row"
                 onClick={onRowClick ? () => onRowClick(row, rowIndex) : undefined}
-                className={`hover:bg-gray-50 transition-colors ${onRowClick ? 'cursor-pointer' : ''}`}
+                className={`hover:bg-muted transition-colors ${onRowClick ? 'cursor-pointer' : ''}`}
                 tabIndex={onRowClick ? 0 : undefined}
                 onKeyDown={
                   onRowClick
@@ -212,7 +212,7 @@ export function DataTable<T extends object>({
                 {visibleColumns.map((col) => (
                   <td
                     key={String(col.key)}
-                    className={`px-6 py-4 text-sm text-gray-900 ${col.cellClass ?? ''}`}
+                    className={`px-6 py-4 text-sm text-foreground ${col.cellClass ?? ''}`}
                     role="cell"
                   >
                     {col.render
@@ -228,8 +228,8 @@ export function DataTable<T extends object>({
 
       {/* Pagination */}
       {pagination && onPageChange && (
-        <div className="flex items-center justify-between px-6 py-3 bg-gray-50 border-t border-gray-200">
-          <span className="text-sm text-gray-500">
+        <div className="flex items-center justify-between px-6 py-3 bg-muted border-t border-border">
+          <span className="text-sm text-muted-foreground">
             Page {pagination.page}
           </span>
           <div className="flex gap-2">
@@ -237,7 +237,7 @@ export function DataTable<T extends object>({
               type="button"
               disabled={pagination.page <= 1}
               onClick={() => onPageChange(pagination.page - 1)}
-              className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="px-3 py-1.5 text-sm font-medium text-foreground bg-card border border-border rounded-md hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Previous
             </button>
@@ -245,7 +245,7 @@ export function DataTable<T extends object>({
               type="button"
               disabled={!pagination.hasNext}
               onClick={() => onPageChange(pagination.page + 1)}
-              className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="px-3 py-1.5 text-sm font-medium text-foreground bg-card border border-border rounded-md hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Next
             </button>

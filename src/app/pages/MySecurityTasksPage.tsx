@@ -49,7 +49,7 @@ function StatusPill({
       </span>
     );
   return (
-    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-50 text-gray-500 border border-gray-200">
+    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-muted text-muted-foreground border border-border">
       <Circle className="w-3 h-3" /> Not Started
     </span>
   );
@@ -78,7 +78,7 @@ function TaskCard({
 
   return (
     <div
-      className={`rounded-2xl border shadow-sm transition-all ${done ? 'border-green-200 bg-green-50/30' : 'border-gray-200 bg-white'}`}
+      className={`rounded-2xl border shadow-sm transition-all ${done ? 'border-green-200 bg-green-50/30' : 'border-border bg-card'}`}
     >
       {/* Header row */}
       <button
@@ -96,24 +96,24 @@ function TaskCard({
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-mono text-gray-400">
+            <span className="text-xs font-mono text-muted-foreground/70">
               Task {number}
             </span>
-            <span className="text-sm font-semibold text-gray-900">{title}</span>
+            <span className="text-sm font-semibold text-foreground">{title}</span>
             <StatusPill done={done} inProgress={inProgress} />
           </div>
-          <p className="text-xs text-gray-500 mt-0.5">{description}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
         </div>
         {open ? (
-          <ChevronUp className="w-4 h-4 text-gray-400 flex-shrink-0" />
+          <ChevronUp className="w-4 h-4 text-muted-foreground/70 flex-shrink-0" />
         ) : (
-          <ChevronDown className="w-4 h-4 text-gray-400 flex-shrink-0" />
+          <ChevronDown className="w-4 h-4 text-muted-foreground/70 flex-shrink-0" />
         )}
       </button>
 
       {/* Expandable body */}
       {open && (
-        <div className="px-6 pb-6 border-t border-gray-100">
+        <div className="px-6 pb-6 border-t border-border">
           <div className="mt-4">{children}</div>
         </div>
       )}
@@ -163,7 +163,7 @@ function Task1Policies({
           All policies accepted on {fmtDateTime(status.policyAcceptedAt)}
         </div>
         {ids.length > 0 && (
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-muted-foreground">
             {ids.length} polic{ids.length === 1 ? 'y' : 'ies'} acknowledged.
           </p>
         )}
@@ -175,13 +175,13 @@ function Task1Policies({
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-gray-600">
+      <p className="text-sm text-muted-foreground">
         You must digitally acknowledge all active organisation policies below.
         Read each policy before accepting.
       </p>
 
       {loading ? (
-        <div className="flex items-center gap-2 text-sm text-gray-400">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground/70">
           <Loader2 className="w-4 h-4 animate-spin" /> Loading policies…
         </div>
       ) : publishedPolicies.length === 0 ? (
@@ -193,7 +193,7 @@ function Task1Policies({
           {publishedPolicies.map((p) => (
             <label
               key={p.id}
-              className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer"
+              className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted cursor-pointer"
             >
               <input
                 type="checkbox"
@@ -209,14 +209,14 @@ function Task1Policies({
                     return next;
                   });
                 }}
-                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                className="w-4 h-4 rounded border-border text-blue-600 focus:ring-blue-500"
               />
-              <FileText className="w-4 h-4 text-gray-400 flex-shrink-0" />
+              <FileText className="w-4 h-4 text-muted-foreground/70 flex-shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">
+                <p className="text-sm font-medium text-foreground truncate">
                   {p.name}
                 </p>
-                <p className="text-xs text-gray-400">v{p.version}</p>
+                <p className="text-xs text-muted-foreground/70">v{p.version}</p>
               </div>
             </label>
           ))}
@@ -280,7 +280,7 @@ function Task2Mdm({ status }: { status: OnboardingStatus }) {
           MDM agent enrolled on {fmtDateTime(status.mdmEnrolledAt)}
         </div>
         {status.deviceId && (
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-muted-foreground">
             Device ID: <code className="font-mono">{status.deviceId}</code>
           </p>
         )}
@@ -290,7 +290,7 @@ function Task2Mdm({ status }: { status: OnboardingStatus }) {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-gray-600">
+      <p className="text-sm text-muted-foreground">
         Install the ISMS MDM agent on your work device. Once installed and
         enrolled, this task will be marked complete automatically.
       </p>
@@ -416,22 +416,22 @@ function ProgressBanner({ status }: { status: OnboardingStatus }) {
   }
 
   return (
-    <div className="rounded-2xl bg-white border border-gray-200 px-6 py-4 shadow-sm">
+    <div className="rounded-2xl bg-card border border-border px-6 py-4 shadow-sm">
       <div className="flex items-center justify-between mb-2">
-        <p className="text-sm font-semibold text-gray-900">
+        <p className="text-sm font-semibold text-foreground">
           Security Onboarding
         </p>
         <span className="text-sm font-semibold text-blue-700">
           {done}/3 tasks complete
         </span>
       </div>
-      <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+      <div className="h-2.5 bg-muted rounded-full overflow-hidden">
         <div
           className="h-full rounded-full bg-blue-500 transition-all duration-500"
           style={{ width: `${pct}%` }}
         />
       </div>
-      <p className="text-xs text-gray-400 mt-2">
+      <p className="text-xs text-muted-foreground/70 mt-2">
         Complete all tasks to finish your security onboarding.
       </p>
     </div>
@@ -505,7 +505,7 @@ function RemediationTasksSection() {
 
   if (isLoading)
     return (
-      <div className="flex items-center gap-2 py-4 text-sm text-gray-400">
+      <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground/70">
         <Loader2 className="w-4 h-4 animate-spin" /> Loading remediation tasks…
       </div>
     );
@@ -516,14 +516,14 @@ function RemediationTasksSection() {
     <div className="space-y-4">
       <div className="flex items-center gap-2">
         <AlertTriangle className="w-5 h-5 text-amber-500" />
-        <h2 className="text-base font-semibold text-gray-900">
+        <h2 className="text-base font-semibold text-foreground">
           Remediation Tasks
         </h2>
         <span className="ml-1 inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-100 text-amber-700 text-xs font-bold">
           {tasks.length}
         </span>
       </div>
-      <p className="text-sm text-gray-500">
+      <p className="text-sm text-muted-foreground">
         Automated findings assigned to you that need remediation.
       </p>
 
@@ -537,7 +537,7 @@ function RemediationTasksSection() {
         {tasks.map((f) => (
           <div
             key={f.id}
-            className={`rounded-xl border shadow-sm bg-white overflow-hidden ${isOverdue(f) ? 'border-red-200' : 'border-gray-200'}`}
+            className={`rounded-xl border shadow-sm bg-card overflow-hidden ${isOverdue(f) ? 'border-red-200' : 'border-border'}`}
           >
             <div className="px-5 py-4">
               <div className="flex items-start justify-between gap-3">
@@ -559,13 +559,13 @@ function RemediationTasksSection() {
                       </span>
                     )}
                   </div>
-                  <p className="text-xs font-mono text-gray-400 mb-0.5">
+                  <p className="text-xs font-mono text-muted-foreground/70 mb-0.5">
                     {f.control?.isoReference} — {f.control?.title}
                   </p>
-                  <p className="text-sm text-gray-700">{f.description}</p>
+                  <p className="text-sm text-foreground">{f.description}</p>
                   {f.dueAt && (
                     <p
-                      className={`flex items-center gap-1 text-xs mt-1 ${isOverdue(f) ? 'text-red-600 font-semibold' : 'text-gray-400'}`}
+                      className={`flex items-center gap-1 text-xs mt-1 ${isOverdue(f) ? 'text-red-600 font-semibold' : 'text-muted-foreground/70'}`}
                     >
                       <Calendar className="w-3 h-3" /> Due {fmtShort(f.dueAt)}
                     </p>
@@ -634,19 +634,19 @@ export function MySecurityTasksPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col h-full bg-gray-50">
-        <div className="bg-white border-b border-gray-200 px-6 py-4 shadow-sm">
-          <h1 className="text-xl font-semibold text-gray-900">
+      <div className="flex flex-col h-full bg-muted">
+        <div className="bg-card border-b border-border px-6 py-4 shadow-sm">
+          <h1 className="text-xl font-semibold text-foreground">
             My Security Tasks
           </h1>
-          <p className="text-sm text-gray-500 mt-0.5">
+          <p className="text-sm text-muted-foreground mt-0.5">
             Complete your mandatory security onboarding
           </p>
         </div>
         <div className="flex-1 flex items-center justify-center">
           <div className="flex flex-col items-center gap-3">
             <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-            <p className="text-sm text-gray-500">Loading tasks…</p>
+            <p className="text-sm text-muted-foreground">Loading tasks…</p>
           </div>
         </div>
       </div>
@@ -655,9 +655,9 @@ export function MySecurityTasksPage() {
 
   if (error || !status) {
     return (
-      <div className="flex flex-col h-full bg-gray-50">
-        <div className="bg-white border-b border-gray-200 px-6 py-4 shadow-sm">
-          <h1 className="text-xl font-semibold text-gray-900">
+      <div className="flex flex-col h-full bg-muted">
+        <div className="bg-card border-b border-border px-6 py-4 shadow-sm">
+          <h1 className="text-xl font-semibold text-foreground">
             My Security Tasks
           </h1>
         </div>
@@ -678,13 +678,13 @@ export function MySecurityTasksPage() {
   }
 
   return (
-    <div className="flex flex-col h-full bg-gray-50">
+    <div className="flex flex-col h-full bg-muted">
       {/* Top bar */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4 shadow-sm sticky top-0 z-10">
-        <h1 className="text-xl font-semibold text-gray-900">
+      <div className="bg-card border-b border-border px-6 py-4 shadow-sm sticky top-0 z-10">
+        <h1 className="text-xl font-semibold text-foreground">
           My Security Tasks
         </h1>
-        <p className="text-sm text-gray-500 mt-0.5">
+        <p className="text-sm text-muted-foreground mt-0.5">
           Complete your mandatory security onboarding
         </p>
       </div>

@@ -46,7 +46,7 @@ export function RiskOverviewPage() {
       }
     >
       {isLoading || !data ? (
-        <div className="flex h-48 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-gray-400" /></div>
+        <div className="flex h-48 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground/70" /></div>
       ) : (
         <div className="space-y-6">
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -56,11 +56,11 @@ export function RiskOverviewPage() {
                 <Card key={stat.label} className="p-6">
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <p className="text-sm text-gray-500">{stat.label}</p>
-                      <p className="mt-2 text-3xl font-semibold text-gray-900">{stat.value}</p>
-                      <p className="mt-2 text-xs text-gray-500">{stat.detail}</p>
+                      <p className="text-sm text-muted-foreground">{stat.label}</p>
+                      <p className="mt-2 text-3xl font-semibold text-foreground">{stat.value}</p>
+                      <p className="mt-2 text-xs text-muted-foreground">{stat.detail}</p>
                     </div>
-                    <div className="rounded-xl bg-gray-50 p-3">
+                    <div className="rounded-xl bg-muted p-3">
                       <Icon className={`h-5 w-5 ${stat.tone}`} />
                     </div>
                   </div>
@@ -73,8 +73,8 @@ export function RiskOverviewPage() {
             <Card className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-base font-semibold text-gray-900">Severity posture</h3>
-                  <p className="mt-1 text-sm text-gray-500">Current exposure split across the risk engine.</p>
+                  <h3 className="text-base font-semibold text-foreground">Severity posture</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">Current exposure split across the risk engine.</p>
                 </div>
                 <Badge variant="outline">{data.total} tracked</Badge>
               </div>
@@ -86,9 +86,9 @@ export function RiskOverviewPage() {
                       <div className="flex items-center justify-between text-sm">
                         <div className="flex items-center gap-2">
                           <span className={`h-2.5 w-2.5 rounded-full ${severityColors[item.label]}`} />
-                          <span className="text-gray-700">{item.label}</span>
+                          <span className="text-foreground">{item.label}</span>
                         </div>
-                        <span className="text-gray-500">{item.count} ({pct}%)</span>
+                        <span className="text-muted-foreground">{item.count} ({pct}%)</span>
                       </div>
                       <Progress value={pct} className="h-2.5" />
                     </div>
@@ -97,16 +97,16 @@ export function RiskOverviewPage() {
               </div>
               <div className="mt-6 grid gap-4 border-t pt-4 sm:grid-cols-3">
                 <div>
-                  <p className="text-xs uppercase tracking-wide text-gray-500">Automated controls</p>
-                  <p className="mt-1 text-xl font-semibold text-gray-900">{data.automatedCoverage}%</p>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Automated controls</p>
+                  <p className="mt-1 text-xl font-semibold text-foreground">{data.automatedCoverage}%</p>
                 </div>
                 <div>
-                  <p className="text-xs uppercase tracking-wide text-gray-500">Accepted risks</p>
-                  <p className="mt-1 text-xl font-semibold text-gray-900">{data.accepted}</p>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Accepted risks</p>
+                  <p className="mt-1 text-xl font-semibold text-foreground">{data.accepted}</p>
                 </div>
                 <div>
-                  <p className="text-xs uppercase tracking-wide text-gray-500">Transferred risks</p>
-                  <p className="mt-1 text-xl font-semibold text-gray-900">{data.transferred}</p>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Transferred risks</p>
+                  <p className="mt-1 text-xl font-semibold text-foreground">{data.transferred}</p>
                 </div>
               </div>
             </Card>
@@ -114,10 +114,10 @@ export function RiskOverviewPage() {
             <Card className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-base font-semibold text-gray-900">Risk concentration</h3>
-                  <p className="mt-1 text-sm text-gray-500">Where the platform is detecting the most risk pressure.</p>
+                  <h3 className="text-base font-semibold text-foreground">Risk concentration</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">Where the platform is detecting the most risk pressure.</p>
                 </div>
-                <Clock3 className="h-5 w-5 text-gray-400" />
+                <Clock3 className="h-5 w-5 text-muted-foreground/70" />
               </div>
               <div className="mt-5 space-y-4">
                 {data.categoryBreakdown.slice(0, 6).map((item) => {
@@ -125,8 +125,8 @@ export function RiskOverviewPage() {
                   return (
                     <div key={item.label}>
                       <div className="mb-1 flex items-center justify-between text-sm">
-                        <span className="text-gray-700">{item.label}</span>
-                        <span className="text-gray-500">{item.count}</span>
+                        <span className="text-foreground">{item.label}</span>
+                        <span className="text-muted-foreground">{item.count}</span>
                       </div>
                       <Progress value={pct} className="h-2" />
                     </div>
@@ -134,7 +134,7 @@ export function RiskOverviewPage() {
                 })}
               </div>
               <div className="mt-6 border-t pt-4">
-                <p className="text-xs uppercase tracking-wide text-gray-500">Most impacted frameworks</p>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Most impacted frameworks</p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {data.frameworkBreakdown.slice(0, 5).map((item) => (
                     <Badge key={item.framework} variant="outline">{item.framework} ({item.count})</Badge>
@@ -148,8 +148,8 @@ export function RiskOverviewPage() {
             <Card className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-base font-semibold text-gray-900">Recently created or updated risks</h3>
-                  <p className="mt-1 text-sm text-gray-500">Latest detections from the automated monitoring pipeline.</p>
+                  <h3 className="text-base font-semibold text-foreground">Recently created or updated risks</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">Latest detections from the automated monitoring pipeline.</p>
                 </div>
                 <Badge variant="secondary">Continuous monitoring</Badge>
               </div>
@@ -159,19 +159,19 @@ export function RiskOverviewPage() {
                     key={risk.id}
                     type="button"
                     onClick={() => navigate(`/risk/risks/${risk.id}`)}
-                    className="w-full rounded-xl border border-gray-100 p-4 text-left transition hover:border-gray-200 hover:bg-gray-50"
+                    className="w-full rounded-xl border border-border p-4 text-left transition hover:border-border hover:bg-muted"
                   >
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>
-                        <p className="font-medium text-gray-900">{risk.title}</p>
-                        <p className="mt-1 text-sm text-gray-500">{risk.assetName} · {risk.owner.team} · {risk.category}</p>
+                        <p className="font-medium text-foreground">{risk.title}</p>
+                        <p className="mt-1 text-sm text-muted-foreground">{risk.assetName} · {risk.owner.team} · {risk.category}</p>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge variant={riskLevelVariant(risk.impact)}>{risk.impact}</Badge>
                         <Badge variant={riskStatusVariant(risk.status)}>{risk.status}</Badge>
                       </div>
                     </div>
-                    <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                    <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                       <span>Score {risk.riskScore}</span>
                       <span>•</span>
                       <span>{risk.evidenceCount} evidence items</span>
@@ -186,8 +186,8 @@ export function RiskOverviewPage() {
             <Card className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-base font-semibold text-gray-900">Owner workload</h3>
-                  <p className="mt-1 text-sm text-gray-500">Who is carrying current remediation demand.</p>
+                  <h3 className="text-base font-semibold text-foreground">Owner workload</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">Who is carrying current remediation demand.</p>
                 </div>
                 <Badge variant="outline">Auto-assigned owners</Badge>
               </div>
@@ -195,10 +195,10 @@ export function RiskOverviewPage() {
                 {data.ownerBreakdown.map((item) => {
                   const pct = data.total > 0 ? Math.round((item.count / data.total) * 100) : 0;
                   return (
-                    <div key={item.team} className="rounded-xl bg-gray-50 p-4">
+                    <div key={item.team} className="rounded-xl bg-muted p-4">
                       <div className="flex items-center justify-between text-sm">
-                        <span className="font-medium text-gray-900">{item.team}</span>
-                        <span className="text-gray-500">{item.count} risks</span>
+                        <span className="font-medium text-foreground">{item.team}</span>
+                        <span className="text-muted-foreground">{item.count} risks</span>
                       </div>
                       <Progress value={pct} className="mt-3 h-2" />
                     </div>
