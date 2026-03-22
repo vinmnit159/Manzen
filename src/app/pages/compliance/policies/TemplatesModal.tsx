@@ -3,6 +3,13 @@ import React, { useState, useEffect } from 'react';
 import { policiesService, PolicyTemplate } from '@/services/api/policies';
 import { Policy } from '@/services/api/types';
 import { FileText, Search, X, AlertCircle, CheckCircle2, Plus, Loader2 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/app/components/ui/dialog';
 
 const CATEGORY_ORDER = ['ISMS Core', 'Technical', 'People', 'Resilience'] as const;
 
@@ -65,24 +72,17 @@ export function TemplatesModal({
   }, {});
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
-      <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col"
-        onClick={e => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
-          <div>
-            <h2 className="text-base font-semibold text-gray-900">Policy Templates</h2>
-            <p className="text-sm text-gray-500 mt-0.5">27 ISO 27001 templates — creates the policy with an editable .docx document attached</p>
-          </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
+    <Dialog open onOpenChange={() => onClose()}>
+      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Policy Templates</DialogTitle>
+          <DialogDescription>
+            27 ISO 27001 templates — creates the policy with an editable .docx document attached
+          </DialogDescription>
+        </DialogHeader>
 
         {/* Search */}
-        <div className="px-6 py-3 border-b border-gray-100 flex-shrink-0">
+        <div className="border-b border-gray-100 pb-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             <input
@@ -103,14 +103,14 @@ export function TemplatesModal({
 
         {/* Global card error banner */}
         {cardError && (
-          <div className="mx-6 mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700 flex-shrink-0">
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
             {cardError}
           </div>
         )}
 
         {/* Body */}
-        <div className="overflow-y-auto flex-1 px-6 py-4">
+        <div>
           {loading ? (
             <div className="flex flex-col items-center justify-center py-16">
               <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-3" />
@@ -204,7 +204,7 @@ export function TemplatesModal({
             </div>
           )}
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
