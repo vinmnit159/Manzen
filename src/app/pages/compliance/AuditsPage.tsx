@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- legacy: to be typed progressively */
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { PageTemplate } from '@/app/components/PageTemplate';
 import { PageFilterBar } from '@/app/components/filters/PageFilterBar';
 import { useUrlFilterState } from '@/app/hooks/useUrlFilterState';
@@ -42,16 +43,6 @@ export function AuditsPage() {
   const search = filters.search;
   const statusFilter = filters.status as '' | AuditStatus;
   const typeFilter = filters.type as '' | AuditType;
-  const [toast, setToast] = useState<{
-    type: 'success' | 'error';
-    msg: string;
-  } | null>(null);
-
-  function showToast(type: 'success' | 'error', msg: string) {
-    setToast({ type, msg });
-    setTimeout(() => setToast(null), 4000);
-  }
-
   const { data, isLoading, refetch } = useQuery<{
     success: boolean;
     data: AuditRecord[];
@@ -105,7 +96,7 @@ export function AuditsPage() {
   ];
 
   function onCreated() {
-    showToast('success', 'Audit scheduled successfully');
+    toast.success('Audit scheduled successfully');
     refetch();
   }
 
@@ -128,15 +119,6 @@ export function AuditsPage() {
         </Button>
       }
     >
-      {/* Toast */}
-      {toast && (
-        <div
-          className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg text-sm text-white ${toast.type === 'success' ? 'bg-green-600' : 'bg-red-600'}`}
-        >
-          {toast.msg}
-        </div>
-      )}
-
       {/* Stat strip */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
         {[

@@ -1,6 +1,6 @@
-import { Search, Settings, HelpCircle, LogOut, User, Menu } from "lucide-react";
+import { Search, Settings, HelpCircle, LogOut, User, Menu, Sun, Moon } from "lucide-react";
 import { Input } from "@/app/components/ui/input";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router";
 import { authService } from "@/services/api/auth";
 import { useSidebar } from "@/app/components/Layout";
@@ -60,6 +60,17 @@ export function Header() {
   const navigate = useNavigate();
   const searchRef = useRef<HTMLDivElement>(null);
   const { toggle: toggleSidebar, collapsed } = useSidebar();
+
+  const [isDark, setIsDark] = useState(() =>
+    document.documentElement.classList.contains("dark")
+  );
+
+  const toggleTheme = useCallback(() => {
+    const next = !isDark;
+    setIsDark(next);
+    document.documentElement.classList.toggle("dark", next);
+    localStorage.setItem("manzen.theme", next ? "dark" : "light");
+  }, [isDark]);
 
   const handleLogout = () => {
     authService.logout();
@@ -163,6 +174,15 @@ export function Header() {
         <div className="flex items-center gap-1 sm:gap-2 ml-auto flex-shrink-0">
           <button className="hidden sm:flex relative p-2 text-muted-foreground hover:bg-accent rounded-md" title="Help">
             <HelpCircle className="w-5 h-5" />
+          </button>
+
+          <button
+            onClick={toggleTheme}
+            className="p-2 text-muted-foreground hover:bg-accent rounded-md"
+            title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+            aria-label="Toggle dark mode"
+          >
+            {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
           </button>
 
           <NotificationBell />

@@ -60,6 +60,13 @@ export function Layout() {
   return (
     <SidebarContext.Provider value={ctx}>
       <div className="flex h-screen bg-muted overflow-hidden">
+        {/* Skip to content link — accessibility */}
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-2 focus:left-2 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md focus:text-sm focus:font-medium"
+        >
+          Skip to content
+        </a>
         {/* Overlay (mobile only) */}
         {sidebarOpen && (
           <div
@@ -83,7 +90,7 @@ export function Layout() {
         {/* Main content */}
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
           <Header />
-          <main className="flex-1 overflow-y-auto">
+          <main id="main-content" className="flex-1 overflow-y-auto">
             <Suspense fallback={
               <div className="flex items-center justify-center h-64">
                 <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
