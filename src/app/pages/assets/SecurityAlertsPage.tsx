@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { PageTemplate } from '@/app/components/PageTemplate';
 import { Card } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
@@ -35,8 +36,8 @@ export function SecurityAlertsPage() {
           }));
         setAlerts(highSeverity);
       })
-      .catch((err: unknown) => {
-        console.error('Failed to load security alerts:', err);
+      .catch(() => {
+        toast.error('Failed to load security alerts');
       })
       .finally(() => setLoading(false));
   }, []);

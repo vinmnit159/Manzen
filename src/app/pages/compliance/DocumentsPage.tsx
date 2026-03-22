@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
+import { toast } from 'sonner';
 import { PageTemplate } from '@/app/components/PageTemplate';
 import { Card } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
@@ -100,8 +101,8 @@ export function DocumentsPage() {
           })),
         );
       })
-      .catch((err: unknown) => {
-        if (!cancelled) console.error('Failed to load evidence data', err);
+      .catch(() => {
+        if (!cancelled) toast.error('Failed to load evidence data');
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -166,8 +167,8 @@ export function DocumentsPage() {
         ev.id,
         ev.fileName ?? `evidence-${ev.id.slice(0, 8)}`,
       );
-    } catch (err) {
-      console.error('Failed to download evidence', err);
+    } catch {
+      toast.error('Failed to download evidence');
     } finally {
       setDownloading(null);
     }

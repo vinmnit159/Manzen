@@ -4,6 +4,7 @@ import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
 import { awsService, AwsAccountRecord } from '@/services/api/aws';
 import { useConfirmDialog } from '@/app/hooks/useConfirmDialog';
+import { COPY_FEEDBACK_MS } from '@/lib/constants';
 
 function AwsIcon({ className }: { className?: string }) {
   return (
@@ -49,7 +50,7 @@ function AwsOnboardModal({ onClose, onConnected }: {
   function copyToClipboard(text: string, which: 'trust' | 'perm') {
     navigator.clipboard.writeText(text).then(() => {
       setCopied(which);
-      setTimeout(() => setCopied(null), 2000);
+      setTimeout(() => setCopied(null), COPY_FEEDBACK_MS);
     });
   }
 

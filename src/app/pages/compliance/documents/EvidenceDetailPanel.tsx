@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- legacy: to be typed progressively */
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
 import { Badge } from '@/app/components/ui/badge';
 import {
@@ -97,8 +98,8 @@ export function EvidenceDetailPanel({
         evidence.id,
         evidence.fileName ?? `evidence-${evidence.id.slice(0, 8)}`,
       );
-    } catch (err) {
-      console.error('Failed to download evidence', err);
+    } catch {
+      toast.error('Failed to download evidence');
     } finally {
       setDownloading(false);
     }

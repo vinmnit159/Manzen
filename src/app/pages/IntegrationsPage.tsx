@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { TOAST_DURATION_LONG_MS } from '@/lib/constants';
 import { useSearchParams, useNavigate } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { PageTemplate } from '@/app/components/PageTemplate';
@@ -59,7 +60,7 @@ export function IntegrationsPage() {
   const showToast = useCallback(
     (type: 'success' | 'error', message: string) => {
       setToast({ type, message });
-      setTimeout(() => setToast(null), 4500);
+      setTimeout(() => setToast(null), TOAST_DURATION_LONG_MS);
     },
     [],
   );

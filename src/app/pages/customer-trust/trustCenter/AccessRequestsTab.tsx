@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { TOAST_DURATION_MS } from '@/lib/constants';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Mail, CheckCircle2, XCircle, Clock } from 'lucide-react';
 import { Card } from '@/app/components/ui/card';
@@ -20,7 +21,7 @@ export function AccessRequestsTab() {
 
   function showToast(type: 'success' | 'error', msg: string) {
     setToast({ type, msg });
-    setTimeout(() => setToast(null), 4000);
+    setTimeout(() => setToast(null), TOAST_DURATION_MS);
   }
 
   async function handleDecision(id: string, status: 'APPROVED' | 'REJECTED') {

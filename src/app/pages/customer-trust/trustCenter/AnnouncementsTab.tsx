@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { TOAST_DURATION_MS } from '@/lib/constants';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Megaphone, Plus, Globe, Clock, Trash2 } from 'lucide-react';
 import { Button } from '@/app/components/ui/button';
@@ -24,7 +25,7 @@ export function AnnouncementsTab() {
 
   function showToast(type: 'success' | 'error', msg: string) {
     setToast({ type, msg });
-    setTimeout(() => setToast(null), 4000);
+    setTimeout(() => setToast(null), TOAST_DURATION_MS);
   }
 
   async function handleTogglePublish(item: TrustAnnouncement) {

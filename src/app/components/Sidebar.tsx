@@ -80,7 +80,7 @@ const navigation: NavItem[] = [
       { title: 'Findings', href: '/compliance/findings' },
       {
         title: 'Settings',
-        href: '/compliance/settings',
+        href: '/settings/compliance',
         roles: [...ADMIN_ROLES],
       },
     ],
@@ -92,7 +92,7 @@ const navigation: NavItem[] = [
       { title: 'Trust Center', href: '/customer-trust/trust-center' },
       {
         title: 'Settings',
-        href: '/customer-trust/settings',
+        href: '/settings/customer-trust',
         roles: [...ADMIN_ROLES],
       },
     ],
@@ -107,7 +107,7 @@ const navigation: NavItem[] = [
       { title: 'Action Tracker', href: '/risk/action-tracker' },
       { title: 'Snapshot', href: '/risk/snapshot' },
       { title: 'Risk Engine', href: '/risk/engine', roles: [...ADMIN_ROLES] },
-      { title: 'Settings', href: '/risk/settings', roles: [...ADMIN_ROLES] },
+      { title: 'Settings', href: '/settings/risk', roles: [...ADMIN_ROLES] },
     ],
   },
   { title: 'Vendors', href: '/vendors', icon: Building2 },
@@ -116,7 +116,7 @@ const navigation: NavItem[] = [
     icon: Lock,
     children: [
       { title: 'Data Inventory', href: '/privacy/data-inventory' },
-      { title: 'Settings', href: '/privacy/settings', roles: [...ADMIN_ROLES] },
+      { title: 'Settings', href: '/settings/privacy', roles: [...ADMIN_ROLES] },
     ],
   },
   {
@@ -127,7 +127,7 @@ const navigation: NavItem[] = [
       { title: 'Code changes', href: '/assets/code-changes' },
       { title: 'Vulnerabilities', href: '/assets/vulnerabilities' },
       { title: 'Security alerts', href: '/assets/security-alerts' },
-      { title: 'Settings', href: '/assets/settings', roles: [...ADMIN_ROLES] },
+      { title: 'Settings', href: '/settings/assets', roles: [...ADMIN_ROLES] },
     ],
   },
   {
@@ -139,7 +139,7 @@ const navigation: NavItem[] = [
       { title: 'Account Mapping', href: '/personnel/access' },
       {
         title: 'Settings',
-        href: '/personnel/settings',
+        href: '/settings/personnel',
         roles: [...ADMIN_ROLES],
       },
     ],

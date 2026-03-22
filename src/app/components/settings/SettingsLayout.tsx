@@ -7,6 +7,12 @@ import {
   Shield,
   KeyRound,
   Bot,
+  ShieldCheck,
+  AlertTriangle,
+  Lock,
+  Server,
+  UserCheck,
+  Globe,
 } from "lucide-react";
 import { cn } from "@/app/components/ui/utils";
 import { authService } from "@/services/api/auth";
@@ -43,9 +49,30 @@ const settingsNav: SettingsNavGroup[] = [
     ],
   },
   {
+    group: "Compliance",
+    items: [
+      { label: "Compliance",      to: "/settings/compliance",      icon: ShieldCheck, roles: ADMIN_ROLES },
+    ],
+  },
+  {
+    group: "Risk",
+    items: [
+      { label: "Risk",            to: "/settings/risk",            icon: AlertTriangle, roles: ADMIN_ROLES },
+    ],
+  },
+  {
+    group: "Modules",
+    items: [
+      { label: "Privacy",         to: "/settings/privacy",         icon: Lock,         roles: ADMIN_ROLES },
+      { label: "Assets",          to: "/settings/assets",          icon: Server,       roles: ADMIN_ROLES },
+      { label: "Personnel",       to: "/settings/personnel",       icon: UserCheck,    roles: ADMIN_ROLES },
+      { label: "Customer Trust",  to: "/settings/customer-trust",  icon: Globe,        roles: ADMIN_ROLES },
+    ],
+  },
+  {
     group: "Integrations",
     items: [
-      { label: "MCP",             to: "/settings/mcp",             icon: Bot,      roles: ADMIN_ROLES },
+      { label: "MCP",             to: "/settings/mcp",             icon: Bot,          roles: ADMIN_ROLES },
     ],
   },
 ];
@@ -66,21 +93,21 @@ export function SettingsLayout() {
     !roles || roles.length === 0 || roles.includes(userRole);
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
+    <div className="flex flex-col min-h-screen bg-muted">
       {/* Page header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4 shadow-sm">
-        <h1 className="text-xl font-semibold text-gray-900 tracking-tight">Settings</h1>
+      <div className="bg-card border-b border-border px-6 py-4 shadow-sm">
+        <h1 className="text-xl font-semibold text-foreground tracking-tight">Settings</h1>
       </div>
 
       <div className="flex flex-1 overflow-hidden">
         {/* ── Left nav — desktop (sticky sidebar) ── */}
-        <nav className="hidden lg:flex flex-col w-56 flex-shrink-0 bg-white border-r border-gray-200 py-4 px-3 gap-6 sticky top-0 self-start min-h-[calc(100vh-57px)]">
+        <nav className="hidden lg:flex flex-col w-56 flex-shrink-0 bg-card border-r border-border py-4 px-3 gap-6 sticky top-0 self-start min-h-[calc(100vh-57px)]">
           {settingsNav.map((group) => {
             const visibleItems = group.items.filter((item) => canSee(item.roles));
             if (visibleItems.length === 0) return null;
             return (
               <div key={group.group}>
-                <p className="px-3 mb-1 text-xs font-semibold tracking-wider text-gray-400 uppercase">
+                <p className="px-3 mb-1 text-xs font-semibold tracking-wider text-muted-foreground/70 uppercase">
                   {group.group}
                 </p>
                 <ul className="space-y-0.5">
@@ -94,8 +121,8 @@ export function SettingsLayout() {
                             cn(
                               "flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors",
                               isActive
-                                ? "bg-blue-50 text-blue-700 font-medium"
-                                : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                                ? "bg-primary/10 text-primary font-medium"
+                                : "text-muted-foreground hover:bg-accent hover:text-foreground"
                             )
                           }
                         >
@@ -112,7 +139,7 @@ export function SettingsLayout() {
         </nav>
 
         {/* ── Top nav — mobile (horizontal scroll) ── */}
-        <div className="lg:hidden w-full bg-white border-b border-gray-200 px-4 overflow-x-auto flex-shrink-0">
+        <div className="lg:hidden w-full bg-card border-b border-border px-4 overflow-x-auto flex-shrink-0">
           <div className="flex gap-1 py-2 min-w-max">
             {settingsNav.flatMap((group) =>
               group.items
@@ -127,8 +154,8 @@ export function SettingsLayout() {
                         cn(
                           "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm whitespace-nowrap transition-colors",
                           isActive
-                            ? "bg-blue-50 text-blue-700 font-medium"
-                            : "text-gray-600 hover:bg-gray-100"
+                            ? "bg-primary/10 text-primary font-medium"
+                            : "text-muted-foreground hover:bg-accent"
                         )
                       }
                     >

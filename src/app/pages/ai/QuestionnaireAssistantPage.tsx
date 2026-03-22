@@ -52,6 +52,7 @@ import {
   ApprovedQuestionnaireAnswer,
 } from '@/services/api/ai';
 import { CitationViewer } from '@/app/components/CitationViewer';
+import { COPY_FEEDBACK_MS } from '@/lib/constants';
 
 const CONFIDENCE_META: Record<
   'HIGH' | 'MEDIUM' | 'LOW',
@@ -135,7 +136,7 @@ function GenerationPanel({
   function handleCopy() {
     navigator.clipboard.writeText(editedText).catch(() => undefined);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setTimeout(() => setCopied(false), COPY_FEEDBACK_MS);
   }
 
   return (
@@ -286,7 +287,7 @@ function ApprovedAnswerItem({
   function handleCopy() {
     navigator.clipboard.writeText(answer.approvedAnswer).catch(() => undefined);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setTimeout(() => setCopied(false), COPY_FEEDBACK_MS);
   }
 
   return (

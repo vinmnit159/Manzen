@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- legacy: to be typed progressively */
 import { useState } from 'react';
+import { COPY_FEEDBACK_MS, TOAST_DURATION_MS } from '@/lib/constants';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   FileQuestion,
@@ -68,7 +69,7 @@ function AiDraftPanel({
   function handleCopy(text: string, i: number) {
     navigator.clipboard.writeText(text).catch(() => undefined);
     setCopied(i);
-    setTimeout(() => setCopied(null), 2000);
+    setTimeout(() => setCopied(null), COPY_FEEDBACK_MS);
   }
 
   const CONFIDENCE_COLORS = {
@@ -263,7 +264,7 @@ export function QuestionnairesTab() {
 
   function showToast(type: 'success' | 'error', msg: string) {
     setToast({ type, msg });
-    setTimeout(() => setToast(null), 4000);
+    setTimeout(() => setToast(null), TOAST_DURATION_MS);
   }
 
   async function handleComplete(id: string) {

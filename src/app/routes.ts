@@ -333,11 +333,11 @@ export const router = createBrowserRouter([
       { path: 'compliance/documents', Component: DocumentsPage },
       { path: 'compliance/audits', Component: AuditsPage },
       { path: 'compliance/findings', Component: FindingsPage },
-      { path: 'compliance/settings', Component: ComplianceSettingsPage },
+      { path: 'compliance/settings', loader: () => redirect('/settings/compliance') },
 
       // Customer Trust
       { path: 'customer-trust/trust-center', Component: TrustCenterPage },
-      { path: 'customer-trust/settings', Component: CustomerTrustSettingsPage },
+      { path: 'customer-trust/settings', loader: () => redirect('/settings/customer-trust') },
 
       // Risk
       { path: 'risk/overview', Component: RiskOverviewPage },
@@ -347,27 +347,27 @@ export const router = createBrowserRouter([
       { path: 'risk/action-tracker', Component: ActionTrackerPage },
       { path: 'risk/snapshot', Component: SnapshotPage },
       { path: 'risk/engine', Component: RiskEnginePage },
-      { path: 'risk/settings', Component: RiskSettingsPage },
+      { path: 'risk/settings', loader: () => redirect('/settings/risk') },
 
       // Vendors
       { path: 'vendors', Component: VendorsPage },
 
       // Privacy
       { path: 'privacy/data-inventory', Component: DataInventoryPage },
-      { path: 'privacy/settings', Component: PrivacySettingsPage },
+      { path: 'privacy/settings', loader: () => redirect('/settings/privacy') },
 
       // Assets
       { path: 'assets/inventory', Component: InventoryPage },
       { path: 'assets/code-changes', Component: CodeChangesPage },
       { path: 'assets/vulnerabilities', Component: VulnerabilitiesPage },
       { path: 'assets/security-alerts', Component: SecurityAlertsPage },
-      { path: 'assets/settings', Component: AssetsSettingsPage },
+      { path: 'assets/settings', loader: () => redirect('/settings/assets') },
 
       // Personnel
       { path: 'personnel/people', Component: PeoplePage },
       { path: 'personnel/computers', Component: ComputersPage },
       { path: 'personnel/access', Component: AccessPage },
-      { path: 'personnel/settings', Component: PersonnelSettingsPage },
+      { path: 'personnel/settings', loader: () => redirect('/settings/personnel') },
 
       // AI
       {
@@ -394,6 +394,12 @@ export const router = createBrowserRouter([
           { path: 'access/users', Component: AccessUsersPage },
           { path: 'access/roles', Component: AccessRolesPage },
           { path: 'access/requests', Component: AccessRequestsPage },
+          { path: 'compliance', Component: ComplianceSettingsPage },
+          { path: 'risk', Component: RiskSettingsPage },
+          { path: 'privacy', Component: PrivacySettingsPage },
+          { path: 'assets', Component: AssetsSettingsPage },
+          { path: 'personnel', Component: PersonnelSettingsPage },
+          { path: 'customer-trust', Component: CustomerTrustSettingsPage },
           { path: 'mcp', Component: McpSettingsPage },
         ],
       },

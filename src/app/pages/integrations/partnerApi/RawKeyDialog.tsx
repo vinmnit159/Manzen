@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/app/components/ui/dialog';
 import { Button } from '@/app/components/ui/button';
 import { ShieldIcon, CopyIcon } from './icons';
+import { COPY_FEEDBACK_MS } from '@/lib/constants';
 
 /** Raw key reveal dialog — shown once after issuing */
 export function RawKeyDialog({
@@ -20,7 +21,7 @@ export function RawKeyDialog({
   function copy() {
     navigator.clipboard.writeText(rawKey).then(() => {
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setTimeout(() => setCopied(false), COPY_FEEDBACK_MS);
     });
   }
 

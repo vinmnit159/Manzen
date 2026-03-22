@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- legacy: to be typed progressively */
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { PageTemplate } from '@/app/components/PageTemplate';
 import { Card } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
@@ -27,8 +28,8 @@ export function CodeChangesPage() {
           setRepos(gh.repos ?? []);
         }
       })
-      .catch((err: unknown) => {
-        console.error('Failed to load integration status:', err);
+      .catch(() => {
+        toast.error('Failed to load integration status');
       })
       .finally(() => setLoading(false));
   }, []);

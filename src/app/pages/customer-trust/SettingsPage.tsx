@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { TOAST_DURATION_MS } from '@/lib/constants';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { PageTemplate } from '@/app/components/PageTemplate';
 import { Button } from '@/app/components/ui/button';
@@ -60,7 +61,7 @@ export function CustomerTrustSettingsPage() {
 
   function showToast(type: 'success' | 'error', msg: string) {
     setToast({ type, msg });
-    setTimeout(() => setToast(null), 4000);
+    setTimeout(() => setToast(null), TOAST_DURATION_MS);
   }
 
   function validateSlug(v: string) {

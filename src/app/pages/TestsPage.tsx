@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { useNavigate } from 'react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { RefreshCw, X, CheckCircle, AlertTriangle, Clock, Database, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -62,7 +63,7 @@ export function TestsPage() {
   // Persist column preferences
   useEffect(() => {
     const saved = localStorage.getItem('tests-columns');
-    if (saved) { try { setColumns(JSON.parse(saved)); } catch (err) { console.warn('Failed to parse saved column preferences', err); } }
+    if (saved) { try { setColumns(JSON.parse(saved)); } catch { toast.error('Failed to parse saved column preferences'); } }
   }, []);
   useEffect(() => { localStorage.setItem('tests-columns', JSON.stringify(columns)); }, [columns]);
 
