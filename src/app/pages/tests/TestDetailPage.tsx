@@ -6,7 +6,7 @@ export function TestDetailPage() {
 
   if (!testId) {
     return (
-      <div className="p-8 text-center text-gray-500">
+      <div className="p-8 text-center text-muted-foreground">
         No test ID provided.
       </div>
     );

@@ -92,28 +92,28 @@ describe('authService token management', () => {
 // ── authService.logout ────────────────────────────────────────────────────────
 
 describe('authService.logout', () => {
-  it('clears the token so isAuthenticated returns false', () => {
+  it('clears the token so isAuthenticated returns false', async () => {
     authService.setToken('tok');
-    authService.logout();
+    await authService.logout();
     expect(authService.isAuthenticated()).toBe(false);
   });
 
-  it('removes token from sessionStorage', () => {
+  it('removes token from sessionStorage', async () => {
     sessionStorage.setItem('isms_token', 'tok');
-    authService.logout();
+    await authService.logout();
     expect(sessionStorage.getItem('isms_token')).toBeNull();
   });
 
-  it('removes token from localStorage (legacy migration path)', () => {
+  it('removes token from localStorage (legacy migration path)', async () => {
     localStorage.setItem('isms_token', 'tok');
-    authService.logout();
+    await authService.logout();
     expect(localStorage.getItem('isms_token')).toBeNull();
   });
 
-  it('clears cached user from sessionStorage', () => {
+  it('clears cached user from sessionStorage', async () => {
     const user = { id: 'u1', email: 'alice@example.com' };
     authService.cacheUser(user as never);
-    authService.logout();
+    await authService.logout();
     expect(sessionStorage.getItem('isms_user')).toBeNull();
   });
 });

@@ -6,7 +6,7 @@ export function FilterChip({ label, onRemove }: { label: string; onRemove: () =>
   return (
     <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20">
       {label}
-      <button onClick={onRemove} className="ml-0.5 text-blue-500 hover:text-blue-700">
+      <button onClick={onRemove} className="ml-0.5 text-primary hover:text-primary/80">
         <X className="w-3 h-3" />
       </button>
     </span>
@@ -27,7 +27,7 @@ export function FilterPanel({
       <div className={`px-5 py-4 border-b border-border flex items-center justify-between ${mobileDrawer ? 'hidden lg:flex' : ''}`}>
         <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide">Filters</h2>
         {hasActiveFilters && (
-          <button onClick={onClear} className="text-xs font-medium text-blue-600 hover:text-blue-700">Clear all</button>
+          <button onClick={onClear} className="text-xs font-medium text-primary hover:text-primary/80">Clear all</button>
         )}
       </div>
       <div className="px-5 py-4 space-y-5">
@@ -40,7 +40,7 @@ export function FilterPanel({
               value={filter.search}
               onChange={e => onChange('search', e.target.value)}
               placeholder="Search by policy name…"
-              className="w-full pl-9 pr-8 py-2.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-muted-foreground/70"
+              className="w-full pl-9 pr-8 py-2.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring placeholder-muted-foreground/70"
             />
             {filter.search && (
               <button onClick={() => onChange('search', '')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/70 hover:text-muted-foreground">
@@ -54,7 +54,7 @@ export function FilterPanel({
           <select
             value={filter.status}
             onChange={e => onChange('status', e.target.value)}
-            className="w-full px-3 py-2.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-card"
+            className="w-full px-3 py-2.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring bg-card"
           >
             <option value="">All statuses</option>
             {POLICY_STATUSES.map(s => (
