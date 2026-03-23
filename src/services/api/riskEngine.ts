@@ -1,73 +1,56 @@
-import { riskEngineFoundationService } from '@/domain/risk-engine/service';
+import { apiClient } from './client';
 import { riskEngineContracts, type RunEvaluationRequestDto } from './riskEngineContracts';
+
+const BASE = '/api/risk-engine';
 
 export const riskEngineService = {
   async runFoundationCycle() {
-    return riskEngineFoundationService.runEvaluationCycle();
+    return apiClient.post<unknown>(`${BASE}/run`);
   },
 
   async getFoundationSnapshot() {
-    const snapshot = await riskEngineFoundationService.getSnapshot();
-    return riskEngineContracts.getSnapshot.response.parse({ success: true, data: snapshot });
+    const raw = await apiClient.get<unknown>(`${BASE}/snapshot`);
+    return riskEngineContracts.getSnapshot.response.parse(raw);
   },
 
   async getSignals() {
-    const signals = await riskEngineFoundationService.listSignals();
-    return riskEngineContracts.listSignals.response.parse({ success: true, data: signals });
+    const raw = await apiClient.get<unknown>(`${BASE}/signals`);
+    return riskEngineContracts.listSignals.response.parse(raw);
   },
 
   async getTestResults() {
-    const results = await riskEngineFoundationService.listTestResults();
-    return riskEngineContracts.listTestResults.response.parse({ success: true, data: results });
+    const raw = await apiClient.get<unknown>(`${BASE}/test-results`);
+    return riskEngineContracts.listTestResults.response.parse(raw);
   },
 
   async getEvidenceSnapshots() {
-    const evidence = await riskEngineFoundationService.listEvidence();
-    return riskEngineContracts.listEvidence.response.parse({ success: true, data: evidence });
+    const raw = await apiClient.get<unknown>(`${BASE}/evidence-snapshots`);
+    return riskEngineContracts.listEvidence.response.parse(raw);
   },
 
   async getGeneratedRisks() {
-    const risks = await riskEngineFoundationService.listRisks();
-    return riskEngineContracts.listGeneratedRisks.response.parse({ success: true, data: risks });
+    const raw = await apiClient.get<unknown>(`${BASE}/generated-risks`);
+    return riskEngineContracts.listGeneratedRisks.response.parse(raw);
   },
 
   async getProviderStatuses() {
-    const statuses = await riskEngineFoundationService.listProviderStatuses();
-    return riskEngineContracts.listProviderStatuses.response.parse({ success: true, data: statuses });
+    const raw = await apiClient.get<unknown>(`${BASE}/provider-statuses`);
+    return riskEngineContracts.listProviderStatuses.response.parse(raw);
   },
 
   async getScanRuns() {
-    const runs = await riskEngineFoundationService.listScanRuns();
-    return riskEngineContracts.listScanRuns.response.parse({ success: true, data: runs });
+    const raw = await apiClient.get<unknown>(`${BASE}/scan-runs`);
+    return riskEngineContracts.listScanRuns.response.parse(raw);
   },
 
   async getEvents() {
-    const events = await riskEngineFoundationService.listEvents();
-    return riskEngineContracts.listEvents.response.parse({ success: true, data: events });
+    const raw = await apiClient.get<unknown>(`${BASE}/events`);
+    return riskEngineContracts.listEvents.response.parse(raw);
   },
 
   async runEvaluation(input?: RunEvaluationRequestDto) {
     const body = riskEngineContracts.runEvaluation.body.parse(input ?? {});
-    if (body.dryRun) {
-      const signals = await riskEngineFoundationService.listSignals();
-      return riskEngineContracts.runEvaluation.response.parse({
-        success: true,
-        data: {
-          testResultsCreated: signals.length,
-          generatedRisks: 0,
-          dryRun: true,
-        },
-      });
-    }
-
-    const outcome = await riskEngineFoundationService.runEvaluationCycle();
-    return riskEngineContracts.runEvaluation.response.parse({
-      success: true,
-      data: {
-        testResultsCreated: outcome.testResults.length,
-        generatedRisks: outcome.risks.length,
-        dryRun: false,
-      },
-    });
+    const raw = await apiClient.post<unknown>(`${BASE}/run`, body);
+    return riskEngineContracts.runEvaluation.response.parse(raw);
   },
 };
