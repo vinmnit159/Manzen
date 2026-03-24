@@ -246,7 +246,8 @@ class FrameworksService {
   /** POST /api/org/frameworks — activate a framework */
   async activateFramework(body: ActivateFrameworkRequest): Promise<{
     success: boolean;
-    data: { orgFramework: OrgFrameworkDto; summary: ActivationSummaryDto };
+    data: OrgFrameworkDto;
+    summary: ActivationSummaryDto;
   }> {
     return apiClient.post('/api/org/frameworks', body);
   }
