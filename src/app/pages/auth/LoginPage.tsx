@@ -18,6 +18,7 @@ import {
 import { toast } from 'sonner';
 import { ApiError } from '@/services/api/client';
 import { authService } from '@/services/api/auth';
+import { setupService } from '@/services/api/setup';
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import { API_BASE_URL } from '@/services/api/client';
 
@@ -57,7 +58,15 @@ type LoginFormData = z.infer<typeof loginSchema>;
 export function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [canSetup, setCanSetup] = useState(false);
   const [searchParams] = useSearchParams();
+
+  // Check if first-time setup is available (no users yet)
+  useEffect(() => {
+    setupService.getSetupStatus().then((res) => {
+      setCanSetup((res as any)?.canSetup === true);
+    }).catch(() => setCanSetup(false));
+  }, []);
 
   // Show error toasts for OAuth failures redirected back from backend
   useEffect(() => {
@@ -254,27 +263,32 @@ export function LoginPage() {
             </Button>
           </a>
 
-          {/* Divider */}
-          <div className="relative my-5">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200" />
+          {/* Divider + Register Link — only shown before first-time setup */}
+          {canSetup && (
+            <>
+            <div className="relative my-5">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-200" />
+              </div>
+              <div className="relative flex justify-center text-xs">
+                <span className="px-3 bg-white text-gray-500">
+                  New to Manzen?
+                </span>
+              </div>
             </div>
-            <div className="relative flex justify-center text-xs">
-              <span className="px-3 bg-white text-gray-500">
-                New to Manzen?
-              </span>
-            </div>
-          </div>
+            </>
+          )}
 
-          {/* Register Link */}
-          <Link to="/register">
-            <Button
-              variant="outline"
-              className="w-full h-11 border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300 font-medium rounded-lg transition-colors"
-            >
-              Register your organization
-            </Button>
-          </Link>
+          {canSetup && (
+            <Link to="/register">
+              <Button
+                variant="outline"
+                className="w-full h-11 border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300 font-medium rounded-lg transition-colors"
+              >
+                Register your organization
+              </Button>
+            </Link>
+          )}
         </Card>
 
         <p className="text-center text-xs text-gray-400 mt-6">

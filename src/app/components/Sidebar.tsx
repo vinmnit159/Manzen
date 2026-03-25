@@ -22,6 +22,7 @@ import {
   KeyRound,
   Bell,
   Sparkles,
+  Crown,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/app/components/ui/utils';
@@ -186,6 +187,15 @@ const navigation: NavItem[] = [
     children: [
       { title: 'Questionnaire AI', href: '/ai/questionnaire-assistant' },
       { title: 'Knowledge Base', href: '/ai/knowledge-base' },
+    ],
+  },
+  {
+    title: 'Platform Admin',
+    icon: Crown,
+    roles: ['SUPER_ADMIN'],
+    children: [
+      { title: 'Control Templates', href: '/admin/templates', roles: ['SUPER_ADMIN'] },
+      { title: 'Organizations', href: '/admin/organizations', roles: ['SUPER_ADMIN'] },
     ],
   },
 ];

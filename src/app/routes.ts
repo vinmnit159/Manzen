@@ -285,6 +285,18 @@ const McpSettingsPage = lazy(() =>
   })),
 );
 
+// Platform Admin (SUPER_ADMIN only)
+const AdminTemplatesPage = lazy(() =>
+  import('@/app/pages/admin/AdminTemplatesPage').then((m) => ({
+    default: m.AdminTemplatesPage,
+  })),
+);
+const AdminOrganizationsPage = lazy(() =>
+  import('@/app/pages/admin/AdminOrganizationsPage').then((m) => ({
+    default: m.AdminOrganizationsPage,
+  })),
+);
+
 // ── Auth guard ────────────────────────────────────────────────────────────────
 // ── Router ────────────────────────────────────────────────────────────────────
 export const router = createBrowserRouter([
@@ -378,6 +390,10 @@ export const router = createBrowserRouter([
         path: 'ai/knowledge-base',
         Component: AiDocumentsPage,
       },
+
+      // Platform Admin (SUPER_ADMIN)
+      { path: 'admin/templates', Component: AdminTemplatesPage },
+      { path: 'admin/organizations', Component: AdminOrganizationsPage },
 
       // Other
       { path: 'integrations', Component: IntegrationsPage },
