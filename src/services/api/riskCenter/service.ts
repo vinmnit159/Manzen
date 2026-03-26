@@ -86,7 +86,7 @@ function toEnterpriseRisk(entry: RiskRegisterEntryDto): EnterpriseRiskRecord {
     exposureDays,
     frameworks: [],
     controls: [],
-    evidenceCount: 0,
+    evidenceCount: entry.findingCount ?? 0,
     treatment:
       entry.treatmentNotes ?? entry.treatment ?? '—',
     trend: 'flat' as TrendDirection,

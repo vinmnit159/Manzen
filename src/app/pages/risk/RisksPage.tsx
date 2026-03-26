@@ -229,7 +229,14 @@ function RegisterRow({ entry }: { entry: RiskRegisterEntryDto }) {
   return (
     <tr className="hover:bg-blue-50/40 transition-colors">
       <td className="px-6 py-4">
-        <p className="text-sm font-medium text-gray-900 max-w-md">{entry.title}</p>
+        <div className="flex items-center gap-2">
+          <p className="text-sm font-medium text-gray-900 max-w-md">{entry.title}</p>
+          {(entry.findingCount ?? 0) > 0 && (
+            <span className="inline-flex items-center text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700 border border-orange-200">
+              {entry.findingCount} {entry.findingCount === 1 ? 'finding' : 'findings'}
+            </span>
+          )}
+        </div>
         {entry.description && (
           <p className="text-xs text-gray-400 mt-1 max-w-md truncate">{entry.description}</p>
         )}
