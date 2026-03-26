@@ -859,45 +859,45 @@ export function FindingsPage() {
         ))}
       </div>
 
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <input
-          className="w-56 rounded-lg border border-gray-200 px-3 py-1.5 text-sm"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder="Search findings..."
-        />
-        <div className="flex gap-1">
-          {(['', 'CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] as const).map(
-            (severity) => (
-              <button
-                key={severity}
-                onClick={() => setFilterSeverity(severity)}
-                className={`rounded-full border px-3 py-1 text-xs font-medium ${filterSeverity === severity ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-gray-200 bg-white text-gray-600'}`}
-              >
-                {severity || 'All Severities'}
-              </button>
-            ),
-          )}
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <div className="relative w-56">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <input
+            className="w-full rounded-lg border border-gray-200 pl-9 pr-3 py-1.5 text-sm"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search findings..."
+          />
         </div>
-        <div className="flex gap-1">
-          {(
-            [
-              '',
-              'OPEN',
-              'IN_REMEDIATION',
-              'READY_FOR_REVIEW',
-              'CLOSED',
-            ] as const
-          ).map((status) => (
-            <button
-              key={status}
-              onClick={() => setFilterStatus(status)}
-              className={`rounded-full border px-3 py-1 text-xs font-medium ${filterStatus === status ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-gray-200 bg-white text-gray-600'}`}
-            >
-              {status ? STATUS_META[status].label : 'All Status'}
-            </button>
-          ))}
-        </div>
+        <Select
+          value={filterSeverity || '__all_severity__'}
+          onValueChange={(v) => setFilterSeverity(v === '__all_severity__' ? '' : v as FindingSeverity)}
+        >
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="Severity" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all_severity__">All severities</SelectItem>
+            <SelectItem value="CRITICAL">Critical</SelectItem>
+            <SelectItem value="HIGH">High</SelectItem>
+            <SelectItem value="MEDIUM">Medium</SelectItem>
+            <SelectItem value="LOW">Low</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select
+          value={filterStatus || '__all_status__'}
+          onValueChange={(v) => setFilterStatus(v === '__all_status__' ? '' : v as FindingStatus)}
+        >
+          <SelectTrigger className="w-44">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all_status__">All statuses</SelectItem>
+            {(['OPEN', 'IN_REMEDIATION', 'READY_FOR_REVIEW', 'CLOSED'] as const).map((status) => (
+              <SelectItem key={status} value={status}>{STATUS_META[status].label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <button
           onClick={() => qc.invalidateQueries({ queryKey: ['findings'] })}
           className="ml-auto rounded-lg p-2 text-gray-500 hover:bg-gray-100"

@@ -1,7 +1,6 @@
 /**
- * FrameworkFilter — multi-select filter bar backed by /api/org/frameworks.
+ * FrameworkFilter — standard Select dropdown backed by /api/org/frameworks.
  * Sourced from live org frameworks (not hardcoded). React Query cached.
- * Clicking a chip toggles it in/out of the active filter set.
  *
  * Usage:
  *   const [selected, setSelected] = useState<string[]>([]);
@@ -10,14 +9,22 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { frameworksService } from "@/services/api/frameworks";
-import { FrameworkTag } from "./FrameworkTag";
 import { Loader2 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/app/components/ui/select";
 
 interface FrameworkFilterProps {
   selected: string[];
   onChange: (slugs: string[]) => void;
   className?: string;
 }
+
+const EMPTY_VALUE = '__all_frameworks__';
 
 export function FrameworkFilter({ selected, onChange, className = '' }: FrameworkFilterProps) {
   const { data: res, isLoading } = useQuery({
@@ -31,46 +38,32 @@ export function FrameworkFilter({ selected, onChange, className = '' }: Framewor
   if (isLoading) {
     return (
       <div className={`flex items-center gap-2 ${className}`}>
-        <Loader2 className="w-3.5 h-3.5 animate-spin text-gray-400" />
-        <span className="text-xs text-gray-400">Loading frameworks…</span>
+        <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />
+        <span className="text-xs text-muted-foreground">Loading…</span>
       </div>
     );
   }
 
   if (orgFrameworks.length === 0) return null;
 
-  function toggle(slug: string) {
-    if (selected.includes(slug)) {
-      onChange(selected.filter(s => s !== slug));
-    } else {
-      onChange([...selected, slug]);
-    }
-  }
+  const currentValue = selected.length === 1 ? selected[0] : EMPTY_VALUE;
 
   return (
-    <div className={`flex items-center gap-2 flex-wrap ${className}`}>
-      <span className="text-xs text-gray-400 font-medium shrink-0">Framework:</span>
-      {orgFrameworks.map(fw => (
-        <button
-          key={fw.frameworkSlug}
-          onClick={() => toggle(fw.frameworkSlug)}
-          className={`rounded-full border px-2.5 py-0.5 text-xs font-medium transition-all
-            ${selected.includes(fw.frameworkSlug)
-              ? 'ring-2 ring-offset-1 ring-blue-400'
-              : 'opacity-70 hover:opacity-100'
-            }`}
-        >
-          <FrameworkTag slug={fw.frameworkSlug} label={fw.frameworkName} size="xs" />
-        </button>
-      ))}
-      {selected.length > 0 && (
-        <button
-          onClick={() => onChange([])}
-          className="text-xs text-gray-400 hover:text-gray-700 underline"
-        >
-          Clear
-        </button>
-      )}
-    </div>
+    <Select
+      value={currentValue}
+      onValueChange={(value) => onChange(value === EMPTY_VALUE ? [] : [value])}
+    >
+      <SelectTrigger className={className}>
+        <SelectValue placeholder="Framework" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value={EMPTY_VALUE}>All frameworks</SelectItem>
+        {orgFrameworks.map((fw) => (
+          <SelectItem key={fw.frameworkSlug} value={fw.frameworkSlug}>
+            {fw.frameworkName}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }

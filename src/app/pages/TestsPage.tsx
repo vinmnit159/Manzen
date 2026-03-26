@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { RefreshCw, X, CheckCircle, AlertTriangle, Clock, Database, ChevronLeft, ChevronRight } from 'lucide-react';
+import { RefreshCw, X, CheckCircle, AlertTriangle, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 import { FrameworkFilter } from '@/app/components/compliance/FrameworkFilter';
 import { PageFilterBar } from '@/app/components/filters/PageFilterBar';
 import { useUrlFilterState } from '@/app/hooks/useUrlFilterState';
@@ -22,12 +22,43 @@ import { fmtDate } from '@/lib/format-date';
 import { StatusBadge, SortIcon } from './testsPage/StatusBadge';
 import { ColumnPicker } from './testsPage/ColumnPicker';
 import { LoadingState, ErrorState, EmptyState } from './testsPage/StateComponents';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
+
+const EMPTY_SELECT = '__empty__';
+
+function SelectFilter({ value, placeholder, allLabel, options, onChange }: {
+  value: string;
+  placeholder: string;
+  allLabel: string;
+  options: { value: string; label: string }[];
+  onChange: (value: string) => void;
+}) {
+  return (
+    <Select
+      value={value || EMPTY_SELECT}
+      onValueChange={(v) => onChange(v === EMPTY_SELECT ? '' : v)}
+    >
+      <SelectTrigger>
+        <SelectValue placeholder={placeholder} />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value={EMPTY_SELECT}>{allLabel}</SelectItem>
+        {options.map((opt) => (
+          <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
 
 interface TestFilter {
   search: string;
   category: string;
   status: string;
   type: string;
+  owner: string;
+  integration: string;
+  control: string;
   dueFrom: string;
   dueTo: string;
 }
@@ -39,7 +70,7 @@ export function TestsPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { filters: urlFilters, update, reset } = useUrlFilterState({
-    defaults: { search: '', category: '', status: '', type: '', dueFrom: '', dueTo: '', frameworks: [] as string[] },
+    defaults: { search: '', category: '', status: '', type: '', owner: '', integration: '', control: '', dueFrom: '', dueTo: '', frameworks: [] as string[] },
     arrayKeys: ['frameworks'],
   });
   const filter: TestFilter = {
@@ -47,6 +78,9 @@ export function TestsPage() {
     category: urlFilters.category,
     status: urlFilters.status,
     type: urlFilters.type,
+    owner: urlFilters.owner,
+    integration: urlFilters.integration,
+    control: urlFilters.control,
     dueFrom: urlFilters.dueFrom,
     dueTo: urlFilters.dueTo,
   };
@@ -192,7 +226,16 @@ export function TestsPage() {
     },
   });
 
-  const tests: TestRecord[] = (testsData ?? []) as TestRecord[];
+  const testsRaw: TestRecord[] = (testsData ?? []) as TestRecord[];
+
+  // Client-side filtering for owner, integration, and control
+  const tests = useMemo(() => {
+    let result = testsRaw;
+    if (filter.owner) result = result.filter((t) => t.ownerId === filter.owner || t.owner?.id === filter.owner);
+    if (filter.integration) result = result.filter((t) => t.integrationId === filter.integration || t.integration?.id === filter.integration);
+    if (filter.control) result = result.filter((t) => t.controls?.some((c) => c.controlId === filter.control));
+    return result;
+  }, [testsRaw, filter.owner, filter.integration, filter.control]);
 
   // Client-side sort — cast through unknown to allow dynamic key access
   const sorted = [...tests].sort((a, b) => {
@@ -212,7 +255,7 @@ export function TestsPage() {
     else { setSortColumn(col); setSortDir('asc'); }
   };
 
-  const hasActiveFilters = !!(filter.search || filter.category || filter.status || filter.type || filter.dueFrom || filter.dueTo || statusFilterOverride || frameworkFilter.length > 0);
+  const hasActiveFilters = !!(filter.search || filter.category || filter.status || filter.type || filter.owner || filter.integration || filter.control || filter.dueFrom || filter.dueTo || statusFilterOverride || frameworkFilter.length > 0);
 
   const clearFilters = () => {
     reset();
@@ -220,11 +263,44 @@ export function TestsPage() {
     setPage(1);
   };
 
+  // Build option lists for Owner, Integration, Control filters from loaded data
+  const ownerOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const t of testsRaw) {
+      if (t.owner) map.set(t.owner.id, t.owner.name || t.owner.email);
+      else if (t.ownerId) map.set(t.ownerId, t.ownerId);
+    }
+    return Array.from(map, ([value, label]) => ({ value, label }));
+  }, [testsRaw]);
+
+  const integrationOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const t of testsRaw) {
+      if (t.integration) map.set(t.integration.id, t.integration.provider);
+      else if (t.integrationId) map.set(t.integrationId, t.integrationId);
+    }
+    return Array.from(map, ([value, label]) => ({ value, label }));
+  }, [testsRaw]);
+
+  const controlOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const t of testsRaw) {
+      for (const link of t.controls ?? []) {
+        const c = link.control;
+        map.set(link.controlId, c ? `${c.isoReference} - ${c.title}` : link.controlId);
+      }
+    }
+    return Array.from(map, ([value, label]) => ({ value, label }));
+  }, [testsRaw]);
+
   const activeFilters = [
     ...(filter.search.trim() ? [{ key: 'search', label: `Search: ${filter.search.trim()}`, onRemove: () => update({ search: '' }) }] : []),
     ...(filter.category ? [{ key: 'category', label: `Category: ${filter.category}`, onRemove: () => update({ category: '' }) }] : []),
     ...(effectiveFilter.status ? [{ key: 'status', label: `Status: ${STATUS_CONFIG[effectiveFilter.status as TestStatus]?.label ?? effectiveFilter.status}`, onRemove: () => { update({ status: '' }); setStatusFilterOverride(''); } }] : []),
     ...(filter.type ? [{ key: 'type', label: `Type: ${filter.type}`, onRemove: () => update({ type: '' }) }] : []),
+    ...(filter.owner ? [{ key: 'owner', label: `Owner: ${ownerOptions.find((o) => o.value === filter.owner)?.label ?? filter.owner}`, onRemove: () => update({ owner: '' }) }] : []),
+    ...(filter.integration ? [{ key: 'integration', label: `Integration: ${integrationOptions.find((i) => i.value === filter.integration)?.label ?? filter.integration}`, onRemove: () => update({ integration: '' }) }] : []),
+    ...(filter.control ? [{ key: 'control', label: `Control: ${controlOptions.find((c) => c.value === filter.control)?.label ?? filter.control}`, onRemove: () => update({ control: '' }) }] : []),
     ...(filter.dueFrom ? [{ key: 'dueFrom', label: `Due from: ${filter.dueFrom}`, onRemove: () => update({ dueFrom: '' }) }] : []),
     ...(filter.dueTo ? [{ key: 'dueTo', label: `Due to: ${filter.dueTo}`, onRemove: () => update({ dueTo: '' }) }] : []),
     ...frameworkFilter.map((slug) => ({
@@ -305,18 +381,6 @@ export function TestsPage() {
 
   const visibleColumns = columns.filter(c => c.visible);
 
-  const downloadExport = async (format: 'csv' | 'pdf') => {
-    const res = await testsService.exportTests(format);
-    if (!res.success || !res.data) return;
-    const blob = new Blob([res.data.content], { type: format === 'csv' ? 'text/csv;charset=utf-8' : 'application/pdf' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = res.data.fileName;
-    link.click();
-    URL.revokeObjectURL(url);
-  };
-
   return (
     <div className="flex flex-col bg-muted">
       {/* ── App Bar ── */}
@@ -331,38 +395,6 @@ export function TestsPage() {
               <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
               Filters active
             </span>
-          )}
-          <button
-            onClick={() => navigate('/compliance/frameworks')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-border bg-card hover:bg-muted text-foreground transition-colors shadow-sm"
-          >
-            <Database className="w-4 h-4" />
-            <span className="hidden sm:inline">Frameworks</span>
-          </button>
-          <button
-            onClick={() => downloadExport('csv')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-border bg-card hover:bg-muted text-foreground transition-colors shadow-sm"
-          >
-            <span className="hidden sm:inline">Export CSV</span>
-            <span className="sm:hidden">CSV</span>
-          </button>
-          <button
-            onClick={() => downloadExport('pdf')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-border bg-card hover:bg-muted text-foreground transition-colors shadow-sm"
-          >
-            <span className="hidden sm:inline">Export PDF</span>
-            <span className="sm:hidden">PDF</span>
-          </button>
-          {isAdmin && (
-            <button
-              onClick={() => seedMutation.mutate()}
-              disabled={seedMutation.isPending}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-border bg-card hover:bg-muted text-foreground transition-colors shadow-sm disabled:opacity-50"
-              title="Seed 14 predefined Policy tests"
-            >
-              <Database className="w-4 h-4" />
-              <span className="hidden sm:inline">{seedMutation.isPending ? 'Seeding…' : 'Seed Tests'}</span>
-            </button>
           )}
           <button
             onClick={() => { qc.invalidateQueries({ queryKey: ['tests'] }); refetch(); }}
@@ -405,22 +437,29 @@ export function TestsPage() {
             },
           ]}
           auxiliary={(
-            <div className="space-y-3">
+            <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
               <FrameworkFilter selected={frameworkFilter} onChange={(value) => { update({ frameworks: value }); setPage(1); }} />
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <input
-                  type="date"
-                  value={filter.dueFrom}
-                  onChange={(event) => { update({ dueFrom: event.target.value }); setPage(1); }}
-                  className="w-full rounded-lg border border-border px-3 py-2 text-sm"
-                />
-                <input
-                  type="date"
-                  value={filter.dueTo}
-                  onChange={(event) => { update({ dueTo: event.target.value }); setPage(1); }}
-                  className="w-full rounded-lg border border-border px-3 py-2 text-sm"
-                />
-              </div>
+              <SelectFilter
+                value={filter.owner}
+                placeholder="Owner"
+                allLabel="All owners"
+                options={ownerOptions}
+                onChange={(value) => { update({ owner: value }); setPage(1); }}
+              />
+              <SelectFilter
+                value={filter.integration}
+                placeholder="Integration"
+                allLabel="All integrations"
+                options={integrationOptions}
+                onChange={(value) => { update({ integration: value }); setPage(1); }}
+              />
+              <SelectFilter
+                value={filter.control}
+                placeholder="Control"
+                allLabel="All controls"
+                options={controlOptions}
+                onChange={(value) => { update({ control: value }); setPage(1); }}
+              />
             </div>
           )}
           resultCount={sorted.length}
