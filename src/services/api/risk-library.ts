@@ -26,6 +26,8 @@ export interface RiskRegisterEntryDto {
   ownerId: string | null;
   ownerName: string | null;
   reviewDueAt: string | null;
+  sourceType: string | null;
+  sourceRef: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -45,6 +47,35 @@ export interface RiskLibraryListResponse extends ApiResponse<RiskLibraryItemDto[
 
 export interface RiskRegisterListResponse extends ApiResponse<RiskRegisterEntryDto[]> {
   stats: RiskRegisterStats;
+}
+
+export interface BreakdownItem {
+  label: string;
+  count: number;
+}
+
+export interface OverviewRecentEntry {
+  id: string;
+  title: string;
+  category: string;
+  inherentImpact: string;
+  inherentScore: number;
+  status: string;
+  sourceType: string | null;
+  ownerName: string | null;
+  createdAt: string;
+}
+
+export interface RiskRegisterOverview {
+  total: number;
+  open: number;
+  monitoring: number;
+  closed: number;
+  statusBreakdown: BreakdownItem[];
+  categoryBreakdown: BreakdownItem[];
+  severityBreakdown: BreakdownItem[];
+  sourceBreakdown: BreakdownItem[];
+  recentEntries: OverviewRecentEntry[];
 }
 
 export interface AddToRegisterRequest {
@@ -74,15 +105,24 @@ export const riskLibraryService = {
     return apiClient.get<RiskLibraryListResponse>('/risk-library');
   },
 
-  listRegister(params?: { status?: string; category?: string; search?: string }) {
+  listRegister(params?: { status?: string; category?: string; search?: string; source_type?: string }) {
     const qs = new URLSearchParams();
     if (params?.status) qs.set('status', params.status);
     if (params?.category) qs.set('category', params.category);
     if (params?.search) qs.set('search', params.search);
+    if (params?.source_type) qs.set('source_type', params.source_type);
     const query = qs.toString();
     return apiClient.get<RiskRegisterListResponse>(
       `/risk-library/register${query ? `?${query}` : ''}`,
     );
+  },
+
+  getRegisterOverview() {
+    return apiClient.get<ApiResponse<RiskRegisterOverview>>('/risk-library/register/overview');
+  },
+
+  getRegisterEntry(id: string) {
+    return apiClient.get<ApiResponse<RiskRegisterEntryDto>>(`/risk-library/register/${id}`);
   },
 
   addToRegister(data: AddToRegisterRequest) {
