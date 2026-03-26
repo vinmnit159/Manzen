@@ -28,6 +28,7 @@ export interface RiskRegisterEntryDto {
   reviewDueAt: string | null;
   sourceType: string | null;
   sourceRef: string | null;
+  findingCount: number | null;
   createdAt: string;
   updatedAt: string;
 }

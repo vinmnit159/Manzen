@@ -39,6 +39,7 @@ import {
   riskCenterService,
   type RiskStakeholder,
 } from '@/services/api/riskCenter';
+import { scanFindingsService } from '@/services/api/scan-findings';
 import { usersService } from '@/services/api/users';
 import {
   riskLevelVariant,
@@ -273,6 +274,13 @@ export function RiskDetailPage() {
     enabled: Boolean(riskId),
   });
 
+  const { data: findingsData } = useQuery({
+    queryKey: ['risk-findings', riskId],
+    queryFn: () => scanFindingsService.listByRisk(riskId),
+    staleTime: STALE.RISKS,
+    enabled: Boolean(riskId),
+  });
+
   return (
     <PageTemplate
       title="Risk Detail"
@@ -445,12 +453,81 @@ export function RiskDetailPage() {
           </div>
 
           {/* ── Tabs ─────────────────────────────────────────────────────── */}
-          <Tabs defaultValue="evidence" className="gap-4">
+          <Tabs defaultValue="findings" className="gap-4">
             <TabsList>
+              <TabsTrigger value="findings">
+                Findings{findingsData?.meta ? ` (${findingsData.meta.open})` : ''}
+              </TabsTrigger>
               <TabsTrigger value="evidence">Evidence</TabsTrigger>
               <TabsTrigger value="activity">Activity</TabsTrigger>
               <TabsTrigger value="remediation">Remediation</TabsTrigger>
             </TabsList>
+
+            {/* ── Findings tab ─────────────────────────────────────────── */}
+            <TabsContent value="findings">
+              <Card className="p-6">
+                <div className="flex items-center gap-2 text-foreground">
+                  <AlertTriangle className="h-4 w-4" />
+                  <h3 className="text-base font-semibold">
+                    Scan findings
+                  </h3>
+                  {findingsData?.meta && (
+                    <Badge variant="outline">
+                      {findingsData.meta.open} open / {findingsData.meta.total} total
+                    </Badge>
+                  )}
+                </div>
+                <div className="mt-5 space-y-3">
+                  {(!findingsData?.data || findingsData.data.length === 0) && (
+                    <p className="text-sm text-muted-foreground">
+                      No scan findings linked to this risk.
+                    </p>
+                  )}
+                  {findingsData?.data?.map((finding) => (
+                    <div
+                      key={finding.id}
+                      className="rounded-xl border border-border p-4"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="font-medium text-foreground">
+                            {finding.resourceName ?? finding.title}
+                          </p>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            {finding.title}
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Badge
+                            variant={
+                              finding.status === 'OPEN'
+                                ? 'destructive'
+                                : 'secondary'
+                            }
+                          >
+                            {finding.status}
+                          </Badge>
+                          <Badge variant="outline">{finding.severity}</Badge>
+                        </div>
+                      </div>
+                      <div className="mt-2 flex gap-4 text-xs text-muted-foreground">
+                        <span>
+                          First seen:{' '}
+                          {new Date(finding.firstSeenAt).toLocaleDateString()}
+                        </span>
+                        <span>
+                          Last seen:{' '}
+                          {new Date(finding.lastSeenAt).toLocaleDateString()}
+                        </span>
+                        <span>
+                          Source: {finding.sourceType?.replace(/_/g, ' ')}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            </TabsContent>
 
             {/* ── Evidence tab ───────────────────────────────────────────── */}
             <TabsContent value="evidence">
