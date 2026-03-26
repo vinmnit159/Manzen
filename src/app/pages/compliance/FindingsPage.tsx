@@ -10,6 +10,7 @@ import {
   Clock,
   Loader2,
   RefreshCw,
+  Search,
   Shield,
   Sparkles,
   ThumbsDown,
@@ -21,8 +22,23 @@ import {
 import { PageTemplate } from '@/app/components/PageTemplate';
 import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
-import { FindingRecord, FindingSeverity, FindingStatus } from '@/services/api/findings';
-import { remediationService, RemediationAction, RemediationActionStatus } from '@/services/api/remediation';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/app/components/ui/select';
+import {
+  FindingRecord,
+  FindingSeverity,
+  FindingStatus,
+} from '@/services/api/findings';
+import {
+  remediationService,
+  RemediationAction,
+  RemediationActionStatus,
+} from '@/services/api/remediation';
 import { ControlCandidate } from '@/services/api/ai';
 import { useCanAudit, useCurrentUser } from '@/hooks/useCurrentUser';
 import {
@@ -86,7 +102,9 @@ function RemediationPanel({
   finding: FindingRecord;
   canApprove: boolean;
 }) {
-  const { actions, isLoading, actionError, doAction } = useRemediationActions(finding.id);
+  const { actions, isLoading, actionError, doAction } = useRemediationActions(
+    finding.id,
+  );
 
   if (isLoading) {
     return (
@@ -341,8 +359,11 @@ function EvidenceSynthesisPanel({ findingId }: { findingId: string }) {
     null,
   );
 
-  const { synthesizeMutation: rawSynthesize, acceptMutation, dismissMutation: rawDismiss } =
-    useEvidenceSynthesis(findingId);
+  const {
+    synthesizeMutation: rawSynthesize,
+    acceptMutation,
+    dismissMutation: rawDismiss,
+  } = useEvidenceSynthesis(findingId);
 
   const synthesizeMutation = {
     ...rawSynthesize,
@@ -559,8 +580,13 @@ function FindingDetailPanel({
 
   const canEdit = canAudit;
 
-  const { saving, error, updateStatus, saveMetadata: saveMetadataFn, addRemediation: addRemediationFn } =
-    useFindingDetailActions(finding, onUpdated);
+  const {
+    saving,
+    error,
+    updateStatus,
+    saveMetadata: saveMetadataFn,
+    addRemediation: addRemediationFn,
+  } = useFindingDetailActions(finding, onUpdated);
 
   async function saveMetadata() {
     await saveMetadataFn({ dueAt, remediationOwner });
@@ -871,7 +897,11 @@ export function FindingsPage() {
         </div>
         <Select
           value={filterSeverity || '__all_severity__'}
-          onValueChange={(v) => setFilterSeverity(v === '__all_severity__' ? '' : v as FindingSeverity)}
+          onValueChange={(v) =>
+            setFilterSeverity(
+              v === '__all_severity__' ? '' : (v as FindingSeverity),
+            )
+          }
         >
           <SelectTrigger className="w-40">
             <SelectValue placeholder="Severity" />
@@ -886,15 +916,21 @@ export function FindingsPage() {
         </Select>
         <Select
           value={filterStatus || '__all_status__'}
-          onValueChange={(v) => setFilterStatus(v === '__all_status__' ? '' : v as FindingStatus)}
+          onValueChange={(v) =>
+            setFilterStatus(v === '__all_status__' ? '' : (v as FindingStatus))
+          }
         >
           <SelectTrigger className="w-44">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="__all_status__">All statuses</SelectItem>
-            {(['OPEN', 'IN_REMEDIATION', 'READY_FOR_REVIEW', 'CLOSED'] as const).map((status) => (
-              <SelectItem key={status} value={status}>{STATUS_META[status].label}</SelectItem>
+            {(
+              ['OPEN', 'IN_REMEDIATION', 'READY_FOR_REVIEW', 'CLOSED'] as const
+            ).map((status) => (
+              <SelectItem key={status} value={status}>
+                {STATUS_META[status].label}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
