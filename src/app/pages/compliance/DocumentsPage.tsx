@@ -4,7 +4,12 @@ import { toast } from 'sonner';
 import { PageTemplate } from '@/app/components/PageTemplate';
 import { Card } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/app/components/ui/tabs';
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from '@/app/components/ui/tabs';
 import {
   FileText,
   Loader2,
@@ -16,12 +21,13 @@ import {
   Clock,
   AlertTriangle,
   CheckCircle2,
-  Search,
 } from 'lucide-react';
-import { Input } from '@/app/components/ui/input';
 import { evidenceService } from '@/services/api/evidence';
 import { controlsService } from '@/services/api/controls';
-import { complianceDocumentService, ComplianceDocumentDto } from '@/services/api/compliance-documents';
+import {
+  complianceDocumentService,
+  ComplianceDocumentDto,
+} from '@/services/api/compliance-documents';
 import { FrameworkFilter } from '@/app/components/compliance/FrameworkFilter';
 import { PageFilterBar } from '@/app/components/filters/PageFilterBar';
 import { useUrlFilterState } from '@/app/hooks/useUrlFilterState';
@@ -65,11 +71,30 @@ function isoReferenceToFrameworkSlug(
   return null;
 }
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; icon: typeof CheckCircle2 }> = {
-  CURRENT: { label: 'Current', color: 'bg-green-100 text-green-800 border-green-200', icon: CheckCircle2 },
-  PENDING: { label: 'Pending', color: 'bg-yellow-100 text-yellow-800 border-yellow-200', icon: Clock },
-  NEEDS_REVIEW: { label: 'Needs Review', color: 'bg-orange-100 text-orange-800 border-orange-200', icon: AlertTriangle },
-  EXPIRED: { label: 'Expired', color: 'bg-red-100 text-red-800 border-red-200', icon: AlertTriangle },
+const STATUS_CONFIG: Record<
+  string,
+  { label: string; color: string; icon: typeof CheckCircle2 }
+> = {
+  CURRENT: {
+    label: 'Current',
+    color: 'bg-green-100 text-green-800 border-green-200',
+    icon: CheckCircle2,
+  },
+  PENDING: {
+    label: 'Pending',
+    color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+    icon: Clock,
+  },
+  NEEDS_REVIEW: {
+    label: 'Needs Review',
+    color: 'bg-orange-100 text-orange-800 border-orange-200',
+    icon: AlertTriangle,
+  },
+  EXPIRED: {
+    label: 'Expired',
+    color: 'bg-red-100 text-red-800 border-red-200',
+    icon: AlertTriangle,
+  },
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -86,6 +111,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 function RequiredDocumentsTab() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [frameworkFilter, setFrameworkFilter] = useState<string>('ALL');
 
   const { data, isLoading } = useQuery({
     queryKey: ['compliance-documents'],
@@ -93,16 +119,68 @@ function RequiredDocumentsTab() {
   });
 
   const documents = data?.data ?? [];
-  const stats = data?.stats ?? { total: 0, pending: 0, current: 0, needsReview: 0, expired: 0 };
+  const stats = data?.stats ?? {
+    total: 0,
+    pending: 0,
+    current: 0,
+    needsReview: 0,
+    expired: 0,
+  };
 
   const filtered = useMemo(() => {
     return documents.filter((d) => {
       const matchesStatus = statusFilter === 'ALL' || d.status === statusFilter;
-      const haystack = `${d.name} ${d.slug} ${d.category} ${d.frameworkName ?? ''}`.toLowerCase();
-      const matchesSearch = !search.trim() || haystack.includes(search.trim().toLowerCase());
-      return matchesStatus && matchesSearch;
+      const matchesFramework =
+        frameworkFilter === 'ALL' || d.frameworkName === frameworkFilter;
+      const haystack =
+        `${d.name} ${d.slug} ${d.category} ${d.frameworkName ?? ''}`.toLowerCase();
+      const matchesSearch =
+        !search.trim() || haystack.includes(search.trim().toLowerCase());
+      return matchesStatus && matchesFramework && matchesSearch;
     });
-  }, [documents, statusFilter, search]);
+  }, [documents, frameworkFilter, statusFilter, search]);
+
+  const frameworkOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          documents
+            .map((doc) => doc.frameworkName)
+            .filter((framework): framework is string => Boolean(framework)),
+        ),
+      ).sort(),
+    [documents],
+  );
+
+  const activeFilters = [
+    ...(search.trim()
+      ? [
+          {
+            key: 'search',
+            label: `Search: ${search.trim()}`,
+            onRemove: () => setSearch(''),
+          },
+        ]
+      : []),
+    ...(statusFilter !== 'ALL'
+      ? [
+          {
+            key: 'status',
+            label: `Status: ${STATUS_CONFIG[statusFilter]?.label ?? statusFilter}`,
+            onRemove: () => setStatusFilter('ALL'),
+          },
+        ]
+      : []),
+    ...(frameworkFilter !== 'ALL'
+      ? [
+          {
+            key: 'framework',
+            label: `Framework: ${frameworkFilter}`,
+            onRemove: () => setFrameworkFilter('ALL'),
+          },
+        ]
+      : []),
+  ];
 
   if (isLoading) {
     return (
@@ -116,10 +194,13 @@ function RequiredDocumentsTab() {
     return (
       <div className="text-center py-16">
         <ClipboardCheck className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-gray-700 mb-2">No required documents yet</h3>
+        <h3 className="text-lg font-medium text-gray-700 mb-2">
+          No required documents yet
+        </h3>
         <p className="text-sm text-gray-500 max-w-md mx-auto">
-          Required compliance documents are created automatically when you activate a framework.
-          Go to Frameworks and activate one to get started.
+          Required compliance documents are created automatically when you
+          activate a framework. Go to Frameworks and activate one to get
+          started.
         </p>
       </div>
     );
@@ -155,7 +236,9 @@ function RequiredDocumentsTab() {
             <AlertTriangle className="w-4 h-4 text-orange-500" />
             <span className="text-xs text-gray-500">Needs Review</span>
           </div>
-          <p className="text-2xl font-bold text-orange-600">{stats.needsReview}</p>
+          <p className="text-2xl font-bold text-orange-600">
+            {stats.needsReview}
+          </p>
         </Card>
         <Card className="p-4">
           <div className="flex items-center gap-2 mb-1">
@@ -166,29 +249,50 @@ function RequiredDocumentsTab() {
         </Card>
       </div>
 
-      {/* Search + Filter */}
-      <div className="flex gap-3 items-center">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <Input
-            placeholder="Search documents..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
-        >
-          <option value="ALL">All statuses ({stats.total})</option>
-          <option value="PENDING">Pending ({stats.pending})</option>
-          <option value="CURRENT">Current ({stats.current})</option>
-          <option value="NEEDS_REVIEW">Needs Review ({stats.needsReview})</option>
-          <option value="EXPIRED">Expired ({stats.expired})</option>
-        </select>
-      </div>
+      <PageFilterBar
+        searchValue={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Search documents..."
+        selects={[
+          {
+            key: 'status',
+            value: statusFilter,
+            placeholder: 'Status',
+            onChange: setStatusFilter,
+            options: [
+              { value: 'ALL', label: `All statuses (${stats.total})` },
+              { value: 'PENDING', label: `Pending (${stats.pending})` },
+              { value: 'CURRENT', label: `Current (${stats.current})` },
+              {
+                value: 'NEEDS_REVIEW',
+                label: `Needs Review (${stats.needsReview})`,
+              },
+              { value: 'EXPIRED', label: `Expired (${stats.expired})` },
+            ],
+          },
+          {
+            key: 'framework',
+            value: frameworkFilter,
+            placeholder: 'Framework',
+            onChange: setFrameworkFilter,
+            options: [
+              { value: 'ALL', label: 'All frameworks' },
+              ...frameworkOptions.map((framework) => ({
+                value: framework,
+                label: framework,
+              })),
+            ],
+          },
+        ]}
+        resultCount={filtered.length}
+        resultLabel={filtered.length === 1 ? 'document' : 'documents'}
+        activeFilters={activeFilters}
+        onClearAll={() => {
+          setSearch('');
+          setStatusFilter('ALL');
+          setFrameworkFilter('ALL');
+        }}
+      />
 
       {/* Document List */}
       <Card>
@@ -196,8 +300,19 @@ function RequiredDocumentsTab() {
           <table className="w-full">
             <thead className="bg-gray-50 border-b">
               <tr>
-                {['Document', 'Category', 'Framework', 'Status', 'Owner', 'Review Due', 'Last Reviewed'].map((h) => (
-                  <th key={h} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                {[
+                  'Document',
+                  'Category',
+                  'Framework',
+                  'Status',
+                  'Owner',
+                  'Review Due',
+                  'Last Reviewed',
+                ].map((h) => (
+                  <th
+                    key={h}
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
                     {h}
                   </th>
                 ))}
@@ -206,7 +321,10 @@ function RequiredDocumentsTab() {
             <tbody className="bg-white divide-y divide-gray-200">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-10 text-center text-sm text-gray-400">
+                  <td
+                    colSpan={7}
+                    className="px-6 py-10 text-center text-sm text-gray-400"
+                  >
                     No documents match your filters.
                   </td>
                 </tr>
@@ -231,13 +349,20 @@ function DocumentRow({ doc }: { doc: ComplianceDocumentDto }) {
         <div className="flex items-center gap-2">
           <FileText className="w-4 h-4 text-gray-400 shrink-0" />
           <div className="min-w-0">
-            <p className="text-sm font-medium text-gray-900 truncate">{doc.name}</p>
-            <p className="text-xs text-gray-400 font-mono truncate">{doc.slug}</p>
+            <p className="text-sm font-medium text-gray-900 truncate">
+              {doc.name}
+            </p>
+            <p className="text-xs text-gray-400 font-mono truncate">
+              {doc.slug}
+            </p>
           </div>
         </div>
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
-        <Badge variant="outline" className={`text-xs ${CATEGORY_COLORS[doc.category] ?? 'bg-gray-100 text-gray-800'}`}>
+        <Badge
+          variant="outline"
+          className={`text-xs ${CATEGORY_COLORS[doc.category] ?? 'bg-gray-100 text-gray-800'}`}
+        >
           {doc.category}
         </Badge>
       </td>
@@ -245,7 +370,9 @@ function DocumentRow({ doc }: { doc: ComplianceDocumentDto }) {
         {doc.frameworkName ?? '—'}
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
-        <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full border ${statusConf.color}`}>
+        <span
+          className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full border ${statusConf.color}`}
+        >
           <StatusIcon className="w-3 h-3" />
           {statusConf.label}
         </span>
@@ -257,7 +384,9 @@ function DocumentRow({ doc }: { doc: ComplianceDocumentDto }) {
         {doc.reviewDueAt ? new Date(doc.reviewDueAt).toLocaleDateString() : '—'}
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500">
-        {doc.lastReviewedAt ? new Date(doc.lastReviewedAt).toLocaleDateString() : 'Never'}
+        {doc.lastReviewedAt
+          ? new Date(doc.lastReviewedAt).toLocaleDateString()
+          : 'Never'}
       </td>
     </tr>
   );
@@ -483,10 +612,11 @@ function EvidenceLockerTab() {
             ],
           },
         ]}
-        auxiliary={
+        inlineExtras={
           <FrameworkFilter
             selected={frameworkFilter}
             onChange={(value) => update({ frameworks: value })}
+            className="w-full"
           />
         }
         resultCount={filtered.length}
@@ -558,9 +688,7 @@ function EvidenceLockerTab() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <Badge variant={typeVariant(ev.type)}>
-                          {ev.type}
-                        </Badge>
+                        <Badge variant={typeVariant(ev.type)}>{ev.type}</Badge>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         {ev.control ? (

@@ -19,7 +19,12 @@ export function ControlsPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { filters, update, reset } = useUrlFilterState({
-    defaults: { search: '', status: '', isoReference: '', frameworks: [] as string[] },
+    defaults: {
+      search: '',
+      status: '',
+      isoReference: '',
+      frameworks: [] as string[],
+    },
     arrayKeys: ['frameworks'],
   });
   const filter: ControlFilter = {
@@ -36,37 +41,54 @@ export function ControlsPage() {
   // Load / persist column preferences in localStorage (unchanged)
   useEffect(() => {
     const saved = localStorage.getItem('controls-columns');
-    if (saved) { try { setColumns(JSON.parse(saved)); } catch { /* ignore */ } }
+    if (saved) {
+      try {
+        setColumns(JSON.parse(saved));
+      } catch {
+        /* ignore */
+      }
+    }
   }, []);
   useEffect(() => {
     localStorage.setItem('controls-columns', JSON.stringify(columns));
   }, [columns]);
 
-  const filterKey = { search: filter.search, status: filter.status, isoReference: filter.isoReference, frameworkSlugs: frameworkFilter };
+  const filterKey = {
+    search: filter.search,
+    status: filter.status,
+    isoReference: filter.isoReference,
+    frameworkSlugs: frameworkFilter,
+  };
 
-  const { data: rawControls, isLoading: loading, isError, error: queryError, isFetching } =
-    useQuery({
-      queryKey: QK.controls(filterKey),
-      queryFn: async () => {
-        const response = await controlsService.getControls({
-          search: filter.search || undefined,
-          status: filter.status || undefined,
-          isoReference: filter.isoReference || undefined,
-          frameworkSlugs: frameworkFilter.length > 0 ? frameworkFilter : undefined,
-        });
-        if (response.success && response.data) return response.data as Control[];
-        throw new Error('Failed to load controls from the server.');
-      },
-      staleTime: STALE.CONTROLS,
-      retry: (count, err: any) => {
-        if (err?.statusCode === 401) {
-          clearAuthSession();
-          navigate('/login');
-          return false;
-        }
-        return count < 1;
-      },
-    });
+  const {
+    data: rawControls,
+    isLoading: loading,
+    isError,
+    error: queryError,
+    isFetching,
+  } = useQuery({
+    queryKey: QK.controls(filterKey),
+    queryFn: async () => {
+      const response = await controlsService.getControls({
+        search: filter.search || undefined,
+        status: filter.status || undefined,
+        isoReference: filter.isoReference || undefined,
+        frameworkSlugs:
+          frameworkFilter.length > 0 ? frameworkFilter : undefined,
+      });
+      if (response.success && response.data) return response.data as Control[];
+      throw new Error('Failed to load controls from the server.');
+    },
+    staleTime: STALE.CONTROLS,
+    retry: (count, err: any) => {
+      if (err?.statusCode === 401) {
+        clearAuthSession();
+        navigate('/login');
+        return false;
+      }
+      return count < 1;
+    },
+  });
 
   // Client-side sort applied to cached data
   const controls: Control[] = rawControls
@@ -78,13 +100,15 @@ export function ControlsPage() {
           typeof aVal === 'string' && typeof bVal === 'string'
             ? aVal.localeCompare(bVal)
             : typeof aVal === 'number' && typeof bVal === 'number'
-            ? aVal - bVal
-            : String(aVal).localeCompare(String(bVal));
+              ? aVal - bVal
+              : String(aVal).localeCompare(String(bVal));
         return sortDirection === 'desc' ? -cmp : cmp;
       })
     : [];
 
-  const error: string | null = isError ? ((queryError as any)?.message ?? 'An unexpected error occurred.') : null;
+  const error: string | null = isError
+    ? ((queryError as any)?.message ?? 'An unexpected error occurred.')
+    : null;
 
   const filteredControls: Control[] = controls;
 
@@ -98,7 +122,9 @@ export function ControlsPage() {
 
   const handleColumnToggle = (columnId: string) =>
     setColumns((prev) =>
-      prev.map((col) => (col.id === columnId ? { ...col, visible: !col.visible } : col))
+      prev.map((col) =>
+        col.id === columnId ? { ...col, visible: !col.visible } : col,
+      ),
     );
 
   const handleSort = (columnId: string) => {
@@ -110,22 +136,58 @@ export function ControlsPage() {
     }
   };
 
-  const hasActiveFilters = !!(filter.search || filter.status || filter.isoReference || frameworkFilter.length > 0);
+  const hasActiveFilters = !!(
+    filter.search ||
+    filter.status ||
+    filter.isoReference ||
+    frameworkFilter.length > 0
+  );
   const activeFilters = [
-    ...(filter.search.trim() ? [{ key: 'search', label: `Search: ${filter.search.trim()}`, onRemove: () => update({ search: '' }) }] : []),
-    ...(filter.status ? [{ key: 'status', label: `Status: ${filter.status.replace(/_/g, ' ').toLowerCase()}`, onRemove: () => update({ status: '' }) }] : []),
-    ...(filter.isoReference.trim() ? [{ key: 'isoReference', label: `ISO: ${filter.isoReference.trim()}`, onRemove: () => update({ isoReference: '' }) }] : []),
+    ...(filter.search.trim()
+      ? [
+          {
+            key: 'search',
+            label: `Search: ${filter.search.trim()}`,
+            onRemove: () => update({ search: '' }),
+          },
+        ]
+      : []),
+    ...(filter.status
+      ? [
+          {
+            key: 'status',
+            label: `Status: ${filter.status.replace(/_/g, ' ').toLowerCase()}`,
+            onRemove: () => update({ status: '' }),
+          },
+        ]
+      : []),
+    ...(filter.isoReference.trim()
+      ? [
+          {
+            key: 'isoReference',
+            label: `ISO: ${filter.isoReference.trim()}`,
+            onRemove: () => update({ isoReference: '' }),
+          },
+        ]
+      : []),
     ...frameworkFilter.map((slug) => ({
       key: `framework-${slug}`,
       label: `Framework: ${slug.replace(/-/g, ' ')}`,
-      onRemove: () => update({ frameworks: frameworkFilter.filter((item) => item !== slug) }),
+      onRemove: () =>
+        update({ frameworks: frameworkFilter.filter((item) => item !== slug) }),
     })),
   ];
 
   // Compliance summary counts
-  const implemented = filteredControls.filter((c) => c.status === 'IMPLEMENTED').length;
-  const partial = filteredControls.filter((c) => c.status === 'PARTIALLY_IMPLEMENTED').length;
-  const notImpl = filteredControls.filter((c) => c.status === 'NOT_IMPLEMENTED').length;
+  const implemented = filteredControls.filter(
+    (c) => c.status === 'IMPLEMENTED',
+  ).length;
+  const partial = filteredControls.filter(
+    (c) => c.status === 'PARTIALLY_IMPLEMENTED',
+  ).length;
+  const notImpl = filteredControls.filter(
+    (c) => c.status === 'NOT_IMPLEMENTED',
+  ).length;
   const compliancePct = filteredControls.length
     ? Math.round((implemented / filteredControls.length) * 100)
     : 0;
@@ -133,13 +195,20 @@ export function ControlsPage() {
   return (
     <div className="flex flex-col bg-muted">
       {selectedControl && (
-        <ControlDetailPanel control={selectedControl} onClose={() => setSelectedControl(null)} />
+        <ControlDetailPanel
+          control={selectedControl}
+          onClose={() => setSelectedControl(null)}
+        />
       )}
       {/* ── Top App Bar (Material-style) ── */}
       <div className="bg-card border-b border-border px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
         <div>
-          <h1 className="text-xl font-semibold text-foreground tracking-tight">Controls</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">ISO 27001 security control management</p>
+          <h1 className="text-xl font-semibold text-foreground tracking-tight">
+            Controls
+          </h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            ISO 27001 security control management
+          </p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -155,10 +224,15 @@ export function ControlsPage() {
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-border bg-card hover:bg-muted text-foreground transition-colors shadow-sm disabled:opacity-50"
             title="Refresh controls"
           >
-            <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`}
+            />
             <span className="hidden sm:inline">Refresh</span>
           </button>
-          <ColumnSelector columns={columns} onColumnToggle={handleColumnToggle} />
+          <ColumnSelector
+            columns={columns}
+            onColumnToggle={handleColumnToggle}
+          />
         </div>
       </div>
 
@@ -169,6 +243,13 @@ export function ControlsPage() {
           searchPlaceholder="Search title or description"
           selects={[
             {
+              key: 'isoReference',
+              value: filter.isoReference,
+              placeholder: 'ISO Reference',
+              onChange: (value) => update({ isoReference: value }),
+              options: [{ value: '', label: 'All references' }],
+            },
+            {
               key: 'status',
               value: filter.status,
               placeholder: 'Status',
@@ -176,19 +257,21 @@ export function ControlsPage() {
               options: [
                 { value: '', label: 'All statuses' },
                 { value: 'IMPLEMENTED', label: 'Implemented' },
-                { value: 'PARTIALLY_IMPLEMENTED', label: 'Partially Implemented' },
+                {
+                  value: 'PARTIALLY_IMPLEMENTED',
+                  label: 'Partially Implemented',
+                },
                 { value: 'NOT_IMPLEMENTED', label: 'Not Implemented' },
               ],
             },
-            {
-              key: 'isoReference',
-              value: filter.isoReference,
-              placeholder: 'ISO Reference',
-              onChange: (value) => update({ isoReference: value }),
-              options: [{ value: '', label: 'All references' }],
-            },
           ]}
-          auxiliary={<FrameworkFilter selected={frameworkFilter} onChange={(value) => update({ frameworks: value })} />}
+          inlineExtras={
+            <FrameworkFilter
+              selected={frameworkFilter}
+              onChange={(value) => update({ frameworks: value })}
+              className="w-full"
+            />
+          }
           resultCount={filteredControls.length}
           resultLabel="controls"
           activeFilters={activeFilters}
@@ -202,7 +285,7 @@ export function ControlsPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <SummaryCard
               label="Total Controls"
-               value={filteredControls.length}
+              value={filteredControls.length}
               color="text-foreground"
               bg="bg-card"
             />
@@ -232,8 +315,12 @@ export function ControlsPage() {
           {/* Compliance progress bar */}
           <div className="mt-3 bg-card rounded-xl border border-border px-4 py-3 shadow-sm">
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-sm font-medium text-foreground">Compliance score</span>
-              <span className="text-sm font-semibold text-blue-700">{compliancePct}%</span>
+              <span className="text-sm font-medium text-foreground">
+                Compliance score
+              </span>
+              <span className="text-sm font-semibold text-blue-700">
+                {compliancePct}%
+              </span>
             </div>
             <div className="h-2 bg-muted rounded-full overflow-hidden">
               <div
@@ -254,7 +341,10 @@ export function ControlsPage() {
           ) : error ? (
             <ErrorState message={error} onRetry={fetchControls} />
           ) : filteredControls.length === 0 ? (
-            <EmptyState hasFilters={hasActiveFilters} onClear={handleClearFilters} />
+            <EmptyState
+              hasFilters={hasActiveFilters}
+              onClear={handleClearFilters}
+            />
           ) : (
             <>
               <ControlsTable
@@ -268,7 +358,9 @@ export function ControlsPage() {
               <div className="flex items-center justify-between px-4 py-2 bg-card rounded-xl border border-border shadow-sm">
                 <span className="text-sm text-muted-foreground">
                   Showing{' '}
-                  <span className="font-medium text-foreground">{filteredControls.length}</span>{' '}
+                  <span className="font-medium text-foreground">
+                    {filteredControls.length}
+                  </span>{' '}
                   control{filteredControls.length !== 1 ? 's' : ''}
                   {hasActiveFilters && ' (filtered)'}
                 </span>
@@ -298,7 +390,9 @@ function SummaryCard({
 }) {
   return (
     <div className={`rounded-xl border ${accent} ${bg} px-4 py-3 shadow-sm`}>
-      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</p>
+      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+        {label}
+      </p>
       <p className={`text-2xl font-bold mt-1 ${color}`}>{value}</p>
     </div>
   );
@@ -313,16 +407,36 @@ function LoadingState() {
   );
 }
 
-function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
+function ErrorState({
+  message,
+  onRetry,
+}: {
+  message: string;
+  onRetry: () => void;
+}) {
   return (
     <div className="flex-1 flex flex-col items-center justify-center py-20 bg-card rounded-xl border border-red-200 shadow-sm">
       <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mb-4">
-        <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        <svg
+          className="w-6 h-6 text-red-500"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
         </svg>
       </div>
-      <p className="text-base font-medium text-foreground mb-1">Failed to load controls</p>
-      <p className="text-sm text-muted-foreground mb-4 text-center max-w-xs">{message}</p>
+      <p className="text-base font-medium text-foreground mb-1">
+        Failed to load controls
+      </p>
+      <p className="text-sm text-muted-foreground mb-4 text-center max-w-xs">
+        {message}
+      </p>
       <button
         onClick={onRetry}
         className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors shadow-sm"
@@ -333,17 +447,37 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
   );
 }
 
-function EmptyState({ hasFilters, onClear }: { hasFilters: boolean; onClear: () => void }) {
+function EmptyState({
+  hasFilters,
+  onClear,
+}: {
+  hasFilters: boolean;
+  onClear: () => void;
+}) {
   return (
     <div className="flex-1 flex flex-col items-center justify-center py-20 bg-card rounded-xl border border-border shadow-sm">
       <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
-        <svg className="w-6 h-6 text-muted-foreground/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+        <svg
+          className="w-6 h-6 text-muted-foreground/70"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+          />
         </svg>
       </div>
-      <p className="text-base font-medium text-foreground mb-1">No controls found</p>
+      <p className="text-base font-medium text-foreground mb-1">
+        No controls found
+      </p>
       <p className="text-sm text-muted-foreground mb-4">
-        {hasFilters ? 'No controls match your current filters.' : 'No controls have been created yet.'}
+        {hasFilters
+          ? 'No controls match your current filters.'
+          : 'No controls have been created yet.'}
       </p>
       {hasFilters && (
         <button

@@ -2,7 +2,13 @@ import type { ReactNode } from 'react';
 import { Search, X } from 'lucide-react';
 import { Card } from '@/app/components/ui/card';
 import { Input } from '@/app/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/app/components/ui/select';
 import { Button } from '@/app/components/ui/button';
 import { cn } from '@/app/components/ui/utils';
 
@@ -34,6 +40,7 @@ interface PageFilterBarProps {
   onSearchChange?: (value: string) => void;
   searchPlaceholder?: string;
   selects?: FilterSelectConfig[];
+  inlineExtras?: ReactNode;
   auxiliary?: ReactNode;
   resultCount?: number;
   resultLabel?: string;
@@ -47,6 +54,7 @@ export function PageFilterBar({
   onSearchChange,
   searchPlaceholder = 'Search',
   selects = [],
+  inlineExtras,
   auxiliary,
   resultCount,
   resultLabel = 'results',
@@ -58,9 +66,9 @@ export function PageFilterBar({
     <Card className={cn('p-4 sm:p-5', className)}>
       <div className="space-y-4">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
-          <div className="grid flex-1 gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1.4fr)_repeat(3,minmax(0,0.6fr))]">
+          <div className="flex flex-1 flex-col gap-3 md:grid md:grid-cols-2 xl:flex xl:flex-row xl:items-center">
             {onSearchChange ? (
-              <div className="relative md:col-span-2 xl:col-span-1">
+              <div className="relative min-w-0 md:col-span-2 xl:flex-[1.4]">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" />
                 <Input
                   value={searchValue ?? ''}
@@ -72,32 +80,52 @@ export function PageFilterBar({
             ) : null}
 
             {selects.map((select) => (
-              <Select
-                key={select.key}
-                value={select.value === '' ? getEmptySelectValue(select.key) : select.value}
-                onValueChange={(value) => select.onChange(value === getEmptySelectValue(select.key) ? '' : value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={select.placeholder} />
-                </SelectTrigger>
-                <SelectContent>
-                  {select.options.map((option) => (
-                    <SelectItem
-                      key={`${select.key}-${option.value || 'empty'}`}
-                      value={option.value === '' ? getEmptySelectValue(select.key) : option.value}
-                    >
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div key={select.key} className="min-w-0 xl:flex-1">
+                <Select
+                  value={
+                    select.value === ''
+                      ? getEmptySelectValue(select.key)
+                      : select.value
+                  }
+                  onValueChange={(value) =>
+                    select.onChange(
+                      value === getEmptySelectValue(select.key) ? '' : value,
+                    )
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={select.placeholder} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {select.options.map((option) => (
+                      <SelectItem
+                        key={`${select.key}-${option.value || 'empty'}`}
+                        value={
+                          option.value === ''
+                            ? getEmptySelectValue(select.key)
+                            : option.value
+                        }
+                      >
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             ))}
+
+            {inlineExtras ? (
+              <div className="min-w-0 xl:flex-1">{inlineExtras}</div>
+            ) : null}
           </div>
 
           <div className="flex items-center justify-between gap-3 xl:min-w-[12rem] xl:justify-end">
             {typeof resultCount === 'number' ? (
               <div className="text-sm text-muted-foreground">
-                <span className="font-semibold text-foreground">{resultCount}</span> {resultLabel}
+                <span className="font-semibold text-foreground">
+                  {resultCount}
+                </span>{' '}
+                {resultLabel}
               </div>
             ) : null}
             {onClearAll ? (
@@ -112,7 +140,9 @@ export function PageFilterBar({
 
         {activeFilters.length > 0 ? (
           <div className="flex flex-wrap items-center gap-2 border-t border-border pt-4">
-            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground/70">Active filters</span>
+            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground/70">
+              Active filters
+            </span>
             {activeFilters.map((filter) => (
               <button
                 key={filter.key}
