@@ -1,166 +1,206 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { PageTemplate } from '@/app/components/PageTemplate';
-import { PageFilterBar } from '@/app/components/filters/PageFilterBar';
 import { Card } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
+import { Input } from '@/app/components/ui/input';
 import { Button } from '@/app/components/ui/button';
-import { Loader2, RefreshCw } from 'lucide-react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  Loader2,
+  Search,
+  ShieldAlert,
+  ClipboardCheck,
+  Eye,
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
+} from 'lucide-react';
 import { useNavigate } from 'react-router';
-import { riskCenterService } from '@/services/api/riskCenter';
-import { riskLevelVariant, riskStatusVariant, trendLabel } from '@/services/api/riskFormatting';
-import { FrameworkFilter } from '@/app/components/compliance/FrameworkFilter';
-import { useUrlFilterState } from '@/app/hooks/useUrlFilterState';
-import { QK } from '@/lib/queryKeys';
-import { STALE } from '@/lib/queryClient';
+import { riskLibraryService, RiskRegisterEntryDto } from '@/services/api/risk-library';
+
+const IMPACT_COLORS: Record<string, string> = {
+  CRITICAL: 'bg-red-100 text-red-800 border-red-200',
+  HIGH: 'bg-orange-100 text-orange-800 border-orange-200',
+  MEDIUM: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+  LOW: 'bg-green-100 text-green-800 border-green-200',
+};
+
+const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
+  IDENTIFIED: { label: 'Identified', color: 'bg-blue-100 text-blue-800 border-blue-200' },
+  ASSESSING: { label: 'Assessing', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
+  TREATING: { label: 'Treating', color: 'bg-orange-100 text-orange-800 border-orange-200' },
+  MONITORING: { label: 'Monitoring', color: 'bg-purple-100 text-purple-800 border-purple-200' },
+  CLOSED: { label: 'Closed', color: 'bg-green-100 text-green-800 border-green-200' },
+};
+
+const TREATMENT_LABELS: Record<string, string> = {
+  MITIGATE: 'Mitigate',
+  ACCEPT: 'Accept',
+  TRANSFER: 'Transfer',
+  AVOID: 'Avoid',
+};
+
+const CATEGORY_COLORS: Record<string, string> = {
+  Governance: 'bg-blue-100 text-blue-800',
+  'Access Control': 'bg-indigo-100 text-indigo-800',
+  'Asset Management': 'bg-teal-100 text-teal-800',
+  Operations: 'bg-purple-100 text-purple-800',
+  'Business Continuity': 'bg-amber-100 text-amber-800',
+  Fraud: 'bg-red-100 text-red-800',
+  Communications: 'bg-cyan-100 text-cyan-800',
+  'Third Party': 'bg-orange-100 text-orange-800',
+  Cryptography: 'bg-violet-100 text-violet-800',
+  'Software Development': 'bg-emerald-100 text-emerald-800',
+  Privacy: 'bg-pink-100 text-pink-800',
+  Compliance: 'bg-slate-100 text-slate-800',
+  'Incident Response': 'bg-rose-100 text-rose-800',
+  'Physical Security': 'bg-lime-100 text-lime-800',
+  People: 'bg-sky-100 text-sky-800',
+};
 
 export function RisksPage() {
-  const qc = useQueryClient();
   const navigate = useNavigate();
-  const { filters, update, reset } = useUrlFilterState({
-    defaults: { severity: 'ALL', status: 'ALL', query: '', frameworks: [] as string[] },
-    arrayKeys: ['frameworks'],
-  });
-  const severity = filters.severity;
-  const status = filters.status;
-  const query = filters.query;
-  const frameworkFilter = filters.frameworks;
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('ALL');
 
-  const { data: risks = [], isLoading, isFetching } = useQuery({
-    queryKey: QK.risks(),
-    queryFn: () => riskCenterService.getRiskRegister(),
-    staleTime: STALE.RISKS,
+  const { data: regData, isLoading } = useQuery({
+    queryKey: ['risk-register'],
+    queryFn: () => riskLibraryService.listRegister(),
   });
 
-  /**
-   * Normalises a free-text framework name (from the risk engine) to its canonical slug.
-   * Matches the slugs produced by frameworkSeeds.ts so the FrameworkFilter can compare them.
-   */
-  function toFrameworkSlug(name: string): string {
-    const lower = name.toLowerCase();
-    if (lower.includes('iso') && (lower.includes('27001') || lower.includes('27k'))) return 'iso-27001';
-    if (lower.includes('soc') && (lower.includes('2') || lower.includes('ii'))) return 'soc-2';
-    if (lower.includes('nist') || lower.includes('csf')) return 'nist-csf';
-    if (lower.includes('hipaa')) return 'hipaa';
-    return lower.replace(/\s+/g, '-');
-  }
+  const entries = regData?.data ?? [];
+  const stats = regData?.stats ?? { total: 0, identified: 0, assessing: 0, treating: 0, monitoring: 0, closed: 0 };
 
   const filtered = useMemo(() => {
-    return risks.filter((risk) => {
-      const matchesSeverity = severity === 'ALL' || risk.impact === severity;
-      const matchesStatus = status === 'ALL' || risk.status === status;
-      const haystack = `${risk.title} ${risk.assetName} ${risk.category} ${risk.owner.team}`.toLowerCase();
-      const matchesQuery = query.trim() === '' || haystack.includes(query.toLowerCase());
-      const matchesFramework =
-        frameworkFilter.length === 0 ||
-        risk.frameworks.some((fw) => frameworkFilter.includes(toFrameworkSlug(fw)));
-      return matchesSeverity && matchesStatus && matchesQuery && matchesFramework;
+    return entries.filter((e) => {
+      const matchesStatus = statusFilter === 'ALL' || e.status === statusFilter;
+      const haystack = `${e.title} ${e.category} ${e.ownerName ?? ''}`.toLowerCase();
+      const matchesSearch = !search.trim() || haystack.includes(search.trim().toLowerCase());
+      return matchesStatus && matchesSearch;
     });
-  }, [frameworkFilter, query, risks, severity, status]);
-
-  const activeFilters = [
-    ...(query.trim() ? [{ key: 'query', label: `Search: ${query.trim()}`, onRemove: () => update({ query: '' }) }] : []),
-    ...(severity !== 'ALL' ? [{ key: 'severity', label: `Severity: ${severity}`, onRemove: () => update({ severity: 'ALL' }) }] : []),
-    ...(status !== 'ALL' ? [{ key: 'status', label: `Status: ${status.replace(/_/g, ' ')}`, onRemove: () => update({ status: 'ALL' }) }] : []),
-    ...frameworkFilter.map((slug) => ({
-      key: `framework-${slug}`,
-      label: `Framework: ${slug.replace(/-/g, ' ')}`,
-      onRemove: () => update({ frameworks: frameworkFilter.filter((item) => item !== slug) }),
-    })),
-  ];
+  }, [entries, statusFilter, search]);
 
   return (
     <PageTemplate
-      title="Risks"
-      description="Deduplicated enterprise risk register with owners, evidence, frameworks, and remediation context."
+      title="Risk Register"
+      description="Organization risks selected from the risk library. Assess, treat, and monitor risks."
       actions={
-        <Button variant="outline" size="sm" disabled={isFetching} onClick={() => qc.invalidateQueries({ queryKey: QK.risks() })}>
-          <RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
-          Refresh
+        <Button variant="outline" size="sm" onClick={() => navigate('/risk/library')}>
+          Browse Risk Library
         </Button>
       }
     >
       {isLoading ? (
-        <div className="flex h-48 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground/70" /></div>
+        <div className="flex h-48 items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+        </div>
+      ) : stats.total === 0 ? (
+        <div className="text-center py-16">
+          <ShieldAlert className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-700 mb-2">No risks in your register</h3>
+          <p className="text-sm text-gray-500 max-w-md mx-auto mb-6">
+            Browse the Risk Library to find applicable risks and add them to your register.
+          </p>
+          <Button onClick={() => navigate('/risk/library')}>
+            Browse Risk Library
+          </Button>
+        </div>
       ) : (
         <div className="space-y-6">
-          <PageFilterBar
-            searchValue={query}
-            onSearchChange={(value) => update({ query: value })}
-            searchPlaceholder="Search risks, assets, teams, or categories"
-            selects={[
-              {
-                key: 'severity',
-                value: severity,
-                placeholder: 'Severity',
-                onChange: (value) => update({ severity: value }),
-                options: ['ALL', 'CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].map((item) => ({ value: item, label: item })),
-              },
-              {
-                key: 'status',
-                value: status,
-                placeholder: 'Status',
-                onChange: (value) => update({ status: value }),
-                options: ['ALL', 'OPEN', 'IN_PROGRESS', 'VERIFIED', 'ACCEPTED', 'TRANSFERRED'].map((item) => ({ value: item, label: item.replace(/_/g, ' ') })),
-              },
-            ]}
-            auxiliary={<FrameworkFilter selected={frameworkFilter} onChange={(value) => update({ frameworks: value })} />}
-            resultCount={filtered.length}
-            resultLabel="results"
-            activeFilters={activeFilters}
-            onClearAll={reset}
-          />
+          {/* Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+            <Card className="p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <ShieldAlert className="w-4 h-4 text-gray-400" />
+                <span className="text-xs text-gray-500">Total</span>
+              </div>
+              <p className="text-2xl font-bold">{stats.total}</p>
+            </Card>
+            <Card className="p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <AlertTriangle className="w-4 h-4 text-blue-500" />
+                <span className="text-xs text-gray-500">Identified</span>
+              </div>
+              <p className="text-2xl font-bold text-blue-600">{stats.identified}</p>
+            </Card>
+            <Card className="p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <Search className="w-4 h-4 text-yellow-500" />
+                <span className="text-xs text-gray-500">Assessing</span>
+              </div>
+              <p className="text-2xl font-bold text-yellow-600">{stats.assessing}</p>
+            </Card>
+            <Card className="p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <ClipboardCheck className="w-4 h-4 text-orange-500" />
+                <span className="text-xs text-gray-500">Treating</span>
+              </div>
+              <p className="text-2xl font-bold text-orange-600">{stats.treating}</p>
+            </Card>
+            <Card className="p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <Eye className="w-4 h-4 text-purple-500" />
+                <span className="text-xs text-gray-500">Monitoring</span>
+              </div>
+              <p className="text-2xl font-bold text-purple-600">{stats.monitoring}</p>
+            </Card>
+            <Card className="p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <CheckCircle2 className="w-4 h-4 text-green-500" />
+                <span className="text-xs text-gray-500">Closed</span>
+              </div>
+              <p className="text-2xl font-bold text-green-600">{stats.closed}</p>
+            </Card>
+          </div>
 
+          {/* Search + Filter */}
+          <div className="flex gap-3 items-center">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Input
+                placeholder="Search risks..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
+            >
+              <option value="ALL">All statuses ({stats.total})</option>
+              <option value="IDENTIFIED">Identified ({stats.identified})</option>
+              <option value="ASSESSING">Assessing ({stats.assessing})</option>
+              <option value="TREATING">Treating ({stats.treating})</option>
+              <option value="MONITORING">Monitoring ({stats.monitoring})</option>
+              <option value="CLOSED">Closed ({stats.closed})</option>
+            </select>
+          </div>
+
+          {/* Register Table */}
           <Card>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[1100px]">
-                <thead className="border-b bg-muted">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b">
                   <tr>
-                    {['Risk', 'Category', 'Asset', 'Owner', 'Score', 'Status', 'Evidence', 'Frameworks', 'Due'].map((header) => (
-                      <th key={header} className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">{header}</th>
+                    {['Risk', 'Category', 'Inherent Risk', 'Residual Risk', 'Status', 'Treatment', 'Owner'].map((h) => (
+                      <th key={h} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{h}</th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border bg-card">
+                <tbody className="bg-white divide-y divide-gray-200">
                   {filtered.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="px-6 py-14 text-center text-sm text-muted-foreground/70">No risks matched the current filters.</td>
+                      <td colSpan={7} className="px-6 py-10 text-center text-sm text-gray-400">
+                        No risks match your filters.
+                      </td>
                     </tr>
-                  ) : filtered.map((risk) => (
-                    <tr key={risk.id} className="align-top hover:bg-muted">
-                      <td className="px-6 py-4 text-sm">
-                        <button type="button" onClick={() => navigate(`/risk/risks/${risk.id}`)} className="text-left font-medium text-foreground hover:text-blue-700">
-                          {risk.title}
-                        </button>
-                        <p className="mt-1 max-w-md text-xs leading-5 text-muted-foreground">{risk.description}</p>
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          <Badge variant={riskLevelVariant(risk.impact)}>{risk.impact}</Badge>
-                          <Badge variant="outline">{trendLabel(risk.trend)}</Badge>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-muted-foreground">{risk.category}</td>
-                      <td className="px-6 py-4 text-sm text-muted-foreground">
-                        <p>{risk.assetName}</p>
-                        <p className="mt-1 text-xs text-muted-foreground/70">{risk.assetType} · {risk.assetCriticality}</p>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-muted-foreground">
-                        <p>{risk.owner.name}</p>
-                        <p className="mt-1 text-xs text-muted-foreground/70">{risk.owner.team}</p>
-                      </td>
-                      <td className="px-6 py-4 text-sm font-semibold text-foreground">{risk.riskScore}</td>
-                      <td className="px-6 py-4"><Badge variant={riskStatusVariant(risk.status)}>{risk.status}</Badge></td>
-                      <td className="px-6 py-4 text-sm text-muted-foreground">
-                        <p>{risk.evidenceCount} snapshots</p>
-                        <p className="mt-1 text-xs text-muted-foreground/70">Seen {risk.exposureDays}d</p>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-muted-foreground">
-                        <div className="flex max-w-xs flex-wrap gap-2">
-                          {risk.frameworks.slice(0, 2).map((framework) => <Badge key={framework} variant="outline">{framework}</Badge>)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-muted-foreground">{new Date(risk.dueDate).toLocaleDateString()}</td>
-                    </tr>
-                  ))}
+                  ) : (
+                    filtered.map((entry) => (
+                      <RegisterRow key={entry.id} entry={entry} />
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -168,5 +208,58 @@ export function RisksPage() {
         </div>
       )}
     </PageTemplate>
+  );
+}
+
+function ScoreBadge({ impact, likelihood, score }: { impact: string; likelihood: string; score: number | null }) {
+  if (!score) return <span className="text-xs text-gray-400">—</span>;
+  return (
+    <div className="text-center">
+      <span className={`inline-flex items-center text-xs font-bold px-2 py-0.5 rounded-full border ${IMPACT_COLORS[impact] ?? ''}`}>
+        {score}
+      </span>
+      <p className="text-[10px] text-gray-400 mt-0.5">{impact}/{likelihood}</p>
+    </div>
+  );
+}
+
+function RegisterRow({ entry }: { entry: RiskRegisterEntryDto }) {
+  const statusConf = STATUS_CONFIG[entry.status] ?? STATUS_CONFIG.IDENTIFIED!;
+
+  return (
+    <tr className="hover:bg-blue-50/40 transition-colors">
+      <td className="px-6 py-4">
+        <p className="text-sm font-medium text-gray-900 max-w-md">{entry.title}</p>
+        {entry.description && (
+          <p className="text-xs text-gray-400 mt-1 max-w-md truncate">{entry.description}</p>
+        )}
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <Badge variant="outline" className={`text-xs ${CATEGORY_COLORS[entry.category] ?? 'bg-gray-100 text-gray-800'}`}>
+          {entry.category}
+        </Badge>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <ScoreBadge impact={entry.inherentImpact} likelihood={entry.inherentLikelihood} score={entry.inherentScore} />
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        {entry.residualScore != null ? (
+          <ScoreBadge impact={entry.residualImpact!} likelihood={entry.residualLikelihood!} score={entry.residualScore} />
+        ) : (
+          <span className="text-xs text-gray-400">Not assessed</span>
+        )}
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <span className={`inline-flex items-center text-xs font-medium px-2 py-1 rounded-full border ${statusConf!.color}`}>
+          {statusConf!.label}
+        </span>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+        {entry.treatment ? TREATMENT_LABELS[entry.treatment] ?? entry.treatment : <span className="text-gray-400">—</span>}
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+        {entry.ownerName ?? <span className="text-gray-400">Unassigned</span>}
+      </td>
+    </tr>
   );
 }
