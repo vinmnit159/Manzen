@@ -54,6 +54,82 @@ export interface AddTemplateMappingRequest {
   mappingStrength?: string;
 }
 
+// ── Test Template types ─────────────────────────────────────────────────────
+
+export interface TestTemplateDto {
+  id: string;
+  controlTemplateId: string;
+  controlRef: string;
+  controlTitle: string;
+  name: string;
+  description: string;
+  category: string;
+  testType: string;
+  frequencyDays: number;
+  evidenceType: string;
+  guidance: string;
+  createdAt: string;
+}
+
+export interface CreateTestTemplateRequest {
+  controlTemplateId: string;
+  name: string;
+  description: string;
+  category?: string;
+  testType?: string;
+  frequencyDays?: number;
+  evidenceType?: string;
+  guidance?: string;
+}
+
+// ── Policy Template types ───────────────────────────────────────────────────
+
+export interface PolicyTemplateDto {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  category: string;
+  version: string;
+  createdAt: string;
+  requirementMappingCount: number;
+  controlMappingCount: number;
+}
+
+export interface PolicyTemplateDetailDto {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  content: string;
+  category: string;
+  version: string;
+  createdAt: string;
+  updatedAt: string;
+  requirementMappings: Array<{
+    id: string;
+    frameworkId: string;
+    frameworkSlug: string;
+    frameworkName: string;
+    requirementCode: string;
+    requirementTitle: string;
+  }>;
+  controlMappings: Array<{
+    id: string;
+    controlTemplateId: string;
+    controlRef: string;
+    controlTitle: string;
+  }>;
+}
+
+export interface CreatePolicyTemplateRequest {
+  name: string;
+  slug: string;
+  description: string;
+  content?: string;
+  category?: string;
+}
+
 // ── Organization types ──────────────────────────────────────────────────────
 
 export interface OrgListDto {
@@ -112,6 +188,40 @@ class AdminService {
 
   async removeTemplateMapping(templateId: string, mappingId: string): Promise<{ success: boolean; message: string }> {
     return apiClient.delete(`/api/admin/templates/${templateId}/mappings/${mappingId}`);
+  }
+
+  // Test Templates
+  async listTestTemplates(): Promise<{ success: boolean; data: TestTemplateDto[] }> {
+    return apiClient.get('/api/admin/test-templates');
+  }
+
+  async getTestTemplate(id: string): Promise<{ success: boolean; data: TestTemplateDto }> {
+    return apiClient.get(`/api/admin/test-templates/${id}`);
+  }
+
+  async createTestTemplate(body: CreateTestTemplateRequest): Promise<{ success: boolean; data: TestTemplateDto }> {
+    return apiClient.post('/api/admin/test-templates', body);
+  }
+
+  async deleteTestTemplate(id: string): Promise<{ success: boolean; message: string }> {
+    return apiClient.delete(`/api/admin/test-templates/${id}`);
+  }
+
+  // Policy Templates
+  async listPolicyTemplates(): Promise<{ success: boolean; data: PolicyTemplateDto[] }> {
+    return apiClient.get('/api/admin/policy-templates');
+  }
+
+  async getPolicyTemplate(id: string): Promise<{ success: boolean; data: PolicyTemplateDetailDto }> {
+    return apiClient.get(`/api/admin/policy-templates/${id}`);
+  }
+
+  async createPolicyTemplate(body: CreatePolicyTemplateRequest): Promise<{ success: boolean; data: PolicyTemplateDto }> {
+    return apiClient.post('/api/admin/policy-templates', body);
+  }
+
+  async deletePolicyTemplate(id: string): Promise<{ success: boolean; message: string }> {
+    return apiClient.delete(`/api/admin/policy-templates/${id}`);
   }
 
   // Organizations

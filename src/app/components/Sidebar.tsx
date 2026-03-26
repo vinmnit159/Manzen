@@ -195,6 +195,8 @@ const navigation: NavItem[] = [
     roles: ['SUPER_ADMIN'],
     children: [
       { title: 'Control Templates', href: '/admin/templates', roles: ['SUPER_ADMIN'] },
+      { title: 'Test Templates', href: '/admin/test-templates', roles: ['SUPER_ADMIN'] },
+      { title: 'Policy Templates', href: '/admin/policy-templates', roles: ['SUPER_ADMIN'] },
       { title: 'Organizations', href: '/admin/organizations', roles: ['SUPER_ADMIN'] },
     ],
   },

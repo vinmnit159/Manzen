@@ -296,6 +296,16 @@ const AdminOrganizationsPage = lazy(() =>
     default: m.AdminOrganizationsPage,
   })),
 );
+const AdminTestTemplatesPage = lazy(() =>
+  import('@/app/pages/admin/AdminTestTemplatesPage').then((m) => ({
+    default: m.AdminTestTemplatesPage,
+  })),
+);
+const AdminPolicyTemplatesPage = lazy(() =>
+  import('@/app/pages/admin/AdminPolicyTemplatesPage').then((m) => ({
+    default: m.AdminPolicyTemplatesPage,
+  })),
+);
 
 // ── Auth guard ────────────────────────────────────────────────────────────────
 // ── Router ────────────────────────────────────────────────────────────────────
@@ -393,6 +403,8 @@ export const router = createBrowserRouter([
 
       // Platform Admin (SUPER_ADMIN)
       { path: 'admin/templates', Component: AdminTemplatesPage },
+      { path: 'admin/test-templates', Component: AdminTestTemplatesPage },
+      { path: 'admin/policy-templates', Component: AdminPolicyTemplatesPage },
       { path: 'admin/organizations', Component: AdminOrganizationsPage },
 
       // Other
