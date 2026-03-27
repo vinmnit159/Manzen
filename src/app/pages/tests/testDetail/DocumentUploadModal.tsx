@@ -4,6 +4,7 @@ import { Upload, FileText, X, CheckCircle, AlertCircle } from 'lucide-react';
 import { QK } from '@/lib/queryKeys';
 import { testsService } from '@/services/api/tests';
 import { evidenceService } from '@/services/api/evidence';
+import { complianceDocumentService } from '@/services/api/compliance-documents';
 import type { TestRecord } from '@/services/api/tests';
 
 interface DocumentUploadModalProps {
@@ -12,14 +13,19 @@ interface DocumentUploadModalProps {
   onSuccess: () => void;
 }
 
-export function DocumentUploadModal({ test, onClose, onSuccess }: DocumentUploadModalProps) {
+export function DocumentUploadModal({
+  test,
+  onClose,
+  onSuccess,
+}: DocumentUploadModalProps) {
   const qc = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Collect all unique policies linked through controls
   const linkedPolicies = React.useMemo(() => {
     const seen = new Set<string>();
-    const policies: Array<{ id: string; name: string; documentUrl: string }> = [];
+    const policies: Array<{ id: string; name: string; documentUrl: string }> =
+      [];
     for (const cl of test.controls) {
       for (const pm of cl.control.policyMappings ?? []) {
         if (!seen.has(pm.policy.id)) {
@@ -32,7 +38,9 @@ export function DocumentUploadModal({ test, onClose, onSuccess }: DocumentUpload
   }, [test.controls]);
 
   const hasPolicies = linkedPolicies.length > 0;
-  const [tab, setTab] = useState<'upload' | 'policy'>(hasPolicies ? 'policy' : 'upload');
+  const [tab, setTab] = useState<'upload' | 'policy'>(
+    hasPolicies ? 'policy' : 'upload',
+  );
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedPolicyId, setSelectedPolicyId] = useState<string>(
     linkedPolicies[0]?.id ?? '',
@@ -44,15 +52,49 @@ export function DocumentUploadModal({ test, onClose, onSuccess }: DocumentUpload
 
   const submitMutation = useMutation({
     mutationFn: async () => {
-      if (!controlId) throw new Error('This test has no linked controls. Please link a control first.');
+      if (!controlId)
+        throw new Error(
+          'This test has no linked controls. Please link a control first.',
+        );
 
       let evidenceId: string;
 
       if (tab === 'upload') {
         if (!selectedFile) throw new Error('Please select a file to upload.');
-        const res = await evidenceService.uploadEvidenceFile(selectedFile, controlId);
-        if (!res.success || !res.data) throw new Error('File upload failed.');
-        evidenceId = res.data.id;
+        if (test.type === 'Document') {
+          const docsRes = await complianceDocumentService.list({
+            testId: test.id,
+          });
+          const linkedDoc = (docsRes.data ?? []).find(
+            (doc) => doc.testId === test.id,
+          );
+
+          if (!linkedDoc) {
+            throw new Error(
+              'No compliance document is linked to this test yet.',
+            );
+          }
+
+          const uploadRes = await complianceDocumentService.uploadDocument(
+            linkedDoc.id,
+            selectedFile,
+          );
+
+          if (!uploadRes.success || !uploadRes.data?.currentEvidenceId) {
+            throw new Error(
+              'Document uploaded, but no evidence record was returned.',
+            );
+          }
+
+          evidenceId = uploadRes.data.currentEvidenceId;
+        } else {
+          const res = await evidenceService.uploadEvidenceFile(
+            selectedFile,
+            controlId,
+          );
+          if (!res.success || !res.data) throw new Error('File upload failed.');
+          evidenceId = res.data.id;
+        }
       } else {
         const policy = linkedPolicies.find((p) => p.id === selectedPolicyId);
         if (!policy) throw new Error('Please select a policy document.');
@@ -61,7 +103,8 @@ export function DocumentUploadModal({ test, onClose, onSuccess }: DocumentUpload
           fileUrl: policy.documentUrl,
           fileName: policy.name,
         });
-        if (!res.success || !res.data) throw new Error('Failed to link policy document.');
+        if (!res.success || !res.data)
+          throw new Error('Failed to link policy document.');
         evidenceId = res.data.id;
       }
 
@@ -71,6 +114,7 @@ export function DocumentUploadModal({ test, onClose, onSuccess }: DocumentUpload
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: QK.testDetail(test.id) });
       qc.invalidateQueries({ queryKey: ['tests'] });
+      qc.invalidateQueries({ queryKey: ['compliance-documents'] });
       onSuccess();
       onClose();
     },
@@ -86,7 +130,9 @@ export function DocumentUploadModal({ test, onClose, onSuccess }: DocumentUpload
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <div className="flex items-center gap-2">
             <Upload className="w-5 h-5 text-blue-600" />
-            <h2 className="text-base font-semibold text-gray-900">Upload Document</h2>
+            <h2 className="text-base font-semibold text-gray-900">
+              Upload Document
+            </h2>
           </div>
           <button
             onClick={onClose}
@@ -150,9 +196,13 @@ export function DocumentUploadModal({ test, onClose, onSuccess }: DocumentUpload
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5">
                         <FileText className="w-4 h-4 text-blue-500 flex-shrink-0" />
-                        <span className="text-sm font-medium text-gray-800 truncate">{policy.name}</span>
+                        <span className="text-sm font-medium text-gray-800 truncate">
+                          {policy.name}
+                        </span>
                       </div>
-                      <p className="mt-0.5 text-xs text-gray-400 truncate">{policy.documentUrl}</p>
+                      <p className="mt-0.5 text-xs text-gray-400 truncate">
+                        {policy.documentUrl}
+                      </p>
                     </div>
                   </label>
                 ))}
@@ -164,7 +214,8 @@ export function DocumentUploadModal({ test, onClose, onSuccess }: DocumentUpload
                 Upload a document as evidence to pass this test.
                 {!controlId && (
                   <span className="block mt-1 text-amber-600 font-medium">
-                    Note: this test has no linked controls — please link a control before uploading.
+                    Note: this test has no linked controls — please link a
+                    control before uploading.
                   </span>
                 )}
               </p>
@@ -175,7 +226,9 @@ export function DocumentUploadModal({ test, onClose, onSuccess }: DocumentUpload
               >
                 <Upload className="w-8 h-8 text-gray-300" />
                 {selectedFile ? (
-                  <span className="font-medium text-gray-800">{selectedFile.name}</span>
+                  <span className="font-medium text-gray-800">
+                    {selectedFile.name}
+                  </span>
                 ) : (
                   <span>Click to select a file</span>
                 )}

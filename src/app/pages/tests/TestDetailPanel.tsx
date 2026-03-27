@@ -278,6 +278,7 @@ export function TestDetailPanel({
       return (res.data ?? []).filter((item) => item.testId === testId);
     },
     staleTime: STALE.TESTS,
+    enabled: test?.type !== 'Document',
   });
 
   const { data: securityEvents = [] } = useQuery({
@@ -287,6 +288,7 @@ export function TestDetailPanel({
       return (res.data ?? []).filter((item) => item.testId === testId);
     },
     staleTime: STALE.TESTS,
+    enabled: test?.type !== 'Document',
   });
 
   const completeMutation = useMutation({
@@ -638,11 +640,12 @@ export function TestDetailPanel({
                         </dd>
                       </div>
                     </div>
-                    {typeof test.lastResultDetails?.summary === 'string' && test.lastResultDetails.summary && (
-                      <p className="text-xs text-gray-600">
-                        {test.lastResultDetails.summary}
-                      </p>
-                    )}
+                    {typeof test.lastResultDetails?.summary === 'string' &&
+                      test.lastResultDetails.summary && (
+                        <p className="text-xs text-gray-600">
+                          {test.lastResultDetails.summary}
+                        </p>
+                      )}
                   </div>
                 )}
 

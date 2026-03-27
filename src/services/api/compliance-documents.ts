@@ -46,12 +46,37 @@ export interface UpdateComplianceDocumentRequest {
   approvedAt?: string | null;
 }
 
+async function parseUploadError(response: Response, fallback: string) {
+  const contentType = response.headers.get('content-type') ?? '';
+
+  try {
+    if (contentType.includes('application/json')) {
+      const payload = (await response.json()) as {
+        message?: string;
+        error?: string;
+      };
+      return payload.message || payload.error || fallback;
+    }
+
+    const text = await response.text();
+    return text || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 export const complianceDocumentService = {
-  list(params?: { status?: string; category?: string; search?: string }) {
+  list(params?: {
+    status?: string;
+    category?: string;
+    search?: string;
+    testId?: string;
+  }) {
     const qs = new URLSearchParams();
     if (params?.status) qs.set('status', params.status);
     if (params?.category) qs.set('category', params.category);
     if (params?.search) qs.set('search', params.search);
+    if (params?.testId) qs.set('testId', params.testId);
     const query = qs.toString();
     return apiClient.get<ComplianceDocumentListResponse>(
       `/api/compliance-documents${query ? `?${query}` : ''}`,
@@ -88,7 +113,11 @@ export const complianceDocumentService = {
           : {},
       },
     );
-    if (!response.ok) throw new Error('Failed to upload document');
+    if (!response.ok) {
+      throw new Error(
+        await parseUploadError(response, 'Failed to upload document'),
+      );
+    }
     return response.json();
   },
 };

@@ -2,6 +2,25 @@
 import { apiClient, ApiResponse } from './client';
 import { Evidence, CreateEvidenceRequest, EvidenceType } from './types';
 
+async function parseUploadError(response: Response, fallback: string) {
+  const contentType = response.headers.get('content-type') ?? '';
+
+  try {
+    if (contentType.includes('application/json')) {
+      const payload = (await response.json()) as {
+        message?: string;
+        error?: string;
+      };
+      return payload.message || payload.error || fallback;
+    }
+
+    const text = await response.text();
+    return text || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 export class EvidenceService {
   // Get all evidence
   async getEvidence(params?: {
@@ -61,7 +80,9 @@ export class EvidenceService {
     });
 
     if (!response.ok) {
-      throw new Error('Failed to upload evidence file');
+      throw new Error(
+        await parseUploadError(response, 'Failed to upload evidence file'),
+      );
     }
 
     return response.json();
