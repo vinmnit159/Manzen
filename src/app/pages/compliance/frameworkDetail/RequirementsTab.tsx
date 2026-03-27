@@ -10,6 +10,7 @@ import { Input } from '@/app/components/ui/input';
 import { Textarea } from '@/app/components/ui/textarea';
 import { frameworksService, type RequirementStatusDto } from '@/services/api/frameworks';
 import { usersService } from '@/services/api/users';
+import { toast } from 'sonner';
 import { Loader2, ListChecks, User, Calendar, XCircle, CheckCircle2 } from 'lucide-react';
 import { applicabilityBadge, reviewBadge, TabPlaceholder } from './shared';
 
@@ -42,7 +43,10 @@ export function RequirementsTab({ slug }: { slug: string }) {
     onSuccess: () => {
       setOwnerDialog(null);
       qc.invalidateQueries({ queryKey: ['frameworks', 'org-requirements', slug] });
+      qc.invalidateQueries({ queryKey: ['frameworks', 'coverage', slug] });
+      toast.success('Owner assigned');
     },
+    onError: () => toast.error('Failed to assign owner'),
   });
 
   const applicabilityMutation = useMutation({
@@ -102,9 +106,9 @@ export function RequirementsTab({ slug }: { slug: string }) {
                   <span className="font-mono text-xs text-gray-400 w-16 shrink-0 mt-0.5">{req.code}</span>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-gray-800 leading-snug">{req.title}</p>
-                    {req.ownerId && (
+                    {(req.ownerName || req.ownerId) && (
                       <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
-                        <User className="w-3 h-3" /> {req.ownerId}
+                        <User className="w-3 h-3" /> {req.ownerName ?? req.ownerId}
                         {req.dueDate && <><Calendar className="w-3 h-3 ml-1.5" /> {new Date(req.dueDate).toLocaleDateString()}</>}
                       </p>
                     )}

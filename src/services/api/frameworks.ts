@@ -57,6 +57,7 @@ export interface RequirementStatusDto {
   justification: string | null;
   reviewStatus: 'not_started' | 'in_review' | 'accepted';
   ownerId: string | null;
+  ownerName: string | null;
   dueDate: string | null;
   updatedAt: string;
 }

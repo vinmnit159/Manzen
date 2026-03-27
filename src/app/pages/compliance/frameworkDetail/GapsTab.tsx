@@ -11,6 +11,7 @@ import { frameworksService, type RequirementStatusDto } from '@/services/api/fra
 import { controlsService } from '@/services/api/controls';
 import { usersService } from '@/services/api/users';
 import type { Control } from '@/services/api/types';
+import { toast } from 'sonner';
 import { Loader2, AlertTriangle, CheckCircle2, User } from 'lucide-react';
 import { reviewBadge, TabPlaceholder } from './shared';
 
@@ -57,7 +58,9 @@ export function GapsTab({ slug }: { slug: string }) {
       setOwnerDialog(null);
       qc.invalidateQueries({ queryKey: ['frameworks', 'org-requirements', slug] });
       qc.invalidateQueries({ queryKey: ['frameworks', 'coverage', slug] });
+      toast.success('Owner assigned');
     },
+    onError: () => toast.error('Failed to assign owner'),
   });
 
   if (isLoading) return <TabPlaceholder icon={AlertTriangle} text="Loading gaps…" />;
