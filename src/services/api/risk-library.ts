@@ -103,7 +103,7 @@ export interface UpdateRegisterEntryRequest {
 
 export const riskLibraryService = {
   listLibrary() {
-    return apiClient.get<RiskLibraryListResponse>('/risk-library');
+    return apiClient.get<RiskLibraryListResponse>('/api/risk-library');
   },
 
   listRegister(params?: { status?: string; category?: string; search?: string; source_type?: string }) {
@@ -114,33 +114,33 @@ export const riskLibraryService = {
     if (params?.source_type) qs.set('source_type', params.source_type);
     const query = qs.toString();
     return apiClient.get<RiskRegisterListResponse>(
-      `/risk-library/register${query ? `?${query}` : ''}`,
+      `/api/risk-library/register${query ? `?${query}` : ''}`,
     );
   },
 
   getRegisterOverview() {
-    return apiClient.get<ApiResponse<RiskRegisterOverview>>('/risk-library/register/overview');
+    return apiClient.get<ApiResponse<RiskRegisterOverview>>('/api/risk-library/register/overview');
   },
 
   getRegisterEntry(id: string) {
-    return apiClient.get<ApiResponse<RiskRegisterEntryDto>>(`/risk-library/register/${id}`);
+    return apiClient.get<ApiResponse<RiskRegisterEntryDto>>(`/api/risk-library/register/${id}`);
   },
 
   addToRegister(data: AddToRegisterRequest) {
     return apiClient.post<ApiResponse<RiskRegisterEntryDto>>(
-      '/risk-library/register',
+      '/api/risk-library/register',
       data,
     );
   },
 
   updateRegisterEntry(id: string, data: UpdateRegisterEntryRequest) {
     return apiClient.patch<ApiResponse<RiskRegisterEntryDto>>(
-      `/risk-library/register/${id}`,
+      `/api/risk-library/register/${id}`,
       data,
     );
   },
 
   removeFromRegister(id: string) {
-    return apiClient.delete<ApiResponse>(`/risk-library/register/${id}`);
+    return apiClient.delete<ApiResponse>(`/api/risk-library/register/${id}`);
   },
 };
