@@ -9,6 +9,7 @@ import { Label } from '@/app/components/ui/label';
 import { Input } from '@/app/components/ui/input';
 import { frameworksService, type RequirementStatusDto } from '@/services/api/frameworks';
 import { controlsService } from '@/services/api/controls';
+import { usersService } from '@/services/api/users';
 import type { Control } from '@/services/api/types';
 import { Loader2, AlertTriangle, CheckCircle2, User } from 'lucide-react';
 import { reviewBadge, TabPlaceholder } from './shared';
@@ -30,6 +31,11 @@ export function GapsTab({ slug }: { slug: string }) {
   const { data: controlsRes } = useQuery({
     queryKey: ['controls', 'framework-gaps'],
     queryFn: () => controlsService.getControls({ limit: 500 }),
+  });
+
+  const { data: users = [] } = useQuery({
+    queryKey: ['users'],
+    queryFn: () => usersService.listUsers(),
   });
 
   const reqs: RequirementStatusDto[] = reqsRes?.data ?? [];
@@ -113,14 +119,18 @@ export function GapsTab({ slug }: { slug: string }) {
           </DialogHeader>
           <div className="space-y-3 pt-1">
             <div>
-              <Label htmlFor="gap-owner" className="text-sm font-medium">Owner (user ID)</Label>
-              <Input
+              <Label htmlFor="gap-owner" className="text-sm font-medium">Owner</Label>
+              <select
                 id="gap-owner"
-                placeholder="e.g. user-uuid"
                 value={ownerInput}
                 onChange={e => setOwnerInput(e.target.value)}
-                className="mt-1"
-              />
+                className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <option value="">— Select a user —</option>
+                {users.map(u => (
+                  <option key={u.id} value={u.id}>{u.name ?? u.email}</option>
+                ))}
+              </select>
             </div>
             <div>
               <Label htmlFor="gap-due" className="text-sm font-medium">Due date</Label>

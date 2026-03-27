@@ -9,6 +9,7 @@ import { Label } from '@/app/components/ui/label';
 import { Input } from '@/app/components/ui/input';
 import { Textarea } from '@/app/components/ui/textarea';
 import { frameworksService, type RequirementStatusDto } from '@/services/api/frameworks';
+import { usersService } from '@/services/api/users';
 import { Loader2, ListChecks, User, Calendar, XCircle, CheckCircle2 } from 'lucide-react';
 import { applicabilityBadge, reviewBadge, TabPlaceholder } from './shared';
 
@@ -23,6 +24,11 @@ export function RequirementsTab({ slug }: { slug: string }) {
   const { data: reqsRes, isLoading } = useQuery({
     queryKey: ['frameworks', 'org-requirements', slug],
     queryFn: () => frameworksService.listOrgRequirements(slug),
+  });
+
+  const { data: users = [] } = useQuery({
+    queryKey: ['users'],
+    queryFn: () => usersService.listUsers(),
   });
 
   const reqs: RequirementStatusDto[] = reqsRes?.data ?? [];
@@ -150,14 +156,18 @@ export function RequirementsTab({ slug }: { slug: string }) {
           </DialogHeader>
           <div className="space-y-3 pt-1">
             <div>
-              <Label htmlFor="owner" className="text-sm font-medium">Owner (user ID)</Label>
-              <Input
+              <Label htmlFor="owner" className="text-sm font-medium">Owner</Label>
+              <select
                 id="owner"
-                placeholder="e.g. user-uuid"
                 value={ownerInput}
                 onChange={e => setOwnerInput(e.target.value)}
-                className="mt-1"
-              />
+                className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <option value="">— Select a user —</option>
+                {users.map(u => (
+                  <option key={u.id} value={u.id}>{u.name ?? u.email}</option>
+                ))}
+              </select>
             </div>
             <div>
               <Label htmlFor="dueDate" className="text-sm font-medium">Due date</Label>
