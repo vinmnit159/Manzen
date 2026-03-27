@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
+import { useNavigate } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { PageTemplate } from '@/app/components/PageTemplate';
@@ -109,6 +110,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 // ── Required Documents Tab ──────────────────────────────────────────────────
 
 function RequiredDocumentsTab() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [frameworkFilter, setFrameworkFilter] = useState<string>('ALL');
@@ -329,7 +331,19 @@ function RequiredDocumentsTab() {
                   </td>
                 </tr>
               ) : (
-                filtered.map((doc) => <DocumentRow key={doc.id} doc={doc} />)
+                filtered.map((doc) => (
+                  <DocumentRow
+                    key={doc.id}
+                    doc={doc}
+                    onClick={() => {
+                      if (doc.testId) {
+                        navigate(`/tests/${doc.testId}`);
+                      } else {
+                        navigate(`/compliance/documents/${doc.id}`);
+                      }
+                    }}
+                  />
+                ))
               )}
             </tbody>
           </table>
@@ -339,12 +353,12 @@ function RequiredDocumentsTab() {
   );
 }
 
-function DocumentRow({ doc }: { doc: ComplianceDocumentDto }) {
+function DocumentRow({ doc, onClick }: { doc: ComplianceDocumentDto; onClick?: () => void }) {
   const statusConf = STATUS_CONFIG[doc.status] ?? STATUS_CONFIG.PENDING!;
   const StatusIcon = statusConf!.icon;
 
   return (
-    <tr className="hover:bg-blue-50/40 transition-colors">
+    <tr className="hover:bg-blue-50/40 transition-colors cursor-pointer" onClick={onClick}>
       <td className="px-6 py-4">
         <div className="flex items-center gap-2">
           <FileText className="w-4 h-4 text-gray-400 shrink-0" />

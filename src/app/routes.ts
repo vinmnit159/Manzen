@@ -93,6 +93,11 @@ const DocumentsPage = lazy(() =>
     default: m.DocumentsPage,
   })),
 );
+const DocumentDetailPage = lazy(() =>
+  import('@/app/pages/compliance/DocumentDetailPage').then((m) => ({
+    default: m.DocumentDetailPage,
+  })),
+);
 const AuditsPage = lazy(() =>
   import('@/app/pages/compliance/AuditsPage').then((m) => ({
     default: m.AuditsPage,
@@ -358,6 +363,7 @@ export const router = createBrowserRouter([
       { path: 'compliance/controls', Component: ControlsPage },
       { path: 'compliance/policies', Component: PoliciesPage },
       { path: 'compliance/documents', Component: DocumentsPage },
+      { path: 'compliance/documents/:documentId', Component: DocumentDetailPage },
       { path: 'compliance/audits', Component: AuditsPage },
       { path: 'compliance/findings', Component: FindingsPage },
       { path: 'compliance/settings', loader: () => redirect('/settings/compliance') },

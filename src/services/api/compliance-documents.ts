@@ -10,6 +10,7 @@ export interface ComplianceDocumentDto {
   frameworkName: string | null;
   status: 'PENDING' | 'CURRENT' | 'NEEDS_REVIEW' | 'EXPIRED';
   currentEvidenceId: string | null;
+  documentUrl: string | null;
   ownerId: string | null;
   ownerName: string | null;
   lastReviewedAt: string | null;
@@ -36,6 +37,7 @@ export interface UpdateComplianceDocumentRequest {
   status?: string;
   ownerId?: string | null;
   currentEvidenceId?: string | null;
+  documentUrl?: string | null;
   lastReviewedAt?: string | null;
   reviewDueAt?: string | null;
   approvedBy?: string | null;
@@ -54,10 +56,28 @@ export const complianceDocumentService = {
     );
   },
 
+  getById(id: string) {
+    return apiClient.get<ApiResponse<ComplianceDocumentDto>>(
+      `/api/compliance-documents/${id}`,
+    );
+  },
+
   update(id: string, data: UpdateComplianceDocumentRequest) {
     return apiClient.patch<ApiResponse<ComplianceDocumentDto>>(
       `/api/compliance-documents/${id}`,
       data,
     );
+  },
+
+  async uploadDocument(id: string, file: File): Promise<ApiResponse<ComplianceDocumentDto>> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await fetch(`${apiClient.baseURL}/api/compliance-documents/${id}/upload`, {
+      method: 'POST',
+      body: formData,
+      headers: apiClient.token ? { Authorization: `Bearer ${apiClient.token}` } : {},
+    });
+    if (!response.ok) throw new Error('Failed to upload document');
+    return response.json();
   },
 };
