@@ -333,6 +333,14 @@ function RequirementDetailDialog({
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <span className="font-mono text-sm text-muted-foreground">
+              {requirement.code}
+            </span>
+            {requirement.title}
+          </DialogTitle>
+        </DialogHeader>
         {mappingsLoading ? (
           <div className="flex items-center gap-2 py-8 justify-center">
             <Loader2 className="h-5 w-5 animate-spin" /> Loading mappings...
@@ -343,14 +351,6 @@ function RequirementDetailDialog({
           </div>
         ) : (
           <>
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <span className="font-mono text-sm text-muted-foreground">
-                  {requirement.code}
-                </span>
-                {requirement.title}
-              </DialogTitle>
-            </DialogHeader>
 
             <div className="space-y-6">
               {/* Requirement meta */}
