@@ -50,13 +50,13 @@ export const complianceDocumentService = {
     if (params?.search) qs.set('search', params.search);
     const query = qs.toString();
     return apiClient.get<ComplianceDocumentListResponse>(
-      `/compliance-documents${query ? `?${query}` : ''}`,
+      `/api/compliance-documents${query ? `?${query}` : ''}`,
     );
   },
 
   update(id: string, data: UpdateComplianceDocumentRequest) {
     return apiClient.patch<ApiResponse<ComplianceDocumentDto>>(
-      `/compliance-documents/${id}`,
+      `/api/compliance-documents/${id}`,
       data,
     );
   },
