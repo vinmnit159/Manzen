@@ -206,9 +206,6 @@ export function ControlsPage() {
           <h1 className="text-xl font-semibold text-foreground tracking-tight">
             Controls
           </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            ISO 27001 security control management
-          </p>
         </div>
 
         <div className="flex items-center gap-2">
