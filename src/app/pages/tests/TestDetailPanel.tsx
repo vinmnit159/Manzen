@@ -278,7 +278,7 @@ export function TestDetailPanel({
       return (res.data ?? []).filter((item) => item.testId === testId);
     },
     staleTime: STALE.TESTS,
-    enabled: test?.type !== 'Document',
+    enabled: !!test && test.type !== 'Document',
   });
 
   const { data: securityEvents = [] } = useQuery({
@@ -288,7 +288,7 @@ export function TestDetailPanel({
       return (res.data ?? []).filter((item) => item.testId === testId);
     },
     staleTime: STALE.TESTS,
-    enabled: test?.type !== 'Document',
+    enabled: !!test && test.type !== 'Document',
   });
 
   const completeMutation = useMutation({

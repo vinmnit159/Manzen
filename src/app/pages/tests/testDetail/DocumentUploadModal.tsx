@@ -80,13 +80,21 @@ export function DocumentUploadModal({
             selectedFile,
           );
 
-          if (!uploadRes.success || !uploadRes.data?.currentEvidenceId) {
+          if (!uploadRes.success) {
+            throw new Error('Failed to upload document.');
+          }
+
+          const refreshedDoc = await complianceDocumentService.getById(
+            linkedDoc.id,
+          );
+
+          if (!refreshedDoc.success || !refreshedDoc.data?.currentEvidenceId) {
             throw new Error(
               'Document uploaded, but no evidence record was returned.',
             );
           }
 
-          evidenceId = uploadRes.data.currentEvidenceId;
+          evidenceId = refreshedDoc.data.currentEvidenceId;
         } else {
           const res = await evidenceService.uploadEvidenceFile(
             selectedFile,
