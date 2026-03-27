@@ -306,6 +306,11 @@ const AdminPolicyTemplatesPage = lazy(() =>
     default: m.AdminPolicyTemplatesPage,
   })),
 );
+const AdminFrameworksPage = lazy(() =>
+  import('@/app/pages/admin/AdminFrameworksPage').then((m) => ({
+    default: m.AdminFrameworksPage,
+  })),
+);
 
 // ── Auth guard ────────────────────────────────────────────────────────────────
 // ── Router ────────────────────────────────────────────────────────────────────
@@ -405,6 +410,7 @@ export const router = createBrowserRouter([
       { path: 'admin/templates', Component: AdminTemplatesPage },
       { path: 'admin/test-templates', Component: AdminTestTemplatesPage },
       { path: 'admin/policy-templates', Component: AdminPolicyTemplatesPage },
+      { path: 'admin/frameworks', Component: AdminFrameworksPage },
       { path: 'admin/organizations', Component: AdminOrganizationsPage },
 
       // Other

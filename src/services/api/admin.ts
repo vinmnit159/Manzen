@@ -158,6 +158,51 @@ export interface CreateOrgRequest {
   adminPassword: string;
 }
 
+// ── Framework Admin types ─────────────────────────────────────────────────
+export interface FrameworkListDto {
+  id: string;
+  slug: string;
+  name: string;
+  version: string;
+  requirementCount: number;
+}
+
+export interface RequirementDto {
+  id: string;
+  code: string;
+  title: string;
+  domain: string | null;
+  description: string | null;
+  controlTemplateCount: number;
+  testTemplateCount: number;
+  policyTemplateCount: number;
+}
+
+export interface RequirementMappingsDto {
+  controls: Array<{
+    mappingId: string;
+    id: string;
+    referenceCode: string;
+    title: string;
+    domain: string;
+    mappingStrength: string;
+  }>;
+  tests: Array<{
+    id: string;
+    name: string;
+    category: string;
+    testType: string;
+    controlRef: string;
+  }>;
+  policies: Array<{
+    mappingId: string;
+    id: string;
+    name: string;
+    slug: string;
+    category: string;
+  }>;
+}
+
 // ── Admin API service ───────────────────────────────────────────────────────
 
 class AdminService {
@@ -235,6 +280,35 @@ class AdminService {
 
   async createOrganization(body: CreateOrgRequest): Promise<{ success: boolean; data: { organization: { id: string; name: string; createdAt: string }; admin: { id: string; email: string; name: string; role: string } } }> {
     return apiClient.post('/api/admin/organizations', body);
+  }
+
+  // Frameworks
+  async listFrameworks(): Promise<{ success: boolean; data: FrameworkListDto[] }> {
+    return apiClient.get('/api/admin/frameworks');
+  }
+
+  async listRequirements(frameworkId: string): Promise<{ success: boolean; data: RequirementDto[] }> {
+    return apiClient.get(`/api/admin/frameworks/${frameworkId}/requirements`);
+  }
+
+  async getRequirementMappings(frameworkId: string, requirementId: string): Promise<{ success: boolean; data: RequirementMappingsDto }> {
+    return apiClient.get(`/api/admin/frameworks/${frameworkId}/requirements/${requirementId}/mappings`);
+  }
+
+  async addControlMapping(requirementId: string, controlTemplateId: string, mappingStrength?: string): Promise<{ success: boolean; data: { id: string } }> {
+    return apiClient.post(`/api/admin/frameworks/requirements/${requirementId}/control-mapping`, { controlTemplateId, mappingStrength });
+  }
+
+  async removeControlMapping(mappingId: string): Promise<{ success: boolean }> {
+    return apiClient.delete(`/api/admin/frameworks/control-mapping/${mappingId}`);
+  }
+
+  async addPolicyMapping(requirementId: string, policyTemplateId: string): Promise<{ success: boolean; data: { id: string } }> {
+    return apiClient.post(`/api/admin/frameworks/requirements/${requirementId}/policy-mapping`, { policyTemplateId });
+  }
+
+  async removePolicyMapping(mappingId: string): Promise<{ success: boolean }> {
+    return apiClient.delete(`/api/admin/frameworks/policy-mapping/${mappingId}`);
   }
 }
 
