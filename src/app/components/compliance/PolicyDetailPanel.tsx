@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- legacy: to be typed progressively */
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import {
   X,
   FileText,
@@ -13,6 +13,8 @@ import {
   AlertCircle,
   Tag,
   Loader2,
+  Pencil,
+  Save,
 } from 'lucide-react';
 import { useState, useRef } from 'react';
 import {
@@ -96,12 +98,32 @@ export function PolicyDetailPanel({
   onClose: () => void;
   onMutated?: () => void;
 }) {
-  const cfg = (STATUS_CONFIG[policy.status] ?? STATUS_CONFIG['DRAFT'])!;
+  const [currentPolicy, setCurrentPolicy] = useState(policy);
+  const cfg = (STATUS_CONFIG[currentPolicy.status] ?? STATUS_CONFIG['DRAFT'])!;
   const StatusIcon = cfg.Icon;
   const [downloading, setDownloading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadErr, setUploadErr] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Edit mode state
+  const [isEditing, setIsEditing] = useState(false);
+  const [draftName, setDraftName] = useState(currentPolicy.name);
+  const [draftVersion, setDraftVersion] = useState(currentPolicy.version);
+
+  const updateMutation = useMutation({
+    mutationFn: (data: { name?: string; version?: string; status?: string; approvedBy?: string }) =>
+      policiesService.updatePolicy(currentPolicy.id, data),
+    onSuccess: (res) => {
+      if (res.data) {
+        setCurrentPolicy(res.data);
+        setDraftName(res.data.name);
+        setDraftVersion(res.data.version);
+      }
+      setIsEditing(false);
+      onMutated?.();
+    },
+  });
 
   // All tests — filter by policy name heuristic (policy name match or category)
   const { data: allTests = [] } = useQuery({
@@ -114,7 +136,7 @@ export function PolicyDetailPanel({
   });
 
   // Filter tests loosely by policy category keyword
-  const policyWord = policy.name.split(' ')[0]?.toLowerCase();
+  const policyWord = currentPolicy.name.split(' ')[0]?.toLowerCase();
   const relatedTests = allTests
     .filter(
       (t: any) =>
@@ -144,8 +166,8 @@ export function PolicyDetailPanel({
   const handleDownload = async () => {
     setDownloading(true);
     try {
-      const name = policy.documentUrl?.split('/').pop() ?? `${policy.name}.pdf`;
-      await policiesService.downloadPolicyDocument(policy.id, name);
+      const name = currentPolicy.documentUrl?.split('/').pop() ?? `${currentPolicy.name}.pdf`;
+      await policiesService.downloadPolicyDocument(currentPolicy.id, name);
     } catch {
       /* silently fail */
     } finally {
@@ -157,7 +179,7 @@ export function PolicyDetailPanel({
     setUploading(true);
     setUploadErr(null);
     try {
-      await policiesService.uploadPolicyDocument(policy.id, file);
+      await policiesService.uploadPolicyDocument(currentPolicy.id, file);
       onMutated?.();
     } catch (e: unknown) {
       setUploadErr(e instanceof Error ? e.message : 'Upload failed');
@@ -171,37 +193,126 @@ export function PolicyDetailPanel({
       <div className="absolute inset-0 bg-black/30" onClick={onClose} />
       <div className="relative z-50 w-full max-w-2xl bg-white shadow-2xl flex flex-col h-full overflow-hidden">
         {/* Header */}
-        <div className="flex items-start justify-between px-5 py-4 border-b border-gray-200 bg-white sticky top-0">
-          <div className="flex-1 min-w-0 pr-3">
-            <div className="flex items-center gap-2 flex-wrap mb-2">
-              <span
-                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${cfg.bg} ${cfg.text}`}
-              >
-                <StatusIcon className="w-3.5 h-3.5" />
-                {cfg.label}
-              </span>
-              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-semibold bg-gray-100 text-gray-700 border border-gray-200">
-                v{policy.version}
-              </span>
+        <div className="px-5 py-4 border-b border-gray-200 bg-white sticky top-0 space-y-3">
+          <div className="flex items-start justify-between">
+            <div className="flex-1 min-w-0 pr-3">
+              {isEditing ? (
+                <div className="space-y-2">
+                  <input
+                    className="w-full text-lg font-semibold text-gray-900 border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={draftName}
+                    onChange={(e) => setDraftName(e.target.value)}
+                    placeholder="Policy name"
+                  />
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500">Version</span>
+                    <input
+                      className="w-24 text-sm font-mono border border-gray-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      value={draftVersion}
+                      onChange={(e) => setDraftVersion(e.target.value)}
+                      placeholder="1.0"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2 flex-wrap mb-2">
+                    <span
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${cfg.bg} ${cfg.text}`}
+                    >
+                      <StatusIcon className="w-3.5 h-3.5" />
+                      {cfg.label}
+                    </span>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-semibold bg-gray-100 text-gray-700 border border-gray-200">
+                      v{currentPolicy.version}
+                    </span>
+                  </div>
+                  <h2 className="text-lg font-semibold text-gray-900 leading-snug">
+                    {currentPolicy.name}
+                  </h2>
+                  {currentPolicy.approvedBy && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Approved by{' '}
+                      <span className="font-medium text-gray-700">
+                        {currentPolicy.approvedBy}
+                      </span>
+                    </p>
+                  )}
+                </>
+              )}
             </div>
-            <h2 className="text-lg font-semibold text-gray-900 leading-snug">
-              {policy.name}
-            </h2>
-            {policy.approvedBy && (
-              <p className="text-xs text-gray-500 mt-1">
-                Approved by{' '}
-                <span className="font-medium text-gray-700">
-                  {policy.approvedBy}
-                </span>
-              </p>
-            )}
+            <div className="flex items-center gap-1 flex-shrink-0">
+              {isEditing ? (
+                <>
+                  <button
+                    onClick={() => updateMutation.mutate({ name: draftName, version: draftVersion })}
+                    disabled={updateMutation.isPending}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                  >
+                    {updateMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                    Save
+                  </button>
+                  <button
+                    onClick={() => { setIsEditing(false); setDraftName(currentPolicy.name); setDraftVersion(currentPolicy.version); }}
+                    className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+                  title="Edit policy"
+                >
+                  <Pencil className="w-4 h-4" />
+                </button>
+              )}
+              <button
+                onClick={onClose}
+                className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 flex-shrink-0"
-          >
-            <X className="w-5 h-5" />
-          </button>
+
+          {/* Status action buttons */}
+          {!isEditing && (
+            <div className="flex items-center gap-2 flex-wrap">
+              {currentPolicy.status !== 'PUBLISHED' && (
+                <button
+                  onClick={() => updateMutation.mutate({ status: 'PUBLISHED' })}
+                  disabled={updateMutation.isPending}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-600 text-white text-xs font-medium hover:bg-green-700 disabled:opacity-50 transition-colors"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  Publish
+                </button>
+              )}
+              {currentPolicy.status === 'DRAFT' && (
+                <button
+                  onClick={() => updateMutation.mutate({ status: 'REVIEW' })}
+                  disabled={updateMutation.isPending}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 text-white text-xs font-medium hover:bg-amber-600 disabled:opacity-50 transition-colors"
+                >
+                  <Clock className="w-3.5 h-3.5" />
+                  Send for Review
+                </button>
+              )}
+              {currentPolicy.status === 'PUBLISHED' && (
+                <button
+                  onClick={() => updateMutation.mutate({ status: 'DRAFT' })}
+                  disabled={updateMutation.isPending}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-200 text-gray-700 text-xs font-medium hover:bg-gray-300 disabled:opacity-50 transition-colors"
+                >
+                  <Edit3 className="w-3.5 h-3.5" />
+                  Revert to Draft
+                </button>
+              )}
+              {updateMutation.isPending && <Loader2 className="w-4 h-4 animate-spin text-gray-400" />}
+            </div>
+          )}
         </div>
 
         {/* KPI strip */}
@@ -221,9 +332,9 @@ export function PolicyDetailPanel({
             </div>
             <div className="text-center">
               <p
-                className={`text-2xl font-bold ${policy.documentUrl ? 'text-green-600' : 'text-gray-400'}`}
+                className={`text-2xl font-bold ${currentPolicy.documentUrl ? 'text-green-600' : 'text-gray-400'}`}
               >
-                {policy.documentUrl ? '✓' : '—'}
+                {currentPolicy.documentUrl ? '✓' : '—'}
               </p>
               <p className="text-xs text-gray-500 mt-0.5">Document</p>
             </div>
@@ -269,7 +380,7 @@ export function PolicyDetailPanel({
                       Version
                     </dt>
                     <dd className="mt-1 font-mono font-semibold text-gray-700">
-                      v{policy.version}
+                      v{currentPolicy.version}
                     </dd>
                   </div>
                   <div>
@@ -277,7 +388,7 @@ export function PolicyDetailPanel({
                       Created
                     </dt>
                     <dd className="mt-1 text-gray-700">
-                      {fmtDate(policy.createdAt)}
+                      {fmtDate(currentPolicy.createdAt)}
                     </dd>
                   </div>
                   <div>
@@ -285,26 +396,26 @@ export function PolicyDetailPanel({
                       Last Updated
                     </dt>
                     <dd className="mt-1 text-gray-700">
-                      {fmtDate(policy.updatedAt)}
+                      {fmtDate(currentPolicy.updatedAt)}
                     </dd>
                   </div>
-                  {policy.approvedBy && (
+                  {currentPolicy.approvedBy && (
                     <div className="col-span-2">
                       <dt className="text-xs font-medium text-gray-400 uppercase tracking-wide">
                         Approved By
                       </dt>
                       <dd className="mt-1 text-gray-700">
-                        {policy.approvedBy}
+                        {currentPolicy.approvedBy}
                       </dd>
                     </div>
                   )}
-                  {policy.approvedAt && (
+                  {currentPolicy.approvedAt && (
                     <div>
                       <dt className="text-xs font-medium text-gray-400 uppercase tracking-wide">
                         Approved At
                       </dt>
                       <dd className="mt-1 text-gray-700">
-                        {fmtDate(policy.approvedAt)}
+                        {fmtDate(currentPolicy.approvedAt)}
                       </dd>
                     </div>
                   )}
@@ -434,7 +545,7 @@ export function PolicyDetailPanel({
 
             {/* Document tab */}
             <TabsContent value="document" className="space-y-4 mt-0">
-              {policy.documentUrl ? (
+              {currentPolicy.documentUrl ? (
                 <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5 space-y-4">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center flex-shrink-0">
@@ -442,7 +553,7 @@ export function PolicyDetailPanel({
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-gray-900 truncate max-w-xs">
-                        {policy.documentUrl.split('/').pop() ?? policy.name}
+                        {currentPolicy.documentUrl.split('/').pop() ?? currentPolicy.name}
                       </p>
                       <p className="text-xs text-gray-400 mt-0.5">
                         Attached document
@@ -462,9 +573,9 @@ export function PolicyDetailPanel({
                       )}
                       {downloading ? 'Downloading…' : 'Download'}
                     </button>
-                    {!policy.documentUrl.startsWith('/files/') && (
+                    {!currentPolicy.documentUrl.startsWith('/files/') && (
                       <a
-                        href={policy.documentUrl}
+                        href={currentPolicy.documentUrl}
                         target="_blank"
                         rel="noreferrer"
                         className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
