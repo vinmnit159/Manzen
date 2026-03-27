@@ -27,6 +27,20 @@ export class EvidenceService {
     return apiClient.post('/api/evidence', evidenceData);
   }
 
+  // Create a LINK-type evidence record from a URL (e.g. policy document)
+  async createLinkEvidence(params: {
+    controlId: string;
+    fileUrl: string;
+    fileName: string;
+  }): Promise<ApiResponse<Evidence>> {
+    return apiClient.post('/api/evidence', {
+      controlId: params.controlId,
+      fileUrl: params.fileUrl,
+      fileName: params.fileName,
+      type: 'LINK',
+    });
+  }
+
   // Upload evidence file
   async uploadEvidenceFile(file: File, controlId: string): Promise<ApiResponse<Evidence>> {
     const formData = new FormData();

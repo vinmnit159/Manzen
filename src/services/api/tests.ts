@@ -21,7 +21,15 @@ export type TestAttestationStatus =
 export interface TestControlLink {
   id: string;
   controlId: string;
-  control: { id: string; isoReference: string; title: string; status: string };
+  control: {
+    id: string;
+    isoReference: string;
+    title: string;
+    status: string;
+    policyMappings?: Array<{
+      policy: { id: string; name: string; documentUrl: string };
+    }>;
+  };
 }
 
 export interface TestFrameworkLink {

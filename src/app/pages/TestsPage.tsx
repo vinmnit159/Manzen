@@ -361,16 +361,28 @@ export function TestsPage() {
               View
             </button>
             {test.status !== 'OK' && (
-              <button
-                onClick={async (e) => {
-                  e.stopPropagation();
-                  await testsService.completeTest(test.id);
-                  qc.invalidateQueries({ queryKey: ['tests'] });
-                }}
-                className="px-2.5 py-1 rounded-lg text-xs font-medium bg-green-50 text-green-700 hover:bg-green-100 transition-colors"
-              >
-                Complete
-              </button>
+              test.type === 'Document' ? (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/tests/${test.id}`);
+                  }}
+                  className="px-2.5 py-1 rounded-lg text-xs font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors"
+                >
+                  Upload
+                </button>
+              ) : (
+                <button
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    await testsService.completeTest(test.id);
+                    qc.invalidateQueries({ queryKey: ['tests'] });
+                  }}
+                  className="px-2.5 py-1 rounded-lg text-xs font-medium bg-green-50 text-green-700 hover:bg-green-100 transition-colors"
+                >
+                  Complete
+                </button>
+              )
             )}
           </div>
         );

@@ -58,6 +58,7 @@ import {
   AttachAuditSection,
   AddFrameworkSection,
 } from './testDetail/AttachSections';
+import { DocumentUploadModal } from './testDetail/DocumentUploadModal';
 import { RemediationGuide } from './testDetail/RemediationGuide';
 import { aiService } from '@/services/api/ai';
 import { CitationViewer } from '@/app/components/CitationViewer';
@@ -232,6 +233,7 @@ export function TestDetailPanel({
   const [runMsg, setRunMsg] = useState<string | null>(null);
   const [showNotionModal, setShowNotionModal] = useState(false);
   const [notionTaskUrl, setNotionTaskUrl] = useState<string | null>(null);
+  const [showDocumentUpload, setShowDocumentUpload] = useState(false);
 
   function handleClose() {
     if (onClose) {
@@ -701,16 +703,26 @@ export function TestDetailPanel({
                         )}
                     </>
                   ) : test.status !== 'OK' && canEditTest ? (
-                    <button
-                      onClick={() => completeMutation.mutate()}
-                      disabled={completeMutation.isPending}
-                      className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-medium shadow-sm transition-colors disabled:opacity-50"
-                    >
-                      <CheckCircle className="w-4 h-4" />
-                      {completeMutation.isPending
-                        ? 'Marking...'
-                        : 'Mark Complete'}
-                    </button>
+                    test.type === 'Document' ? (
+                      <button
+                        onClick={() => setShowDocumentUpload(true)}
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium shadow-sm transition-colors"
+                      >
+                        <FileText className="w-4 h-4" />
+                        Upload Document
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => completeMutation.mutate()}
+                        disabled={completeMutation.isPending}
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-medium shadow-sm transition-colors disabled:opacity-50"
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                        {completeMutation.isPending
+                          ? 'Marking...'
+                          : 'Mark Complete'}
+                      </button>
+                    )
                   ) : test.status === 'OK' ? (
                     <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-green-50 text-green-700 text-sm font-medium border border-green-200">
                       <CheckCircle className="w-4 h-4" />
@@ -1082,6 +1094,14 @@ export function TestDetailPanel({
     />
   );
 
+  const documentUploadModal = showDocumentUpload && test && (
+    <DocumentUploadModal
+      test={test}
+      onClose={() => setShowDocumentUpload(false)}
+      onSuccess={() => onMutated?.()}
+    />
+  );
+
   // ── Page mode: full-page layout ──
   if (pageMode) {
     return (
@@ -1089,6 +1109,7 @@ export function TestDetailPanel({
         {header}
         <div className="max-w-4xl mx-auto">{body}</div>
         {notionModal}
+        {documentUploadModal}
       </div>
     );
   }
@@ -1104,6 +1125,7 @@ export function TestDetailPanel({
         {body}
       </div>
       {notionModal}
+      {documentUploadModal}
     </div>
   );
 }
