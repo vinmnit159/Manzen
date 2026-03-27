@@ -222,6 +222,7 @@ export function AdminFrameworksPage() {
       {/* Requirement detail dialog */}
       {selectedRequirement && selectedFramework && (
         <RequirementDetailDialog
+          key={selectedRequirement.id}
           frameworkId={selectedFramework.id}
           requirement={selectedRequirement}
           open={!!selectedRequirement}
@@ -259,10 +260,12 @@ function RequirementDetailDialog({
 
   const mappingsKey = ['admin', 'frameworks', 'requirement', requirement.id, 'mappings'];
 
-  const { data: mappings, isLoading: mappingsLoading } = useQuery({
+  const { data: mappings, isLoading: mappingsLoading, isError: mappingsError } = useQuery({
     queryKey: mappingsKey,
     queryFn: () => adminService.getRequirementMappings(frameworkId, requirement.id),
     enabled: open,
+    staleTime: 0,
+    gcTime: 0,
   });
 
   // Fetch all control templates for the dropdown
@@ -333,6 +336,10 @@ function RequirementDetailDialog({
         {mappingsLoading ? (
           <div className="flex items-center gap-2 py-8 justify-center">
             <Loader2 className="h-5 w-5 animate-spin" /> Loading mappings...
+          </div>
+        ) : mappingsError ? (
+          <div className="py-8 text-center text-sm text-destructive">
+            Failed to load mappings. Please close and try again.
           </div>
         ) : (
           <>
