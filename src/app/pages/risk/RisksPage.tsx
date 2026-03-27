@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageTemplate } from '@/app/components/PageTemplate';
 import { Card } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
@@ -14,9 +14,11 @@ import {
   CheckCircle2,
   XCircle,
   AlertTriangle,
+  UserPlus,
 } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { riskLibraryService, RiskRegisterEntryDto } from '@/services/api/risk-library';
+import { usersService } from '@/services/api/users';
 
 const IMPACT_COLORS: Record<string, string> = {
   CRITICAL: 'bg-red-100 text-red-800 border-red-200',
@@ -60,12 +62,31 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 export function RisksPage() {
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [assignEntry, setAssignEntry] = useState<RiskRegisterEntryDto | null>(null);
+  const [assignUserId, setAssignUserId] = useState('');
 
   const { data: regData, isLoading } = useQuery({
     queryKey: ['risk-register'],
     queryFn: () => riskLibraryService.listRegister(),
+  });
+
+  const { data: users = [] } = useQuery({
+    queryKey: ['users'],
+    queryFn: () => usersService.listUsers(),
+    enabled: !!assignEntry,
+  });
+
+  const assignMutation = useMutation({
+    mutationFn: () =>
+      riskLibraryService.updateRegisterEntry(assignEntry!.id, { ownerId: assignUserId || null }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['risk-register'] });
+      setAssignEntry(null);
+      setAssignUserId('');
+    },
   });
 
   const entries = regData?.data ?? [];
@@ -198,13 +219,66 @@ export function RisksPage() {
                     </tr>
                   ) : (
                     filtered.map((entry) => (
-                      <RegisterRow key={entry.id} entry={entry} />
+                      <RegisterRow
+                        key={entry.id}
+                        entry={entry}
+                        onNavigate={() => navigate(`/risk/risks/${entry.id}`)}
+                        onAssign={(e) => {
+                          e.stopPropagation();
+                          setAssignEntry(entry);
+                          setAssignUserId(entry.ownerId ?? '');
+                        }}
+                      />
                     ))
                   )}
                 </tbody>
               </table>
             </div>
           </Card>
+        </div>
+      )}
+      {/* Assign owner modal */}
+      {assignEntry && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-2xl bg-white shadow-xl border border-gray-200">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <UserPlus className="w-4 h-4 text-blue-600" />
+                <h2 className="text-sm font-semibold text-gray-900">Assign Owner</h2>
+              </div>
+              <button onClick={() => setAssignEntry(null)} className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100">
+                <XCircle className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="px-5 py-4 space-y-3">
+              <p className="text-sm text-gray-600 truncate font-medium">{assignEntry.title}</p>
+              <select
+                value={assignUserId}
+                onChange={(e) => setAssignUserId(e.target.value)}
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">— Unassigned —</option>
+                {users.map((u) => (
+                  <option key={u.id} value={u.id}>{u.name ?? u.email}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex justify-end gap-2 px-5 py-3 border-t border-gray-100 bg-gray-50/60 rounded-b-2xl">
+              <button
+                onClick={() => setAssignEntry(null)}
+                className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => assignMutation.mutate()}
+                disabled={assignMutation.isPending}
+                className="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50"
+              >
+                {assignMutation.isPending ? 'Saving...' : 'Save'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </PageTemplate>
@@ -223,11 +297,22 @@ function ScoreBadge({ impact, likelihood, score }: { impact: string; likelihood:
   );
 }
 
-function RegisterRow({ entry }: { entry: RiskRegisterEntryDto }) {
+function RegisterRow({
+  entry,
+  onNavigate,
+  onAssign,
+}: {
+  entry: RiskRegisterEntryDto;
+  onNavigate: () => void;
+  onAssign: (e: React.MouseEvent) => void;
+}) {
   const statusConf = STATUS_CONFIG[entry.status] ?? STATUS_CONFIG.IDENTIFIED!;
 
   return (
-    <tr className="hover:bg-blue-50/40 transition-colors">
+    <tr
+      className="group hover:bg-blue-50/40 transition-colors cursor-pointer"
+      onClick={onNavigate}
+    >
       <td className="px-6 py-4">
         <div className="flex items-center gap-2">
           <p className="text-sm font-medium text-gray-900 max-w-md">{entry.title}</p>
@@ -265,7 +350,20 @@ function RegisterRow({ entry }: { entry: RiskRegisterEntryDto }) {
         {entry.treatment ? TREATMENT_LABELS[entry.treatment] ?? entry.treatment : <span className="text-gray-400">—</span>}
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-        {entry.ownerName ?? <span className="text-gray-400">Unassigned</span>}
+        <div className="flex items-center gap-2">
+          {entry.ownerName ? (
+            <span>{entry.ownerName}</span>
+          ) : (
+            <span className="text-gray-400">Unassigned</span>
+          )}
+          <button
+            onClick={onAssign}
+            className="p-1 rounded text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors opacity-0 group-hover:opacity-100"
+            title="Assign owner"
+          >
+            <UserPlus className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </td>
     </tr>
   );
