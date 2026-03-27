@@ -130,14 +130,6 @@ export function OpsgenieCard({
             {loadingStatus ? 'Checking...' : isConnected ? `${accounts.length} instance${accounts.length !== 1 ? 's' : ''} connected` : 'Available'}
           </Badge>
         </div>
-        <p className="text-sm text-gray-600 mb-4">
-          Track alert response SLAs, verify on-call schedule coverage, and ensure critical alerts are actively managed. All 5 results appear in the Tests page.
-        </p>
-        <div className="flex flex-wrap gap-2 mb-5">
-          {['A.5.24 Incident Planning', 'A.5.25 Event Assessment', 'A.5.26 Incident Response', 'A.5.27 RCA Learning'].map((l) => (
-            <span key={l} className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full border border-blue-100 font-medium">{l}</span>
-          ))}
-        </div>
         {isConnected && accounts.map(account => (
           <div key={account.id} className="mb-3 flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-lg">
             <div>

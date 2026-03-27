@@ -176,19 +176,6 @@ export function FleetCard({
           </Badge>
         </div>
 
-        <p className="text-sm text-gray-600 mb-4">
-          Automatically collect ISO 27001 endpoint-compliance evidence from Fleet — verify disk encryption,
-          MDM enrollment, OS version baselines, stale device detection, osquery policy results, and asset
-          inventory completeness. All 6 results appear in the Tests page.
-        </p>
-
-        {/* ISO control tags */}
-        <div className="flex flex-wrap gap-2 mb-5">
-          {['A.8.24 Disk Encryption', 'A.8.1 MDM Enrollment', 'A.5.9 Asset Inventory', 'A.8.8 OS Patching', 'A.8.9 Policy Compliance'].map((l) => (
-            <span key={l} className="text-xs bg-slate-50 text-slate-700 px-2 py-1 rounded-full border border-slate-200 font-medium">{l}</span>
-          ))}
-        </div>
-
         {/* Connected instances */}
         {isConnected && accounts.map(account => {
           const totalHosts = account.hosts.length;

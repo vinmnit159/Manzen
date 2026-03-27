@@ -118,16 +118,6 @@ export function JumpCloudCard({
             {loadingStatus ? 'Checking...' : isConnected ? `${accounts.length} connected` : 'Available'}
           </Badge>
         </div>
-        <p className="text-sm text-gray-600 mb-4">
-          Verify MFA enforcement, detect stale/inactive user accounts, check privileged group membership,
-          confirm all applications are covered by SSO, and validate user access review compliance via
-          the JumpCloud API.
-        </p>
-        <div className="flex flex-wrap gap-2 mb-5">
-          {['A.8.5 MFA', 'A.5.16 Stale Accounts', 'A.5.15 Least Privilege', 'A.8.2 SSO Coverage', 'A.5.18 Access Reviews'].map(l => (
-            <span key={l} className="text-xs bg-cyan-50 text-cyan-700 px-2 py-1 rounded-full border border-cyan-100 font-medium">{l}</span>
-          ))}
-        </div>
         {isConnected && accounts.map(account => (
           <div key={account.id} className="mb-3 flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-lg">
             <div>

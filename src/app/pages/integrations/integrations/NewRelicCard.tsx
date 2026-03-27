@@ -130,16 +130,6 @@ export function NewRelicCard({
           </Badge>
         </div>
 
-        <p className="text-sm text-gray-600 mb-4">
-          Connect New Relic to monitor application and infrastructure security, and to generate evidence for compliance.
-        </p>
-
-        <div className="flex flex-wrap gap-2 mb-5">
-          {['A.8.15 Logging', 'A.8.16 Monitoring', 'A.8.25 Secure SDLC'].map((l) => (
-            <span key={l} className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded-full border border-green-100 font-medium">{l}</span>
-          ))}
-        </div>
-
         {connected && nrStatus && (
           <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2 mb-4">
             Connected to account <strong>{nrStatus.accountId}</strong> in <strong>{nrStatus.region}</strong>.

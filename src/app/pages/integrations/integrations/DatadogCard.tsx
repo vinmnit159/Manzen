@@ -138,14 +138,6 @@ export function DatadogIncidentsCard({
             {loadingStatus ? 'Checking...' : isConnected ? `${accounts.length} instance${accounts.length !== 1 ? 's' : ''} connected` : 'Available'}
           </Badge>
         </div>
-        <p className="text-sm text-gray-600 mb-4">
-          Monitor Datadog incident response, track SEV-1/SEV-2 SLA compliance, and verify postmortem coverage for critical incidents. All 5 results appear in the Tests page.
-        </p>
-        <div className="flex flex-wrap gap-2 mb-5">
-          {['A.5.24 Incident Planning', 'A.5.25 Event Assessment', 'A.5.26 Incident Response', 'A.5.27 RCA Learning'].map((l) => (
-            <span key={l} className="text-xs bg-purple-50 text-purple-700 px-2 py-1 rounded-full border border-purple-100 font-medium">{l}</span>
-          ))}
-        </div>
         {isConnected && accounts.map(account => (
           <div key={account.id} className="mb-3 flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-lg">
             <div>

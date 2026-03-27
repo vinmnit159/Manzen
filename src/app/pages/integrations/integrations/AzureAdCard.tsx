@@ -141,15 +141,6 @@ export function AzureAdCard({
             {loadingStatus ? 'Checking...' : isConnected ? `${accounts.length} connected` : 'Available'}
           </Badge>
         </div>
-        <p className="text-sm text-gray-600 mb-4">
-          Verify MFA enforcement via Conditional Access, detect stale accounts, check privileged role
-          assignments, confirm SSO app coverage, and validate access review completion via Microsoft Graph API.
-        </p>
-        <div className="flex flex-wrap gap-2 mb-5">
-          {['A.8.5 MFA', 'A.5.16 Stale Accounts', 'A.5.15 Least Privilege', 'A.8.2 SSO Coverage', 'A.5.18 Access Reviews'].map(l => (
-            <span key={l} className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full border border-blue-100 font-medium">{l}</span>
-          ))}
-        </div>
         {isConnected && accounts.map(account => (
           <div key={account.id} className="mb-3 flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-lg">
             <div>

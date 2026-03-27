@@ -196,16 +196,6 @@ export function EngineerAIntegrationCard({
         </Badge>
       </div>
 
-      <p className="mb-4 text-sm text-gray-600">{config.description}</p>
-
-      <div className="mb-5 flex flex-wrap gap-2">
-        {config.isoTags.map((label) => (
-          <span key={label} className="rounded-full border border-indigo-100 bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700">
-            {label}
-          </span>
-        ))}
-      </div>
-
       {connected && accounts.map((account) => (
         <div key={account.id} className="mb-3 flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 p-3">
           <div>

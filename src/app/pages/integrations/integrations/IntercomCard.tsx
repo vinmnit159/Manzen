@@ -95,18 +95,6 @@ export function IntercomCard({
         </Badge>
       </div>
 
-      <p className="text-sm text-gray-600 mb-4">
-        Automatically track security requests via Intercom conversations — monitor SLA compliance for
-        trust centre requests, triage times, and audit finding acknowledgements. All 3 results appear in the Tests page.
-      </p>
-
-      {/* ISO control tags */}
-      <div className="flex flex-wrap gap-2 mb-5">
-        {['A.5.30 Availability', 'A.5.24 Incident Mgmt', 'SLA Tracking', 'Trust Requests'].map((l) => (
-          <span key={l} className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full border border-blue-100 font-medium">{l}</span>
-        ))}
-      </div>
-
       {/* Connected workspace rows */}
       {isConnected && accounts.map(account => (
         <div key={account.id} className="mb-3 flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-lg">

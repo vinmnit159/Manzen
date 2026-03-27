@@ -121,14 +121,6 @@ export function PagerDutyCard({
             {loadingStatus ? 'Checking...' : isConnected ? `${accounts.length} instance${accounts.length !== 1 ? 's' : ''} connected` : 'Available'}
           </Badge>
         </div>
-        <p className="text-sm text-gray-600 mb-4">
-          Monitor incident response SLAs, track open incidents, and verify on-call escalation policies against ISO 27001 A.5.24–A.5.27 controls. All 5 results appear in the Tests page.
-        </p>
-        <div className="flex flex-wrap gap-2 mb-5">
-          {['A.5.24 Incident Planning', 'A.5.25 Event Assessment', 'A.5.26 Incident Response', 'A.5.27 RCA Learning'].map((l) => (
-            <span key={l} className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded-full border border-green-100 font-medium">{l}</span>
-          ))}
-        </div>
         {isConnected && accounts.map(account => (
           <div key={account.id} className="mb-3 flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-lg">
             <div>

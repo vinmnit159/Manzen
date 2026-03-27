@@ -290,18 +290,6 @@ export function AwsCard({
           </Badge>
         </div>
 
-        <p className="text-sm text-gray-600 mb-4">
-          Automatically collect ISO 27001 evidence from AWS via cross-account IAM role assumption — no access
-          keys stored. Runs 12 automated compliance checks across IAM, CloudTrail, S3, KMS, EC2 and RDS.
-        </p>
-
-        {/* ISO control tags */}
-        <div className="flex flex-wrap gap-2 mb-5">
-          {['A.5.15 IAM', 'A.5.18 Access Keys', 'A.8.15 CloudTrail', 'A.8.10 S3 Public', 'A.8.24 Encryption', 'A.8.20 Network', 'A.8.13 RDS Backups'].map((l) => (
-            <span key={l} className="text-xs bg-orange-50 text-orange-700 px-2 py-1 rounded-full border border-orange-100 font-medium">{l}</span>
-          ))}
-        </div>
-
         {/* Connected accounts */}
         {isConnected && accounts.length > 0 && (
           <div className="mb-4 space-y-2">

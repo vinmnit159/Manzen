@@ -178,19 +178,6 @@ export function RedashCard({
           </Badge>
         </div>
 
-        <p className="text-sm text-gray-600 mb-4">
-          Automatically collect ISO 27001 evidence from your Redash instance — verify admin access controls,
-          inactive users, public dashboards, query ownership, production data source restrictions, and
-          approved connection types. All 7 results appear in the Tests page.
-        </p>
-
-        {/* ISO control tags */}
-        <div className="flex flex-wrap gap-2 mb-5">
-          {['A.8.2 Public Dashboards', 'A.8.9 Access Control', 'A.8.12 Query Ownership', 'A.5.15 Terminated Users'].map((l) => (
-            <span key={l} className="text-xs bg-orange-50 text-orange-700 px-2 py-1 rounded-full border border-orange-100 font-medium">{l}</span>
-          ))}
-        </div>
-
         {/* Connected accounts */}
         {isConnected && accounts.map(account => {
           const activeUsers = account.users.filter(u => u.isActive).length;

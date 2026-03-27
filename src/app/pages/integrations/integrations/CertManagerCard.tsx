@@ -170,14 +170,6 @@ export function CertManagerCard({
             {loadingStatus ? 'Checking...' : isConnected ? `${accounts.length} instance${accounts.length !== 1 ? 's' : ''} connected` : 'Available'}
           </Badge>
         </div>
-        <p className="text-sm text-gray-600 mb-4">
-          Connect AWS ACM or a generic certificate manager to detect expired or soon-to-expire TLS/SSL certificates. All 5 results appear in the Tests page.
-        </p>
-        <div className="flex flex-wrap gap-2 mb-5">
-          {['A.5.14 No Expired Certs', 'A.8.24 Secrets Storage', 'A.8.24 Rotation Policy', 'A.8.15 Audit Logging', 'A.8.25 No Plaintext'].map((l) => (
-            <span key={l} className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full border border-blue-100 font-medium">{l}</span>
-          ))}
-        </div>
         {isConnected && accounts.map(account => (
           <div key={account.id} className="mb-3 flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-lg">
             <div>

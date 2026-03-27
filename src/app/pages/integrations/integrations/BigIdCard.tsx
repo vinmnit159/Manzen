@@ -160,19 +160,6 @@ export function BigIdCard({
           </Badge>
         </div>
 
-        <p className="text-sm text-gray-600 mb-4">
-          Automatically discover and classify sensitive data (PII, PCI, PHI) across your data sources.
-          Monitor data inventory, scan SLA compliance, and ensure all data assets have assigned owners.
-          All 5 results appear in the Tests page.
-        </p>
-
-        {/* ISO control tags */}
-        <div className="flex flex-wrap gap-2 mb-5">
-          {['A.5.9 Data Inventory', 'A.5.12 Classification', 'A.5.34 PII Protection', 'A.8.16 Monitoring'].map((l) => (
-            <span key={l} className="text-xs bg-indigo-50 text-indigo-700 px-2 py-1 rounded-full border border-indigo-100 font-medium">{l}</span>
-          ))}
-        </div>
-
         {/* Connected instance rows */}
         {isConnected && accounts.map(account => (
           <div key={account.id} className="mb-3 flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-lg">

@@ -187,19 +187,6 @@ export function BambooHRCard({
           </Badge>
         </div>
 
-        <p className="text-sm text-gray-600 mb-4">
-          Sync your employee roster from BambooHR to automate HR compliance checks — detect new hires
-          needing onboarding, terminated employees with outstanding access, missing managers, incomplete
-          policy acceptance, and MDM enrollment gaps. All results appear in the Tests page.
-        </p>
-
-        {/* ISO control tags */}
-        <div className="flex flex-wrap gap-2 mb-5">
-          {['A.6.1 HR Policies', 'A.6.3 Security Awareness', 'A.6.5 Termination', 'A.8.1 Asset Responsibility'].map((l) => (
-            <span key={l} className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded-full border border-green-100 font-medium">{l}</span>
-          ))}
-        </div>
-
         {/* Connected accounts */}
         {isConnected && accounts.map(account => {
           const active = account.personnel.filter(p => p.status === 'ACTIVE').length;

@@ -100,25 +100,6 @@ export function NotionCard({
         </Badge>
       </div>
 
-      <p className="text-sm text-gray-600 mb-4">
-        Connect Notion to sync policies, procedures, and other documents to your
-        ISMS.
-      </p>
-
-      {/* ISO control tags */}
-      <div className="flex flex-wrap gap-2 mb-5">
-        {['A.5.9 Policies', 'A.5.10 Procedures', 'A.5.33 Documentation'].map(
-          (l) => (
-            <span
-              key={l}
-              className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full border border-gray-200 font-medium"
-            >
-              {l}
-            </span>
-          ),
-        )}
-      </div>
-
       {connected && notionStatus && (
         <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2 mb-4">
           Connected to workspace <strong>{notionStatus.workspaceName}</strong>.

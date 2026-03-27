@@ -125,14 +125,6 @@ export function LaceworkCard({
             {loadingStatus ? 'Checking...' : isConnected ? `${accounts.length} account${accounts.length !== 1 ? 's' : ''} connected` : 'Available'}
           </Badge>
         </div>
-        <p className="text-sm text-gray-600 mb-4">
-          Pull Lacework compliance evaluations and alerts to track IAM posture, audit logging, encryption, and network security across your cloud infrastructure. All 5 results appear in the Tests page.
-        </p>
-        <div className="flex flex-wrap gap-2 mb-5">
-          {['A.5.15 IAM', 'A.8.15 Audit Logging', 'A.8.9 Misconfigs', 'A.8.24 Encryption', 'A.8.20 Network'].map((l) => (
-            <span key={l} className="text-xs bg-cyan-50 text-cyan-700 px-2 py-1 rounded-full border border-cyan-100 font-medium">{l}</span>
-          ))}
-        </div>
         {isConnected && accounts.map(account => (
           <div key={account.id} className="mb-3 flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-lg">
             <div>

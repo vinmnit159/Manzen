@@ -203,19 +203,6 @@ export function WorkspaceCard({
           </Badge>
         </div>
 
-        <p className="text-sm text-gray-600 mb-4">
-          Automatically collect ISO 27001 identity-governance evidence from Google Workspace — verify MFA
-          enforcement, super admin count, inactive accounts, terminated employees, suspended user activity,
-          and organisational unit assignment. All 6 results appear in the Tests page.
-        </p>
-
-        {/* ISO control tags */}
-        <div className="flex flex-wrap gap-2 mb-5">
-          {['A.5.17 MFA', 'A.5.15 Admin Access', 'A.8.9 Inactive Users', 'A.5.15 Terminated Employees'].map((l) => (
-            <span key={l} className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full border border-blue-100 font-medium">{l}</span>
-          ))}
-        </div>
-
         {/* Connected accounts */}
         {isConnected && accounts.map(account => {
           const activeUsers = account.users.filter(u => !u.isSuspended).length;

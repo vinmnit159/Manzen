@@ -104,30 +104,6 @@ export function MdmCard({
         </Badge>
       </div>
 
-      <p className="text-sm text-gray-600 mb-4">
-        Deploy the open-source Go agent to Mac endpoints. It collects device
-        security posture every 15 minutes and reports to this ISMS,
-        automatically creating risks for non-compliant controls.
-      </p>
-
-      {/* ISO control tags */}
-      <div className="flex flex-wrap gap-2 mb-5">
-        {[
-          'A.8.24 Disk Encryption',
-          'A.5.15 Screen Lock',
-          'A.8.20 Firewall',
-          'A.8.8 Patch Management',
-          'A.8.7 SIP/Gatekeeper',
-        ].map((l) => (
-          <span
-            key={l}
-            className="text-xs bg-purple-50 text-purple-700 px-2 py-1 rounded-full border border-purple-100 font-medium"
-          >
-            {l}
-          </span>
-        ))}
-      </div>
-
       {/* Overview stats */}
       {overview && overview.total > 0 && (
         <div className="grid grid-cols-3 gap-3 mb-5">

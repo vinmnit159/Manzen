@@ -73,20 +73,6 @@ export function GoogleDriveCard({
         </Badge>
       </div>
 
-      <p className="text-sm text-gray-600 mb-4">
-        Store evidence and policy documents in your organisation's Google Drive. Files are organised
-        into <code className="bg-gray-100 px-1 rounded text-xs">ISMS-{'{OrgName}'}/Evidence/</code> and{' '}
-        <code className="bg-gray-100 px-1 rounded text-xs">ISMS-{'{OrgName}'}/Policies/</code> folders
-        automatically. Uploads fall back to local storage when Drive is not connected.
-      </p>
-
-      {/* ISO control tags */}
-      <div className="flex flex-wrap gap-2 mb-5">
-        {['A.5.33 Protection of Records', 'A.5.34 Privacy & PII', 'A.7.10 Storage Media'].map((l) => (
-          <span key={l} className="text-xs bg-yellow-50 text-yellow-700 px-2 py-1 rounded-full border border-yellow-100 font-medium">{l}</span>
-        ))}
-      </div>
-
       {isConnected && driveIntegration && (
         <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2 mb-4">
           Drive connected since {new Date(driveIntegration.createdAt).toLocaleDateString()}.

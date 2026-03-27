@@ -165,27 +165,6 @@ export function GitHubCard({
         </Badge>
       </div>
 
-      <p className="mb-4 text-sm text-gray-600">
-        Automatically collect ISO 27001 evidence from your repositories including branch protection
-        rules, commit signing, CI/CD workflows, and collaborator access controls.
-      </p>
-
-      <div className="mb-5 flex flex-wrap gap-2">
-        {[
-          'A.8.32 Branch Protection',
-          'A.8.24 Commit Signing',
-          'A.8.25 Secure SDLC',
-          'A.5.15 Access Control',
-        ].map((label) => (
-          <span
-            key={label}
-            className="rounded-full border border-blue-100 bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700"
-          >
-            {label}
-          </span>
-        ))}
-      </div>
-
       <div className="flex flex-wrap gap-2">
         {!loading && !isConnected && (
           <Button onClick={handleConnect} className="gap-2">

@@ -167,19 +167,6 @@ export function CloudflareCard({
           </Badge>
         </div>
 
-        <p className="text-sm text-gray-600 mb-4">
-          Automatically collect ISO 27001 evidence from Cloudflare via a scoped read-only API token — no
-          global keys stored. Runs 10 automated compliance checks across WAF, TLS, DNSSEC, rate limiting,
-          bot protection, HTTPS enforcement, HSTS, audit logging, and email spoofing protection.
-        </p>
-
-        {/* ISO control tags */}
-        <div className="flex flex-wrap gap-2 mb-5">
-          {['A.8.20 WAF & Network', 'A.8.24 TLS & HTTPS', 'A.8.9 DNSSEC', 'A.8.15 Audit Logging'].map((l) => (
-            <span key={l} className="text-xs bg-orange-50 text-orange-700 px-2 py-1 rounded-full border border-orange-100 font-medium">{l}</span>
-          ))}
-        </div>
-
         {/* Connected accounts */}
         {isConnected && accounts.length > 0 && (
           <div className="mb-4 space-y-2">
