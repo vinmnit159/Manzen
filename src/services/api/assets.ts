@@ -1,11 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- legacy: to be typed progressively */
 import { apiClient, ApiResponse } from './client';
-import {
-  Asset,
-  CreateAssetRequest,
-  AssetType,
-  RiskLevel,
-} from './types';
+import { Asset, CreateAssetRequest, AssetType, RiskLevel } from './types';
 
 type UpdateAssetRequest = Partial<CreateAssetRequest>;
 
@@ -74,6 +69,7 @@ export class AssetsService {
     const response = await fetch(
       `${apiClient.baseURL}/api/assets/export?format=${format}`,
       {
+        credentials: 'include',
         headers: apiClient.token
           ? {
               Authorization: `Bearer ${apiClient.token}`,
@@ -103,6 +99,7 @@ export class AssetsService {
     const response = await fetch(`${apiClient.baseURL}/api/assets/import`, {
       method: 'POST',
       body: formData,
+      credentials: 'include',
       headers: apiClient.token
         ? {
             Authorization: `Bearer ${apiClient.token}`,

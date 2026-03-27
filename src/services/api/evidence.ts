@@ -1,10 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- legacy: to be typed progressively */
 import { apiClient, ApiResponse } from './client';
-import { 
-  Evidence, 
-  CreateEvidenceRequest,
-  EvidenceType 
-} from './types';
+import { Evidence, CreateEvidenceRequest, EvidenceType } from './types';
 
 export class EvidenceService {
   // Get all evidence
@@ -23,7 +19,9 @@ export class EvidenceService {
   }
 
   // Create new evidence
-  async createEvidence(evidenceData: CreateEvidenceRequest): Promise<ApiResponse<Evidence>> {
+  async createEvidence(
+    evidenceData: CreateEvidenceRequest,
+  ): Promise<ApiResponse<Evidence>> {
     return apiClient.post('/api/evidence', evidenceData);
   }
 
@@ -42,7 +40,10 @@ export class EvidenceService {
   }
 
   // Upload evidence file
-  async uploadEvidenceFile(file: File, controlId: string): Promise<ApiResponse<Evidence>> {
+  async uploadEvidenceFile(
+    file: File,
+    controlId: string,
+  ): Promise<ApiResponse<Evidence>> {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('controlId', controlId);
@@ -51,9 +52,12 @@ export class EvidenceService {
     const response = await fetch(`${apiClient.baseURL}/api/evidence/upload`, {
       method: 'POST',
       body: formData,
-      headers: apiClient.token ? {
-        Authorization: `Bearer ${apiClient.token}`,
-      } : {},
+      credentials: 'include',
+      headers: apiClient.token
+        ? {
+            Authorization: `Bearer ${apiClient.token}`,
+          }
+        : {},
     });
 
     if (!response.ok) {
@@ -69,15 +73,19 @@ export class EvidenceService {
   }
 
   // Verify evidence authenticity
-  async verifyEvidence(id: string): Promise<ApiResponse<{
-    isValid: boolean;
-    verificationResult: any;
-  }>> {
+  async verifyEvidence(id: string): Promise<
+    ApiResponse<{
+      isValid: boolean;
+      verificationResult: any;
+    }>
+  > {
     return apiClient.post(`/api/evidence/${id}/verify`);
   }
 
   // Get evidence for control
-  async getControlEvidence(controlId: string): Promise<ApiResponse<Evidence[]>> {
+  async getControlEvidence(
+    controlId: string,
+  ): Promise<ApiResponse<Evidence[]>> {
     return apiClient.get(`/api/evidence/control/${controlId}`);
   }
 
@@ -87,11 +95,14 @@ export class EvidenceService {
   }
 
   // Generate evidence automatically
-  async generateEvidence(controlId: string, config: {
-    type: 'screenshot' | 'log' | 'api_check';
-    schedule?: string;
-    parameters?: any;
-  }): Promise<ApiResponse<Evidence>> {
+  async generateEvidence(
+    controlId: string,
+    config: {
+      type: 'screenshot' | 'log' | 'api_check';
+      schedule?: string;
+      parameters?: any;
+    },
+  ): Promise<ApiResponse<Evidence>> {
     return apiClient.post(`/api/evidence/generate`, {
       controlId,
       ...config,
@@ -99,21 +110,32 @@ export class EvidenceService {
   }
 
   // Bulk evidence operations
-  async bulkOperation(operation: 'delete' | 'verify', evidenceIds: string[]): Promise<ApiResponse<{
-    success: number;
-    failed: number;
-    errors?: any[];
-  }>> {
+  async bulkOperation(
+    operation: 'delete' | 'verify',
+    evidenceIds: string[],
+  ): Promise<
+    ApiResponse<{
+      success: number;
+      failed: number;
+      errors?: any[];
+    }>
+  > {
     return apiClient.post('/api/evidence/bulk', { operation, evidenceIds });
   }
 
   // Download evidence file — triggers browser save-as dialog
   async downloadEvidence(id: string, fileName: string): Promise<void> {
-    const response = await fetch(`${apiClient.baseURL}/api/evidence/${id}/download`, {
-      headers: apiClient.token ? {
-        Authorization: `Bearer ${apiClient.token}`,
-      } : {},
-    });
+    const response = await fetch(
+      `${apiClient.baseURL}/api/evidence/${id}/download`,
+      {
+        credentials: 'include',
+        headers: apiClient.token
+          ? {
+              Authorization: `Bearer ${apiClient.token}`,
+            }
+          : {},
+      },
+    );
 
     if (!response.ok) {
       throw new Error('Failed to download evidence');
@@ -129,16 +151,20 @@ export class EvidenceService {
   }
 
   // Get evidence statistics
-  async getEvidenceStats(controlId?: string): Promise<ApiResponse<{
-    total: number;
-    automated: number;
-    manual: number;
-    byType: {
-      type: EvidenceType;
-      count: number;
-    }[];
-  }>> {
-    const url = controlId ? `/api/evidence/stats/${controlId}` : '/api/evidence/stats';
+  async getEvidenceStats(controlId?: string): Promise<
+    ApiResponse<{
+      total: number;
+      automated: number;
+      manual: number;
+      byType: {
+        type: EvidenceType;
+        count: number;
+      }[];
+    }>
+  > {
+    const url = controlId
+      ? `/api/evidence/stats/${controlId}`
+      : '/api/evidence/stats';
     return apiClient.get(url);
   }
 }

@@ -143,6 +143,7 @@ export class ControlsService {
     const response = await fetch(
       `${baseURL}/api/controls/export?format=${format}`,
       {
+        credentials: 'include',
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       },
     );

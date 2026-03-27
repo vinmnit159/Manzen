@@ -89,6 +89,7 @@ export class PoliciesService {
       `${API_BASE_URL}/api/policies/${policyId}/upload`,
       {
         method: 'POST',
+        credentials: 'include',
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: formData,
       },
@@ -128,6 +129,7 @@ export class PoliciesService {
     const response = await fetch(
       `${API_BASE_URL}/api/policies/${policyId}/download`,
       {
+        credentials: 'include',
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       },
     );

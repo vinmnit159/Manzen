@@ -29,7 +29,9 @@ export interface ComplianceDocumentStats {
   expired: number;
 }
 
-export interface ComplianceDocumentListResponse extends ApiResponse<ComplianceDocumentDto[]> {
+export interface ComplianceDocumentListResponse extends ApiResponse<
+  ComplianceDocumentDto[]
+> {
   stats: ComplianceDocumentStats;
 }
 
@@ -69,14 +71,23 @@ export const complianceDocumentService = {
     );
   },
 
-  async uploadDocument(id: string, file: File): Promise<ApiResponse<ComplianceDocumentDto>> {
+  async uploadDocument(
+    id: string,
+    file: File,
+  ): Promise<ApiResponse<ComplianceDocumentDto>> {
     const formData = new FormData();
     formData.append('file', file);
-    const response = await fetch(`${apiClient.baseURL}/api/compliance-documents/${id}/upload`, {
-      method: 'POST',
-      body: formData,
-      headers: apiClient.token ? { Authorization: `Bearer ${apiClient.token}` } : {},
-    });
+    const response = await fetch(
+      `${apiClient.baseURL}/api/compliance-documents/${id}/upload`,
+      {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+        headers: apiClient.token
+          ? { Authorization: `Bearer ${apiClient.token}` }
+          : {},
+      },
+    );
     if (!response.ok) throw new Error('Failed to upload document');
     return response.json();
   },
