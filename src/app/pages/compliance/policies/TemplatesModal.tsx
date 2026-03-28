@@ -11,14 +11,17 @@ import {
   DialogDescription,
 } from '@/app/components/ui/dialog';
 
-const CATEGORY_ORDER = ['ISMS Core', 'Technical', 'People', 'Resilience'] as const;
-
 const CATEGORY_CONFIG: Record<string, { color: string; bg: string; border: string }> = {
-  'ISMS Core':  { color: 'text-blue-700',   bg: 'bg-blue-50',   border: 'border-blue-200' },
-  'Technical':  { color: 'text-purple-700', bg: 'bg-purple-50', border: 'border-purple-200' },
-  'People':     { color: 'text-green-700',  bg: 'bg-green-50',  border: 'border-green-200' },
-  'Resilience': { color: 'text-orange-700', bg: 'bg-orange-50', border: 'border-orange-200' },
+  'Governance':       { color: 'text-blue-700',   bg: 'bg-blue-50',   border: 'border-blue-200' },
+  'Access Control':   { color: 'text-indigo-700', bg: 'bg-indigo-50', border: 'border-indigo-200' },
+  'Data Protection':  { color: 'text-cyan-700',   bg: 'bg-cyan-50',   border: 'border-cyan-200' },
+  'Technical':        { color: 'text-purple-700', bg: 'bg-purple-50', border: 'border-purple-200' },
+  'Operations':       { color: 'text-amber-700',  bg: 'bg-amber-50',  border: 'border-amber-200' },
+  'Physical':         { color: 'text-orange-700', bg: 'bg-orange-50', border: 'border-orange-200' },
+  'People':           { color: 'text-green-700',  bg: 'bg-green-50',  border: 'border-green-200' },
 };
+
+const CATEGORY_ORDER = Object.keys(CATEGORY_CONFIG);
 
 export function TemplatesModal({
   onClose,
@@ -62,14 +65,23 @@ export function TemplatesModal({
     !search ||
     t.name.toLowerCase().includes(search.toLowerCase()) ||
     t.category.toLowerCase().includes(search.toLowerCase()) ||
-    t.isoReferences.some(r => r.toLowerCase().includes(search.toLowerCase()))
+    t.requirementCodes.some(r => r.toLowerCase().includes(search.toLowerCase()))
   );
 
-  const grouped = CATEGORY_ORDER.reduce<Record<string, PolicyTemplate[]>>((acc, cat) => {
+  // Group by known categories first, then any unknown categories at the end
+  const grouped: Record<string, PolicyTemplate[]> = {};
+  for (const cat of CATEGORY_ORDER) {
     const items = filtered.filter(t => t.category === cat);
-    if (items.length) acc[cat] = items;
-    return acc;
-  }, {});
+    if (items.length) grouped[cat] = items;
+  }
+  // Catch any categories not in CATEGORY_ORDER
+  const knownCats = new Set(CATEGORY_ORDER);
+  for (const t of filtered) {
+    if (!knownCats.has(t.category)) {
+      if (!grouped[t.category]) grouped[t.category] = [];
+      grouped[t.category]!.push(t);
+    }
+  }
 
   return (
     <Dialog open onOpenChange={() => onClose()}>
@@ -77,7 +89,7 @@ export function TemplatesModal({
         <DialogHeader>
           <DialogTitle>Policy Templates</DialogTitle>
           <DialogDescription>
-            27 ISO 27001 templates — creates the policy with an editable .docx document attached
+            {templates.length} policy templates — creates the policy with an editable .docx document attached
           </DialogDescription>
         </DialogHeader>
 
@@ -89,7 +101,7 @@ export function TemplatesModal({
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Search by name, category, or ISO reference…"
+              placeholder="Search by name, category, or requirement code…"
               className="w-full pl-9 pr-8 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               autoFocus
             />
@@ -160,9 +172,9 @@ export function TemplatesModal({
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-semibold text-gray-900 leading-snug">{template.name}</p>
                               <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{template.description}</p>
-                              {template.isoReferences.length > 0 && (
+                              {template.requirementCodes.length > 0 && (
                                 <div className="flex flex-wrap gap-1 mt-2">
-                                  {template.isoReferences.map(ref => (
+                                  {template.requirementCodes.map(ref => (
                                     <span key={ref} className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-mono font-medium bg-gray-100 text-gray-600 border border-gray-200">
                                       {ref}
                                     </span>

@@ -3,11 +3,13 @@ import { getAuthToken } from '@/services/authStorage';
 import { Policy } from './types';
 
 export interface PolicyTemplate {
+  id: string;
   name: string;
+  slug: string;
   version: string;
   status: string;
   category: string;
-  isoReferences: string[];
+  requirementCodes: string[];
   description: string;
 }
 
