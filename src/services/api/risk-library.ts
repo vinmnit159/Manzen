@@ -101,6 +101,28 @@ export interface UpdateRegisterEntryRequest {
   description?: string;
 }
 
+export interface RiskMappedControl {
+  mappingId: string;
+  controlId: string;
+  isoReference: string;
+  controlTitle: string;
+  controlStatus: string;
+  notes: string | null;
+}
+
+export interface RiskMappedFramework {
+  mappingId: string;
+  frameworkId: string;
+  frameworkSlug: string;
+  frameworkName: string;
+  frameworkVersion: string;
+}
+
+export interface RiskMappingsResponse {
+  controls: RiskMappedControl[];
+  frameworks: RiskMappedFramework[];
+}
+
 export const riskLibraryService = {
   listLibrary() {
     return apiClient.get<RiskLibraryListResponse>('/api/risk-library');
@@ -142,5 +164,39 @@ export const riskLibraryService = {
 
   removeFromRegister(id: string) {
     return apiClient.delete<ApiResponse>(`/api/risk-library/register/${id}`);
+  },
+
+  // ── Risk Register Mappings ──────────────────────────────────────────────────
+
+  getRiskMappings(riskId: string) {
+    return apiClient.get<ApiResponse<RiskMappingsResponse>>(
+      `/api/risk-library/register/${riskId}/mappings`,
+    );
+  },
+
+  linkControl(riskId: string, controlId: string, notes?: string) {
+    return apiClient.post<ApiResponse<{ id: string }>>(
+      `/api/risk-library/register/${riskId}/controls`,
+      { controlId, notes },
+    );
+  },
+
+  unlinkControl(riskId: string, controlId: string) {
+    return apiClient.delete<ApiResponse>(
+      `/api/risk-library/register/${riskId}/controls/${controlId}`,
+    );
+  },
+
+  linkFramework(riskId: string, frameworkId: string) {
+    return apiClient.post<ApiResponse<{ id: string }>>(
+      `/api/risk-library/register/${riskId}/frameworks`,
+      { frameworkId },
+    );
+  },
+
+  unlinkFramework(riskId: string, frameworkId: string) {
+    return apiClient.delete<ApiResponse>(
+      `/api/risk-library/register/${riskId}/frameworks/${frameworkId}`,
+    );
   },
 };

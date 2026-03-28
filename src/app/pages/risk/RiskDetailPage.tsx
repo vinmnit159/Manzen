@@ -35,6 +35,8 @@ import {
   Target,
   Shield,
   CheckCircle2,
+  Plus,
+  X,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router';
@@ -42,10 +44,16 @@ import {
   riskCenterService,
   type RiskStakeholder,
 } from '@/services/api/riskCenter';
-import { riskLibraryService, type UpdateRegisterEntryRequest } from '@/services/api/risk-library';
+import {
+  riskLibraryService,
+  type UpdateRegisterEntryRequest,
+  type RiskMappedControl,
+  type RiskMappedFramework,
+} from '@/services/api/risk-library';
 import { scanFindingsService } from '@/services/api/scan-findings';
 import { usersService } from '@/services/api/users';
-// import { controlsService } from '@/services/api/controls';
+import { controlsService } from '@/services/api/controls';
+import { frameworksService } from '@/services/api/frameworks';
 import {
   riskLevelVariant,
   riskStatusVariant,
@@ -370,6 +378,73 @@ export function RiskDetailPage() {
     enabled: Boolean(data),
   });
 
+  // Fetch risk-control-framework mappings
+  const { data: mappingsData } = useQuery({
+    queryKey: QK.riskMappings(riskId),
+    queryFn: async () => {
+      const res = await riskLibraryService.getRiskMappings(riskId);
+      return res.data;
+    },
+    staleTime: STALE.RISKS,
+    enabled: Boolean(riskId),
+  });
+
+  // Fetch org controls for picker
+  const { data: allControls } = useQuery({
+    queryKey: QK.controls(),
+    queryFn: async () => {
+      const res = await controlsService.getControls();
+      return res.data ?? [];
+    },
+    staleTime: STALE.CONTROLS,
+    enabled: Boolean(data),
+  });
+
+  // Fetch available frameworks for picker
+  const { data: allFrameworks } = useQuery({
+    queryKey: QK.frameworkCatalog(),
+    queryFn: async () => {
+      const res = await frameworksService.listCatalog();
+      return res.data ?? [];
+    },
+    staleTime: STALE.CONTROLS,
+    enabled: Boolean(data),
+  });
+
+  // Mapping state
+  const [showControlPicker, setShowControlPicker] = useState(false);
+  const [showFrameworkPicker, setShowFrameworkPicker] = useState(false);
+
+  const linkControlMut = useMutation({
+    mutationFn: (controlId: string) => riskLibraryService.linkControl(riskId, controlId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: QK.riskMappings(riskId) });
+      setShowControlPicker(false);
+    },
+  });
+
+  const unlinkControlMut = useMutation({
+    mutationFn: (controlId: string) => riskLibraryService.unlinkControl(riskId, controlId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: QK.riskMappings(riskId) }),
+  });
+
+  const linkFrameworkMut = useMutation({
+    mutationFn: (frameworkId: string) => riskLibraryService.linkFramework(riskId, frameworkId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: QK.riskMappings(riskId) });
+      setShowFrameworkPicker(false);
+    },
+  });
+
+  const unlinkFrameworkMut = useMutation({
+    mutationFn: (frameworkId: string) => riskLibraryService.unlinkFramework(riskId, frameworkId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: QK.riskMappings(riskId) }),
+  });
+
+  // Compute which controls/frameworks are already linked (to exclude from pickers)
+  const linkedControlIds = new Set(mappingsData?.controls?.map(c => c.controlId) ?? []);
+  const linkedFrameworkIds = new Set(mappingsData?.frameworks?.map(f => f.frameworkId) ?? []);
+
   // ── Draft state for editable fields ──
   const reg = data?.registerEntry;
   const [draft, setDraft] = useState({
@@ -658,32 +733,147 @@ export function RiskDetailPage() {
                   </h3>
                 </div>
                 <div className="mt-5 space-y-5">
+                  {/* Linked controls */}
                   <div>
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                      Linked controls
-                    </p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {data.risk.controls.length > 0 ? (
-                        data.risk.controls.map((control) => (
-                          <Badge key={control} variant="secondary">
-                            {control}
-                          </Badge>
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        Linked Controls
+                      </p>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={() => setShowControlPicker(p => !p)}
+                      >
+                        <Plus className="mr-1 h-3 w-3" />
+                        Add
+                      </Button>
+                    </div>
+
+                    {showControlPicker && (
+                      <div className="mt-2 rounded-lg border border-border bg-card p-3">
+                        <select
+                          defaultValue=""
+                          onChange={e => {
+                            if (e.target.value) linkControlMut.mutate(e.target.value);
+                          }}
+                          disabled={linkControlMut.isPending}
+                          className="w-full rounded-md border border-border bg-card px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="">Select a control to link...</option>
+                          {allControls
+                            ?.filter(c => !linkedControlIds.has(c.id))
+                            .map(c => (
+                              <option key={c.id} value={c.id}>
+                                {c.isoReference} — {c.title}
+                              </option>
+                            ))}
+                        </select>
+                        {linkControlMut.isPending && (
+                          <p className="mt-1.5 text-xs text-muted-foreground">Linking...</p>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="mt-3 space-y-2">
+                      {(mappingsData?.controls ?? []).length > 0 ? (
+                        mappingsData!.controls.map((ctrl) => (
+                          <div
+                            key={ctrl.controlId}
+                            className="flex items-center justify-between rounded-lg border border-border px-3 py-2"
+                          >
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-foreground">
+                                {ctrl.isoReference ?? 'Control'}
+                              </p>
+                              <p className="truncate text-xs text-muted-foreground">
+                                {ctrl.controlTitle ?? ctrl.controlId}
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => unlinkControlMut.mutate(ctrl.controlId)}
+                              disabled={unlinkControlMut.isPending}
+                              className="ml-2 shrink-0 rounded p-1 text-muted-foreground hover:bg-red-50 hover:text-red-600"
+                              title="Remove control"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
                         ))
                       ) : (
                         <p className="text-sm text-muted-foreground">No controls linked yet.</p>
                       )}
                     </div>
                   </div>
+
+                  {/* Linked frameworks */}
                   <div>
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                      Impacted frameworks
-                    </p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {data.risk.frameworks.length > 0 ? (
-                        data.risk.frameworks.map((framework) => (
-                          <Badge key={framework} variant="outline">
-                            {framework}
-                          </Badge>
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        Impacted Frameworks
+                      </p>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={() => setShowFrameworkPicker(p => !p)}
+                      >
+                        <Plus className="mr-1 h-3 w-3" />
+                        Add
+                      </Button>
+                    </div>
+
+                    {showFrameworkPicker && (
+                      <div className="mt-2 rounded-lg border border-border bg-card p-3">
+                        <select
+                          defaultValue=""
+                          onChange={e => {
+                            if (e.target.value) linkFrameworkMut.mutate(e.target.value);
+                          }}
+                          disabled={linkFrameworkMut.isPending}
+                          className="w-full rounded-md border border-border bg-card px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="">Select a framework to link...</option>
+                          {allFrameworks
+                            ?.filter(f => !linkedFrameworkIds.has(f.id))
+                            .map(f => (
+                              <option key={f.id} value={f.id}>
+                                {f.name} ({f.version})
+                              </option>
+                            ))}
+                        </select>
+                        {linkFrameworkMut.isPending && (
+                          <p className="mt-1.5 text-xs text-muted-foreground">Linking...</p>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="mt-3 space-y-2">
+                      {(mappingsData?.frameworks ?? []).length > 0 ? (
+                        mappingsData!.frameworks.map((fw) => (
+                          <div
+                            key={fw.frameworkId}
+                            className="flex items-center justify-between rounded-lg border border-border px-3 py-2"
+                          >
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-foreground">
+                                {fw.frameworkName}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {fw.frameworkSlug} v{fw.frameworkVersion}
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => unlinkFrameworkMut.mutate(fw.frameworkId)}
+                              disabled={unlinkFrameworkMut.isPending}
+                              className="ml-2 shrink-0 rounded p-1 text-muted-foreground hover:bg-red-50 hover:text-red-600"
+                              title="Remove framework"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
                         ))
                       ) : (
                         <p className="text-sm text-muted-foreground">No frameworks linked yet.</p>

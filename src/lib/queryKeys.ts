@@ -25,6 +25,7 @@ export const QK = {
   riskLibrary: () => ['risks', 'library'] as const,
   riskSettings: () => ['risks', 'settings'] as const,
   riskDetail: (id: string) => ['risks', 'detail', id] as const,
+  riskMappings: (id: string) => ['risks', 'mappings', id] as const,
 
   // MDM / Computers
   mdmDevices: () => ['mdm', 'devices'] as const,
@@ -81,6 +82,7 @@ export const QK = {
   vendorDetail: (id: string) => ['vendors', 'detail', id] as const,
 
   // Frameworks
+  frameworkCatalog: () => ['frameworks', 'catalog'] as const,
   orgFrameworks: () => ['frameworks', 'org', 'list'] as const,
   frameworkDetail: (slug: string) => ['frameworks', 'detail', slug] as const,
   frameworkCoverage: (slug: string) =>
