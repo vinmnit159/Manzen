@@ -207,6 +207,11 @@ export function PolicyDetailPanel({
               <h2 className="text-lg font-semibold text-gray-900 leading-snug">
                 {currentPolicy.name}
               </h2>
+              {currentPolicy.description && (
+                <p className="text-sm text-gray-500 leading-relaxed mt-1">
+                  {currentPolicy.description}
+                </p>
+              )}
               {currentPolicy.owner && (
                 <p className="text-xs text-gray-500 mt-1">
                   Owned by{' '}

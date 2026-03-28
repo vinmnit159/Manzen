@@ -127,6 +127,15 @@ export function EvidenceDetailPanel({
             <h2 className="text-lg font-semibold text-gray-900 leading-snug truncate">
               {evidence.fileName ?? `evidence-${evidence.id.slice(0, 8)}`}
             </h2>
+            <p className="text-sm text-gray-500 leading-relaxed mt-1">
+              {evidence.automated
+                ? 'Automatically collected evidence demonstrating compliance with linked controls. Periodically refreshed by integration scans.'
+                : evidence.type === 'FILE'
+                  ? 'Uploaded document serving as proof of compliance. Review and re-upload periodically to keep evidence current.'
+                  : evidence.type === 'SCREENSHOT'
+                    ? 'Screenshot evidence capturing the state of a system or configuration at a point in time.'
+                    : 'Evidence record supporting compliance verification for linked controls.'}
+            </p>
             {evidence.control && (
               <p className="text-xs text-gray-500 mt-1">
                 Linked to control{' '}

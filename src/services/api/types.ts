@@ -141,6 +141,7 @@ export interface Evidence {
 export interface Policy {
   id: string;
   name: string;
+  description?: string;
   version: string;
   status: string;
   documentUrl: string;

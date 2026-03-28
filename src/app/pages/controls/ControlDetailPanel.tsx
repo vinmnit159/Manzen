@@ -175,6 +175,11 @@ export function ControlDetailPanel({
             <h2 className="mt-2 text-lg font-semibold text-gray-900 leading-snug">
               {control.title}
             </h2>
+            {control.description && (
+              <p className="mt-1 text-sm text-gray-500 leading-relaxed">
+                {control.description}
+              </p>
+            )}
           </div>
           <button
             onClick={onClose}

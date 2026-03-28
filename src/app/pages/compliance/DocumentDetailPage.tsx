@@ -138,6 +138,19 @@ export function DocumentDetailPage() {
       }
     >
       <div className="space-y-6">
+        {/* Description */}
+        <p className="text-sm text-gray-500 leading-relaxed -mt-2">
+          {doc.category === 'Policy'
+            ? 'Compliance document tracking policy review and approval. Upload the signed or finalized version and mark as reviewed when current.'
+            : doc.category === 'HR'
+              ? 'HR compliance document requiring periodic review. Ensure personnel records and training evidence are up to date.'
+              : doc.category === 'Engineering'
+                ? 'Engineering compliance document covering technical controls, code security, or infrastructure evidence.'
+                : doc.category === 'Risks'
+                  ? 'Risk management document tracking vendor assessments, risk registers, or treatment plans.'
+                  : 'Compliance document requiring periodic review and evidence upload to demonstrate ongoing control effectiveness.'}
+        </p>
+
         {/* Status + metadata row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card className="p-4">

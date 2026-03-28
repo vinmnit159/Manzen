@@ -78,6 +78,7 @@ export interface TestRunRecord {
 export interface TestRecord {
   id: string;
   name: string;
+  description?: string | null;
   category: TestCategory;
   type: TestType;
   status: TestStatus;

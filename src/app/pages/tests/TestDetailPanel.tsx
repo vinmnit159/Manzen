@@ -432,6 +432,11 @@ export function TestDetailPanel({
           >
             {test.name}
           </h2>
+          {test.description && (
+            <p className={`text-gray-500 leading-relaxed mt-1 ${pageMode ? 'text-sm' : 'text-xs'}`}>
+              {test.description}
+            </p>
+          )}
           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
             <StatusBadge status={test.status} />
             <span
