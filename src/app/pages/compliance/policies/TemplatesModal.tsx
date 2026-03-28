@@ -39,9 +39,18 @@ export function TemplatesModal({
   const [done, setDone] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    policiesService.getTemplates().then(res => {
-      if (res.success && res.data) setTemplates(res.data);
+    // Load templates and existing policies in parallel
+    Promise.all([
+      policiesService.getTemplates(),
+      policiesService.getPolicies(),
+    ]).then(([tplRes, polRes]) => {
+      if (tplRes.success && tplRes.data) setTemplates(tplRes.data);
       else setError('Failed to load templates');
+      // Pre-mark templates that already have a matching policy
+      if (polRes.success && polRes.data) {
+        const existingNames = new Set(polRes.data.map((p: Policy) => p.name));
+        setDone(existingNames);
+      }
     }).catch(() => setError('Failed to load templates')).finally(() => setLoading(false));
   }, []);
 
@@ -55,7 +64,13 @@ export function TemplatesModal({
       setDone(prev => new Set([...prev, template.name]));
       onCreated(policy);
     } catch (err: unknown) {
-      setCardError(err instanceof Error ? err.message : 'Failed to create policy');
+      const msg = (err as { message?: string })?.message;
+      if (msg?.includes('already exists')) {
+        // Policy was already created (e.g. via framework activation) — mark as done
+        setDone(prev => new Set([...prev, template.name]));
+      } else {
+        setCardError(msg ?? 'Failed to create policy');
+      }
     } finally {
       setCreating(null);
     }
@@ -182,7 +197,7 @@ export function TemplatesModal({
                                 </div>
                               )}
                               {isDone && (
-                                <p className="text-xs text-green-700 font-medium mt-1.5">Policy created — editable .docx attached</p>
+                                <p className="text-xs text-green-700 font-medium mt-1.5">Policy already exists in your organization</p>
                               )}
                             </div>
                             <button
