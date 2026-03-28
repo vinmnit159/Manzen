@@ -148,6 +148,7 @@ export interface OrgDetailDto {
   createdAt: string;
   users: Array<{ id: string; email: string; name: string | null; role: string; createdAt: string }>;
   frameworks: Array<{ id: string; slug: string; name: string; version: string; status: string; activatedAt: string | null }>;
+  allowedFrameworks: Array<{ id: string; slug: string; name: string; version: string }>;
   counts: { controls: number; policies: number; risks: number };
 }
 
@@ -281,6 +282,10 @@ class AdminService {
 
   async createOrganization(body: CreateOrgRequest): Promise<{ success: boolean; data: { organization: { id: string; name: string; createdAt: string }; admin: { id: string; email: string; name: string; role: string } } }> {
     return apiClient.post('/api/admin/organizations', body);
+  }
+
+  async updateAllowedFrameworks(orgId: string, frameworkIds: string[]): Promise<{ success: boolean; data: Array<{ id: string; slug: string; name: string; version: string }> }> {
+    return apiClient.put(`/api/admin/organizations/${orgId}/allowed-frameworks`, { frameworkIds });
   }
 
   // Frameworks

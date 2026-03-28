@@ -134,6 +134,7 @@ export function AdminOrganizationsPage() {
         loading={detailLoading}
         open={!!selectedOrgId}
         onClose={() => setSelectedOrgId(null)}
+        onMutated={() => qc.invalidateQueries({ queryKey: ['admin', 'organizations'] })}
       />
 
       {/* Create dialog */}
@@ -156,16 +157,52 @@ function OrgDetailDialog({
   loading,
   open,
   onClose,
+  onMutated,
 }: {
   detail: OrgDetailDto | null;
   loading: boolean;
   open: boolean;
   onClose: () => void;
+  onMutated: () => void;
 }) {
+  const [editingAllowed, setEditingAllowed] = useState(false);
+  const [selectedFwIds, setSelectedFwIds] = useState<Set<string>>(new Set());
+
+  // Fetch all frameworks for the edit picker
+  const { data: allFwRes } = useQuery({
+    queryKey: ['admin', 'frameworks'],
+    queryFn: () => adminService.listFrameworks(),
+    enabled: open && editingAllowed,
+  });
+  const allFrameworks = allFwRes?.data ?? [];
+
+  const saveMutation = useMutation({
+    mutationFn: () => adminService.updateAllowedFrameworks(detail!.id, [...selectedFwIds]),
+    onSuccess: () => {
+      setEditingAllowed(false);
+      onMutated();
+    },
+  });
+
+  const startEditing = () => {
+    const currentIds = new Set((detail?.allowedFrameworks ?? []).map(f => f.id));
+    setSelectedFwIds(currentIds);
+    setEditingAllowed(true);
+  };
+
+  const toggleFw = (id: string) => {
+    setSelectedFwIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
   if (!open) return null;
 
   return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+    <Dialog open={open} onOpenChange={(v) => { if (!v) { setEditingAllowed(false); onClose(); } }}>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         {loading || !detail ? (
           <div className="flex items-center gap-2 py-8 justify-center">
@@ -210,9 +247,9 @@ function OrgDetailDialog({
                 </div>
               </div>
 
-              {/* Frameworks */}
+              {/* Active Frameworks */}
               <div>
-                <div className="text-sm font-medium mb-2">Frameworks ({detail.frameworks.length})</div>
+                <div className="text-sm font-medium mb-2">Active Frameworks ({detail.frameworks.length})</div>
                 {detail.frameworks.length === 0 ? (
                   <p className="text-sm text-muted-foreground">No frameworks activated.</p>
                 ) : (
@@ -222,6 +259,72 @@ function OrgDetailDialog({
                         <span className="flex-1 font-medium">{f.name} {f.version}</span>
                         <Badge variant={f.status === 'active' ? 'default' : 'secondary'}>{f.status}</Badge>
                         {f.activatedAt && <span className="text-xs text-muted-foreground">{fmtDate(f.activatedAt)}</span>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Allowed Frameworks (SuperAdmin manages) */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-sm font-medium">
+                    Allowed Frameworks ({detail.allowedFrameworks?.length ?? 0})
+                  </div>
+                  {!editingAllowed ? (
+                    <Button variant="outline" size="sm" onClick={startEditing}>
+                      Edit
+                    </Button>
+                  ) : (
+                    <div className="flex gap-1">
+                      <Button
+                        size="sm"
+                        onClick={() => saveMutation.mutate()}
+                        disabled={saveMutation.isPending}
+                      >
+                        {saveMutation.isPending && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
+                        Save
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => setEditingAllowed(false)}>
+                        Cancel
+                      </Button>
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mb-2">
+                  Only these frameworks will be visible to the org admin for activation.
+                </p>
+                {editingAllowed ? (
+                  <div className="border rounded max-h-48 overflow-y-auto">
+                    {allFrameworks.length === 0 ? (
+                      <p className="text-xs text-muted-foreground p-3 text-center">Loading...</p>
+                    ) : (
+                      allFrameworks.map((fw: any) => (
+                        <label
+                          key={fw.id}
+                          className="flex items-center gap-2.5 px-3 py-2 hover:bg-muted/50 cursor-pointer border-b last:border-b-0"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedFwIds.has(fw.id)}
+                            onChange={() => toggleFw(fw.id)}
+                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          />
+                          <span className="text-sm">{fw.name}</span>
+                          {fw.version && <span className="text-xs text-muted-foreground">{fw.version}</span>}
+                        </label>
+                      ))
+                    )}
+                  </div>
+                ) : (detail.allowedFrameworks?.length ?? 0) === 0 ? (
+                  <p className="text-sm text-muted-foreground">No frameworks assigned — org can see all frameworks.</p>
+                ) : (
+                  <div className="border rounded divide-y max-h-40 overflow-y-auto">
+                    {detail.allowedFrameworks.map((f) => (
+                      <div key={f.id} className="flex items-center gap-3 px-3 py-2 text-sm">
+                        <Shield className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+                        <span className="flex-1 font-medium">{f.name}</span>
+                        <span className="text-xs text-muted-foreground">{f.version}</span>
                       </div>
                     ))}
                   </div>
