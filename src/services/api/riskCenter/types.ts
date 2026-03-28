@@ -181,6 +181,25 @@ export interface UpdateStakeholdersResponse {
 
 export interface RiskDetailModel {
   risk: EnterpriseRiskRecord;
+  /** Raw register entry from the DB — used by the edit form */
+  registerEntry: {
+    id: string;
+    title: string;
+    description: string | null;
+    category: string;
+    inherentImpact: string;
+    inherentLikelihood: string;
+    inherentScore: number;
+    residualImpact: string | null;
+    residualLikelihood: string | null;
+    residualScore: number | null;
+    status: string;
+    treatment: string | null;
+    treatmentNotes: string | null;
+    ownerId: string | null;
+    ownerName: string | null;
+    reviewDueAt: string | null;
+  };
   summary: {
     inherentRisk: number;
     residualRisk: number;

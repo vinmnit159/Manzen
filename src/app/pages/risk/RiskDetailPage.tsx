@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PageTemplate } from '@/app/components/PageTemplate';
 import { Card } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
@@ -32,6 +32,9 @@ import {
   Link2,
   Eye,
   ArrowRight,
+  Target,
+  Shield,
+  CheckCircle2,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router';
@@ -39,8 +42,10 @@ import {
   riskCenterService,
   type RiskStakeholder,
 } from '@/services/api/riskCenter';
+import { riskLibraryService, type UpdateRegisterEntryRequest } from '@/services/api/risk-library';
 import { scanFindingsService } from '@/services/api/scan-findings';
 import { usersService } from '@/services/api/users';
+// import { controlsService } from '@/services/api/controls';
 import {
   riskLevelVariant,
   riskStatusVariant,
@@ -50,6 +55,83 @@ import { useIsAdmin, useCurrentUser } from '@/hooks/useCurrentUser';
 import { QK } from '@/lib/queryKeys';
 import { STALE } from '@/lib/queryClient';
 import { TestDetailPanel } from '@/app/pages/tests/TestDetailPanel';
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const IMPACT_LEVELS = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] as const;
+const LIKELIHOOD_LEVELS = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] as const;
+const STATUS_OPTIONS = ['IDENTIFIED', 'ASSESSING', 'TREATING', 'MONITORING', 'CLOSED'] as const;
+const TREATMENT_OPTIONS = [
+  { value: '', label: 'Not set' },
+  { value: 'MITIGATE', label: 'Mitigate' },
+  { value: 'ACCEPT', label: 'Accept' },
+  { value: 'TRANSFER', label: 'Transfer' },
+  { value: 'AVOID', label: 'Avoid' },
+] as const;
+
+const SCORE_WEIGHTS: Record<string, number> = { LOW: 1, MEDIUM: 2, HIGH: 3, CRITICAL: 4 };
+
+function calcScore(impact: string, likelihood: string): number {
+  return (SCORE_WEIGHTS[impact] ?? 2) * (SCORE_WEIGHTS[likelihood] ?? 2);
+}
+
+function scoreColor(score: number): string {
+  if (score >= 12) return 'text-red-600';
+  if (score >= 6) return 'text-amber-600';
+  if (score >= 3) return 'text-yellow-600';
+  return 'text-green-600';
+}
+
+function scoreBgColor(score: number): string {
+  if (score >= 12) return 'bg-red-50 border-red-200';
+  if (score >= 6) return 'bg-amber-50 border-amber-200';
+  if (score >= 3) return 'bg-yellow-50 border-yellow-200';
+  return 'bg-green-50 border-green-200';
+}
+
+function levelBadgeColor(level: string): string {
+  switch (level) {
+    case 'CRITICAL': return 'bg-red-100 text-red-700';
+    case 'HIGH': return 'bg-orange-100 text-orange-700';
+    case 'MEDIUM': return 'bg-yellow-100 text-yellow-700';
+    case 'LOW': return 'bg-green-100 text-green-700';
+    default: return 'bg-muted text-muted-foreground';
+  }
+}
+
+function statusLabel(s: string): string {
+  return s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+// ─── Inline select component ─────────────────────────────────────────────────
+
+function InlineSelect({
+  value,
+  options,
+  onChange,
+  disabled,
+  className = '',
+}: {
+  value: string;
+  options: readonly { value: string; label: string }[] | readonly string[];
+  onChange: (val: string) => void;
+  disabled?: boolean;
+  className?: string;
+}) {
+  const opts = options.map(o => typeof o === 'string' ? { value: o, label: statusLabel(o) } : o);
+  return (
+    <select
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      disabled={disabled}
+      className={`rounded-md border border-border bg-card px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 ${className}`}
+    >
+      {opts.map(o => (
+        <option key={o.value} value={o.value}>{o.label}</option>
+      ))}
+    </select>
+  );
+}
 
 // ─── Stakeholder Edit Dialog ──────────────────────────────────────────────────
 
@@ -73,7 +155,6 @@ function EditStakeholdersDialog({
   ]);
   const [error, setError] = useState('');
 
-  // Fetch org users for the picker dropdowns (only while dialog is open)
   const { data: usersData } = useQuery({
     queryKey: QK.users(),
     queryFn: async () => {
@@ -130,7 +211,6 @@ function EditStakeholdersDialog({
     setDraft((prev) => [...prev, { role: 'Backup owner', name: '', team: '' }]);
   }
 
-  // Sync draft when dialog opens with new stakeholder data
   const handleOpenChange = (v: boolean) => {
     if (!v) {
       onClose();
@@ -164,7 +244,6 @@ function EditStakeholdersDialog({
                 {person.role}
               </p>
 
-              {/* User picker */}
               {usersData && usersData.length > 0 ? (
                 <select
                   value={person.userId ?? ''}
@@ -264,8 +343,10 @@ export function RiskDetailPage() {
   const navigate = useNavigate();
   const { riskId = '' } = useParams();
   const isAdmin = useIsAdmin();
+  const qc = useQueryClient();
   const [stakeholderDialogOpen, setStakeholderDialogOpen] = useState(false);
   const [selectedTestId, setSelectedTestId] = useState<string | null>(null);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
 
   const { data, isLoading } = useQuery({
     queryKey: QK.riskDetail(riskId),
@@ -281,19 +362,92 @@ export function RiskDetailPage() {
     enabled: Boolean(riskId),
   });
 
+  // Fetch users for owner assignment
+  const { data: usersData } = useQuery({
+    queryKey: QK.users(),
+    queryFn: () => usersService.listUsers(),
+    staleTime: STALE.USERS,
+    enabled: Boolean(data),
+  });
+
+  // ── Draft state for editable fields ──
+  const reg = data?.registerEntry;
+  const [draft, setDraft] = useState({
+    status: '',
+    treatment: '',
+    treatmentNotes: '',
+    ownerId: '' as string | null,
+    reviewDueAt: '',
+    description: '',
+    inherentImpact: '',
+    inherentLikelihood: '',
+    residualImpact: '',
+    residualLikelihood: '',
+  });
+
+  // Sync draft when data loads
+  useEffect(() => {
+    if (reg) {
+      setDraft({
+        status: reg.status ?? 'IDENTIFIED',
+        treatment: reg.treatment ?? '',
+        treatmentNotes: reg.treatmentNotes ?? '',
+        ownerId: reg.ownerId ?? null,
+        reviewDueAt: reg.reviewDueAt ? reg.reviewDueAt.split('T')[0]! : '',
+        description: reg.description ?? '',
+        inherentImpact: reg.inherentImpact ?? 'MEDIUM',
+        inherentLikelihood: reg.inherentLikelihood ?? 'MEDIUM',
+        residualImpact: reg.residualImpact ?? 'MEDIUM',
+        residualLikelihood: reg.residualLikelihood ?? 'MEDIUM',
+      });
+    }
+  }, [reg]);
+
+  // ── Mutation ──
+  const updateMutation = useMutation({
+    mutationFn: (payload: UpdateRegisterEntryRequest) =>
+      riskLibraryService.updateRegisterEntry(riskId, payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: QK.riskDetail(riskId) });
+      setSaveStatus('saved');
+      setTimeout(() => setSaveStatus('idle'), 2000);
+    },
+  });
+
+  function saveField(fields: UpdateRegisterEntryRequest) {
+    setSaveStatus('saving');
+    updateMutation.mutate(fields);
+  }
+
+  // Computed scores
+  const inherentScore = calcScore(draft.inherentImpact || 'MEDIUM', draft.inherentLikelihood || 'MEDIUM');
+  const residualScore = calcScore(draft.residualImpact || 'MEDIUM', draft.residualLikelihood || 'MEDIUM');
+
   return (
     <PageTemplate
       title="Risk Detail"
-      description="Evidence, control mappings, ownership, and remediation context for a single risk record."
+      description=""
       actions={
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => navigate('/risk/risks')}
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to register
-        </Button>
+        <div className="flex items-center gap-3">
+          {saveStatus === 'saving' && (
+            <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Saving...
+            </span>
+          )}
+          {saveStatus === 'saved' && (
+            <span className="flex items-center gap-1.5 text-sm text-green-600">
+              <CheckCircle2 className="h-3.5 w-3.5" /> Saved
+            </span>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate('/risk/risks')}
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to register
+          </Button>
+        </div>
       }
     >
       {isLoading ? (
@@ -309,147 +463,351 @@ export function RiskDetailPage() {
           {/* ── Header card ──────────────────────────────────────────────── */}
           <Card className="p-6">
             <div className="flex flex-wrap items-start justify-between gap-4">
-              <div className="max-w-3xl">
-                <div className="flex flex-wrap gap-2">
-                  <Badge variant={riskLevelVariant(data.risk.impact)}>
-                    {data.risk.impact}
-                  </Badge>
+              <div className="max-w-3xl flex-1">
+                <div className="flex flex-wrap items-center gap-2">
                   <Badge variant={riskStatusVariant(data.risk.status)}>
                     {data.risk.status}
                   </Badge>
                   <Badge variant="outline">{data.risk.category}</Badge>
-                  <Badge variant="outline">{trendLabel(data.risk.trend)}</Badge>
+                  <Badge variant="outline">{data.risk.source}</Badge>
                 </div>
-                <h2 className="mt-4 text-2xl font-semibold text-foreground">
+                <h2 className="mt-3 text-2xl font-semibold text-foreground">
                   {data.risk.title}
                 </h2>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  {data.risk.description}
-                </p>
-                <div className="mt-4 flex flex-wrap gap-5 text-sm text-muted-foreground">
-                  <span>Asset: {data.risk.assetName}</span>
-                  <span>Owner: {data.risk.owner.name}</span>
-                  <span>
-                    Due: {new Date(data.risk.dueDate).toLocaleDateString()}
-                  </span>
-                  <span>Score: {data.risk.riskScore}</span>
-                </div>
+                {/* Editable description */}
+                <textarea
+                  value={draft.description}
+                  onChange={e => setDraft(d => ({ ...d, description: e.target.value }))}
+                  onBlur={() => {
+                    if (draft.description !== (reg?.description ?? '')) {
+                      saveField({ description: draft.description });
+                    }
+                  }}
+                  rows={2}
+                  className="mt-2 w-full resize-none rounded-md border border-transparent bg-transparent px-0 py-1 text-sm leading-6 text-muted-foreground hover:border-border focus:border-border focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  placeholder="Add a description..."
+                />
               </div>
-              <div className="grid min-w-[260px] gap-3 sm:grid-cols-2">
-                <Card className="gap-2 p-4">
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                    Inherent risk
+
+              {/* Score cards */}
+              <div className="grid min-w-[220px] gap-3 sm:grid-cols-2">
+                <div className={`rounded-xl border p-4 ${scoreBgColor(inherentScore)}`}>
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Inherent
                   </p>
-                  <p className="text-2xl font-semibold text-foreground">
-                    {data.summary.inherentRisk}
+                  <p className={`mt-1 text-3xl font-bold ${scoreColor(inherentScore)}`}>
+                    {inherentScore}
                   </p>
-                </Card>
-                <Card className="gap-2 p-4">
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                    Residual risk
+                </div>
+                <div className={`rounded-xl border p-4 ${scoreBgColor(residualScore)}`}>
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Residual
                   </p>
-                  <p className="text-2xl font-semibold text-foreground">
-                    {data.summary.residualRisk}
+                  <p className={`mt-1 text-3xl font-bold ${scoreColor(residualScore)}`}>
+                    {residualScore}
                   </p>
-                </Card>
-                <Card className="gap-2 p-4 sm:col-span-2">
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                    Blast radius
-                  </p>
-                  <p className="text-sm text-foreground">
-                    {data.summary.blastRadius}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {data.summary.exceptionStatus}
-                  </p>
-                </Card>
+                </div>
               </div>
             </div>
           </Card>
 
-          {/* ── Two-column: controls + stakeholders ──────────────────────── */}
-          <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-            {/* Controls & framework mapping */}
-            <Card className="p-6">
-              <div className="flex items-center gap-2 text-foreground">
-                <ShieldCheck className="h-4 w-4" />
-                <h3 className="text-base font-semibold">
-                  Control and framework mapping
-                </h3>
-              </div>
-              <div className="mt-5 space-y-5">
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                    Linked controls
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {data.risk.controls.map((control) => (
-                      <Badge key={control} variant="secondary">
-                        {control}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                    Impacted frameworks
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {data.risk.frameworks.map((framework) => (
-                      <Badge key={framework} variant="outline">
-                        {framework}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                    Treatment posture
-                  </p>
-                  <p className="mt-2 text-sm text-foreground">
-                    {data.risk.treatment}
-                  </p>
-                </div>
-              </div>
-            </Card>
-
-            {/* Stakeholders — editable for admins */}
-            <Card className="p-6">
-              <div className="flex items-center justify-between">
+          {/* ── Two-column layout: Assessment + Details sidebar ─────────── */}
+          <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
+            <div className="space-y-6">
+              {/* ── Risk Assessment ─────────────────────────────────────── */}
+              <Card className="p-6">
                 <div className="flex items-center gap-2 text-foreground">
-                  <Users className="h-4 w-4" />
-                  <h3 className="text-base font-semibold">Stakeholders</h3>
+                  <Target className="h-4 w-4" />
+                  <h3 className="text-base font-semibold">Risk Assessment</h3>
                 </div>
-                {isAdmin && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setStakeholderDialogOpen(true)}
-                  >
-                    <Pencil className="mr-1.5 h-3.5 w-3.5" />
-                    Edit stakeholders
-                  </Button>
-                )}
-              </div>
-              <div className="mt-5 grid gap-3 md:grid-cols-2">
-                {data.stakeholders.map((person) => (
-                  <div key={person.role} className="rounded-xl bg-muted p-4">
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                      {person.role}
+
+                <div className="mt-5 grid gap-6 sm:grid-cols-2">
+                  {/* Inherent Risk */}
+                  <div className="space-y-3">
+                    <p className="text-sm font-medium text-foreground">Inherent Risk</p>
+                    <p className="text-xs text-muted-foreground">
+                      Risk level before any controls or mitigations are applied.
                     </p>
-                    <p className="mt-2 font-medium text-foreground">
-                      {person.name}
-                    </p>
-                    <p className="mt-1 text-sm text-muted-foreground">{person.team}</p>
-                    {person.userId && (
-                      <p className="mt-1 text-xs text-muted-foreground/70">
-                        ID: {person.userId}
-                      </p>
-                    )}
+                    <div className="space-y-2">
+                      <div>
+                        <label className="mb-1 block text-xs text-muted-foreground">Impact</label>
+                        <InlineSelect
+                          value={draft.inherentImpact}
+                          options={IMPACT_LEVELS}
+                          onChange={val => {
+                            setDraft(d => ({ ...d, inherentImpact: val }));
+                            saveField({ inherentImpact: val, inherentLikelihood: draft.inherentLikelihood || undefined });
+                          }}
+                          className="w-full"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs text-muted-foreground">Likelihood</label>
+                        <InlineSelect
+                          value={draft.inherentLikelihood}
+                          options={LIKELIHOOD_LEVELS}
+                          onChange={val => {
+                            setDraft(d => ({ ...d, inherentLikelihood: val }));
+                            saveField({ inherentLikelihood: val, inherentImpact: draft.inherentImpact || undefined });
+                          }}
+                          className="w-full"
+                        />
+                      </div>
+                    </div>
+                    <div className={`rounded-lg border px-3 py-2 text-center ${scoreBgColor(inherentScore)}`}>
+                      <span className="text-xs text-muted-foreground">Score: </span>
+                      <span className={`text-lg font-bold ${scoreColor(inherentScore)}`}>{inherentScore}</span>
+                    </div>
                   </div>
-                ))}
-              </div>
-            </Card>
+
+                  {/* Residual Risk */}
+                  <div className="space-y-3">
+                    <p className="text-sm font-medium text-foreground">Residual Risk</p>
+                    <p className="text-xs text-muted-foreground">
+                      Risk level after controls and mitigations are applied.
+                    </p>
+                    <div className="space-y-2">
+                      <div>
+                        <label className="mb-1 block text-xs text-muted-foreground">Impact</label>
+                        <InlineSelect
+                          value={draft.residualImpact}
+                          options={IMPACT_LEVELS}
+                          onChange={val => {
+                            setDraft(d => ({ ...d, residualImpact: val }));
+                            saveField({ residualImpact: val, residualLikelihood: draft.residualLikelihood || undefined });
+                          }}
+                          className="w-full"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs text-muted-foreground">Likelihood</label>
+                        <InlineSelect
+                          value={draft.residualLikelihood}
+                          options={LIKELIHOOD_LEVELS}
+                          onChange={val => {
+                            setDraft(d => ({ ...d, residualLikelihood: val }));
+                            saveField({ residualLikelihood: val, residualImpact: draft.residualImpact || undefined });
+                          }}
+                          className="w-full"
+                        />
+                      </div>
+                    </div>
+                    <div className={`rounded-lg border px-3 py-2 text-center ${scoreBgColor(residualScore)}`}>
+                      <span className="text-xs text-muted-foreground">Score: </span>
+                      <span className={`text-lg font-bold ${scoreColor(residualScore)}`}>{residualScore}</span>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+
+              {/* ── Treatment Plan ──────────────────────────────────────── */}
+              <Card className="p-6">
+                <div className="flex items-center gap-2 text-foreground">
+                  <Shield className="h-4 w-4" />
+                  <h3 className="text-base font-semibold">Treatment Plan</h3>
+                </div>
+
+                <div className="mt-5 space-y-4">
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-foreground">Treatment Strategy</label>
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                      {TREATMENT_OPTIONS.filter(t => t.value).map(opt => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => {
+                            setDraft(d => ({ ...d, treatment: opt.value }));
+                            saveField({ treatment: opt.value });
+                          }}
+                          className={`rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors ${
+                            draft.treatment === opt.value
+                              ? 'border-blue-500 bg-blue-50 text-blue-700'
+                              : 'border-border bg-card text-muted-foreground hover:border-blue-300 hover:bg-blue-50/50'
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-foreground">Treatment Notes</label>
+                    <textarea
+                      value={draft.treatmentNotes}
+                      onChange={e => setDraft(d => ({ ...d, treatmentNotes: e.target.value }))}
+                      onBlur={() => {
+                        if (draft.treatmentNotes !== (reg?.treatmentNotes ?? '')) {
+                          saveField({ treatmentNotes: draft.treatmentNotes });
+                        }
+                      }}
+                      rows={3}
+                      className="w-full resize-none rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Describe the treatment approach, timeline, and responsible parties..."
+                    />
+                  </div>
+                </div>
+              </Card>
+
+              {/* ── Controls & Framework mapping ────────────────────────── */}
+              <Card className="p-6">
+                <div className="flex items-center gap-2 text-foreground">
+                  <ShieldCheck className="h-4 w-4" />
+                  <h3 className="text-base font-semibold">
+                    Control & Framework Mapping
+                  </h3>
+                </div>
+                <div className="mt-5 space-y-5">
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                      Linked controls
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {data.risk.controls.length > 0 ? (
+                        data.risk.controls.map((control) => (
+                          <Badge key={control} variant="secondary">
+                            {control}
+                          </Badge>
+                        ))
+                      ) : (
+                        <p className="text-sm text-muted-foreground">No controls linked yet.</p>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                      Impacted frameworks
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {data.risk.frameworks.length > 0 ? (
+                        data.risk.frameworks.map((framework) => (
+                          <Badge key={framework} variant="outline">
+                            {framework}
+                          </Badge>
+                        ))
+                      ) : (
+                        <p className="text-sm text-muted-foreground">No frameworks linked yet.</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            </div>
+
+            {/* ── Right sidebar: Details ────────────────────────────────── */}
+            <div className="space-y-6">
+              {/* Details card */}
+              <Card className="p-5">
+                <h3 className="text-sm font-semibold text-foreground">Details</h3>
+                <div className="mt-4 space-y-4">
+                  {/* Status */}
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">Status</label>
+                    <InlineSelect
+                      value={draft.status}
+                      options={STATUS_OPTIONS}
+                      onChange={val => {
+                        setDraft(d => ({ ...d, status: val }));
+                        saveField({ status: val });
+                      }}
+                      className="w-full"
+                    />
+                  </div>
+
+                  {/* Owner */}
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">Owner</label>
+                    <select
+                      value={draft.ownerId ?? ''}
+                      onChange={e => {
+                        const val = e.target.value || null;
+                        setDraft(d => ({ ...d, ownerId: val }));
+                        saveField({ ownerId: val });
+                      }}
+                      className="w-full rounded-md border border-border bg-card px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Unassigned</option>
+                      {usersData?.map(u => (
+                        <option key={u.id} value={u.id}>
+                          {u.name ?? u.email}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Review Due Date */}
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">Review Due Date</label>
+                    <input
+                      type="date"
+                      value={draft.reviewDueAt}
+                      onChange={e => {
+                        setDraft(d => ({ ...d, reviewDueAt: e.target.value }));
+                        saveField({ reviewDueAt: e.target.value || null });
+                      }}
+                      className="w-full rounded-md border border-border bg-card px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  {/* Category */}
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">Category</label>
+                    <p className="text-sm text-foreground">{data.risk.category}</p>
+                  </div>
+
+                  {/* Source */}
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">Source</label>
+                    <p className="text-sm text-foreground">{data.risk.source}</p>
+                  </div>
+
+                  {/* Created */}
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">Created</label>
+                    <p className="text-sm text-foreground">
+                      {new Date(data.risk.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Stakeholders card */}
+              <Card className="p-5">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-foreground">Stakeholders</h3>
+                  {isAdmin && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => setStakeholderDialogOpen(true)}
+                    >
+                      <Pencil className="mr-1 h-3 w-3" />
+                      Edit
+                    </Button>
+                  )}
+                </div>
+                <div className="mt-3 space-y-3">
+                  {data.stakeholders.length > 0 ? (
+                    data.stakeholders.map((person) => (
+                      <div key={person.role} className="rounded-lg bg-muted px-3 py-2.5">
+                        <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                          {person.role}
+                        </p>
+                        <p className="mt-1 text-sm font-medium text-foreground">
+                          {person.name}
+                        </p>
+                        {person.team && (
+                          <p className="text-xs text-muted-foreground">{person.team}</p>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No stakeholders assigned.</p>
+                  )}
+                </div>
+              </Card>
+            </div>
           </div>
 
           {/* ── Tabs ─────────────────────────────────────────────────────── */}
@@ -537,6 +895,9 @@ export function RiskDetailPage() {
                   <h3 className="text-base font-semibold">Evidence timeline</h3>
                 </div>
                 <div className="mt-5 space-y-4">
+                  {data.evidence.length === 0 && (
+                    <p className="text-sm text-muted-foreground">No evidence collected yet.</p>
+                  )}
                   {data.evidence.map((item) => (
                     <div
                       key={item.id}
@@ -565,7 +926,7 @@ export function RiskDetailPage() {
               </Card>
             </TabsContent>
 
-            {/* ── Activity tab (enhanced with stakeholder change rendering) ── */}
+            {/* ── Activity tab ──────────────────────────────────────────── */}
             <TabsContent value="activity">
               <Card className="p-6">
                 <div className="flex items-center gap-2 text-foreground">
@@ -573,6 +934,9 @@ export function RiskDetailPage() {
                   <h3 className="text-base font-semibold">Activity history</h3>
                 </div>
                 <div className="mt-5 space-y-4">
+                  {data.activities.length === 0 && (
+                    <p className="text-sm text-muted-foreground">No activity recorded.</p>
+                  )}
                   {data.activities.map((item) => (
                     <div
                       key={item.id}
@@ -596,7 +960,6 @@ export function RiskDetailPage() {
                           {item.actor} &middot;{' '}
                           {new Date(item.timestamp).toLocaleString()}
                         </p>
-                        {/* Audit detail for stakeholder changes */}
                         {item.meta && (
                           <div className="mt-2 rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">
                             <span className="font-medium">
@@ -618,84 +981,66 @@ export function RiskDetailPage() {
               </Card>
             </TabsContent>
 
-            {/* ── Remediation tab (enriched with traceability + UX) ─────── */}
+            {/* ── Remediation tab ───────────────────────────────────────── */}
             <TabsContent value="remediation">
               <div className="space-y-6">
                 {/* Generated-from origin panel */}
-                <Card className="p-6">
-                  <div className="flex items-center gap-2 text-foreground">
-                    <Link2 className="h-4 w-4" />
-                    <h3 className="text-base font-semibold">Generated from</h3>
-                  </div>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    This risk was created by the risk engine from a failing
-                    control test.
-                  </p>
-                  <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    <div className="rounded-xl border border-border p-4">
-                      <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                        Test name
-                      </p>
-                      <p className="mt-1 text-sm font-medium text-foreground">
-                        {data.origin.testName}
-                      </p>
-                      <p className="mt-0.5 text-xs text-muted-foreground/70">
-                        ID: {data.origin.testId}
-                      </p>
+                {data.origin.testId && (
+                  <Card className="p-6">
+                    <div className="flex items-center gap-2 text-foreground">
+                      <Link2 className="h-4 w-4" />
+                      <h3 className="text-base font-semibold">Generated from</h3>
                     </div>
-                    <div className="rounded-xl border border-border p-4">
-                      <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                        Control
-                      </p>
-                      <p className="mt-1 text-sm font-medium text-foreground">
-                        {data.origin.controlName}
-                      </p>
-                      <p className="mt-0.5 text-xs text-muted-foreground/70">
-                        ID: {data.origin.controlId}
-                      </p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      This risk was created by the risk engine from a failing
+                      control test.
+                    </p>
+                    <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                      <div className="rounded-xl border border-border p-4">
+                        <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                          Test name
+                        </p>
+                        <p className="mt-1 text-sm font-medium text-foreground">
+                          {data.origin.testName}
+                        </p>
+                      </div>
+                      <div className="rounded-xl border border-border p-4">
+                        <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                          Control
+                        </p>
+                        <p className="mt-1 text-sm font-medium text-foreground">
+                          {data.origin.controlName}
+                        </p>
+                      </div>
+                      <div className="rounded-xl border border-border p-4">
+                        <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                          Provider
+                        </p>
+                        <p className="mt-1 text-sm font-medium text-foreground">
+                          {data.origin.provider}
+                        </p>
+                      </div>
                     </div>
-                    <div className="rounded-xl border border-border p-4">
-                      <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                        Provider / Integration
-                      </p>
-                      <p className="mt-1 text-sm font-medium text-foreground">
-                        {data.origin.provider}
-                      </p>
-                      <p className="mt-0.5 text-xs text-muted-foreground/70">
-                        Signal: {data.origin.signalId}
-                      </p>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSelectedTestId(data.origin.testId)}
+                      >
+                        <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
+                        View test detail
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate('/risk/engine')}
+                      >
+                        <Activity className="mr-1.5 h-3.5 w-3.5" />
+                        View in risk engine
+                      </Button>
                     </div>
-                    <div className="rounded-xl border border-border p-4 sm:col-span-2 lg:col-span-3">
-                      <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                        Last failing execution
-                      </p>
-                      <p className="mt-1 text-sm text-foreground">
-                        {new Date(data.origin.lastFailedAt).toLocaleString()}
-                      </p>
-                      <p className="mt-1 text-sm text-red-600">
-                        {data.origin.failureReason}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setSelectedTestId(data.origin.testId)}
-                    >
-                      <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
-                      View test detail
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => navigate('/risk/engine')}
-                    >
-                      <Activity className="mr-1.5 h-3.5 w-3.5" />
-                      View in risk engine
-                    </Button>
-                  </div>
-                </Card>
+                  </Card>
+                )}
 
                 {/* Enriched remediation workflow */}
                 <Card className="p-6">
@@ -706,6 +1051,11 @@ export function RiskDetailPage() {
                     </h3>
                   </div>
                   <div className="mt-5 space-y-4">
+                    {data.enrichedRemediationSteps.length === 0 && (
+                      <p className="text-sm text-muted-foreground">
+                        No remediation steps defined yet.
+                      </p>
+                    )}
                     {data.enrichedRemediationSteps.map((step, index) => (
                       <div
                         key={step.label}
@@ -720,7 +1070,6 @@ export function RiskDetailPage() {
                               {step.label}
                             </p>
 
-                            {/* Linked test/control */}
                             {(step.linkedTestId || step.linkedControlName) && (
                               <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
                                 {step.linkedTestId && (
@@ -738,7 +1087,6 @@ export function RiskDetailPage() {
                               </div>
                             )}
 
-                            {/* Failure reason */}
                             {step.failureReason && (
                               <div className="flex items-start gap-2 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
                                 <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
@@ -746,7 +1094,6 @@ export function RiskDetailPage() {
                               </div>
                             )}
 
-                            {/* Affected resource */}
                             {step.affectedResource && (
                               <p className="text-xs text-muted-foreground">
                                 Affected resource:{' '}
@@ -756,14 +1103,12 @@ export function RiskDetailPage() {
                               </p>
                             )}
 
-                            {/* Recommended fix */}
                             {step.recommendedFix && (
                               <p className="text-xs text-muted-foreground">
                                 Recommended: {step.recommendedFix}
                               </p>
                             )}
 
-                            {/* Evidence snapshot */}
                             {step.evidenceSummary && (
                               <div className="rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">
                                 <span className="font-medium">Evidence:</span>{' '}
@@ -771,7 +1116,6 @@ export function RiskDetailPage() {
                               </div>
                             )}
 
-                            {/* Action buttons */}
                             <div className="flex flex-wrap gap-2 pt-1">
                               {step.linkedTestId && (
                                 <Button
@@ -808,7 +1152,7 @@ export function RiskDetailPage() {
             </TabsContent>
           </Tabs>
 
-          {/* ── Stakeholder edit dialog ─────────────────────────────────── */}
+          {/* ── Dialogs ──────────────────────────────────────────────────── */}
           {isAdmin && (
             <EditStakeholdersDialog
               open={stakeholderDialogOpen}

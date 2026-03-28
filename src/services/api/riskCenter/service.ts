@@ -163,6 +163,24 @@ export const riskCenterService = {
 
       return {
         risk,
+        registerEntry: {
+          id: entry.id,
+          title: entry.title,
+          description: entry.description,
+          category: entry.category,
+          inherentImpact: entry.inherentImpact,
+          inherentLikelihood: entry.inherentLikelihood,
+          inherentScore: entry.inherentScore,
+          residualImpact: entry.residualImpact,
+          residualLikelihood: entry.residualLikelihood,
+          residualScore: entry.residualScore,
+          status: entry.status,
+          treatment: entry.treatment,
+          treatmentNotes: entry.treatmentNotes,
+          ownerId: entry.ownerId,
+          ownerName: entry.ownerName,
+          reviewDueAt: entry.reviewDueAt,
+        },
         summary: {
           inherentRisk: entry.inherentScore ?? 0,
           residualRisk: entry.residualScore ?? 0,
