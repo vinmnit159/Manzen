@@ -18,6 +18,7 @@ export interface CreatePolicyRequest {
   version: string;
   status: string;
   documentUrl?: string;
+  ownerId?: string;
   approvedBy?: string;
   approvedAt?: string;
 }

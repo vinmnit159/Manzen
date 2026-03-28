@@ -13,6 +13,7 @@ import {
   AlertCircle,
   Tag,
   Loader2,
+  User,
 } from 'lucide-react';
 import { useState, useRef } from 'react';
 import {
@@ -25,6 +26,7 @@ import { Policy } from '@/services/api/types';
 import { policiesService } from '@/services/api/policies';
 import { testsService } from '@/services/api/tests';
 import { controlsService } from '@/services/api/controls';
+import { usersService } from '@/services/api/users';
 import { fmtDate } from '@/lib/format-date';
 
 const STATUS_CONFIG: Record<
@@ -105,12 +107,19 @@ export function PolicyDetailPanel({
   const fileRef = useRef<HTMLInputElement>(null);
 
   const updateMutation = useMutation({
-    mutationFn: (data: { status?: string }) =>
+    mutationFn: (data: { status?: string; ownerId?: string }) =>
       policiesService.updatePolicy(currentPolicy.id, data),
     onSuccess: (res) => {
       if (res.data) setCurrentPolicy(res.data);
       onMutated?.();
     },
+  });
+
+  // Org users for owner reassignment
+  const { data: orgUsers = [] } = useQuery({
+    queryKey: ['users', 'list'],
+    queryFn: () => usersService.listUsers(),
+    staleTime: 60_000,
   });
 
   // All tests — filter by policy name heuristic (policy name match or category)
@@ -198,6 +207,14 @@ export function PolicyDetailPanel({
               <h2 className="text-lg font-semibold text-gray-900 leading-snug">
                 {currentPolicy.name}
               </h2>
+              {currentPolicy.owner && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Owned by{' '}
+                  <span className="font-medium text-gray-700">
+                    {currentPolicy.owner.name || currentPolicy.owner.email}
+                  </span>
+                </p>
+              )}
               {currentPolicy.approvedBy && (
                 <p className="text-xs text-gray-500 mt-1">
                   Approved by{' '}
@@ -333,6 +350,31 @@ export function PolicyDetailPanel({
                     </dt>
                     <dd className="mt-1 text-gray-700">
                       {fmtDate(currentPolicy.updatedAt)}
+                    </dd>
+                  </div>
+                  <div className="col-span-2">
+                    <dt className="text-xs font-medium text-gray-400 uppercase tracking-wide">
+                      Owner
+                    </dt>
+                    <dd className="mt-1">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                          <User className="w-3.5 h-3.5 text-blue-600" />
+                        </div>
+                        <select
+                          value={currentPolicy.ownerId ?? ''}
+                          onChange={(e) => updateMutation.mutate({ ownerId: e.target.value || undefined })}
+                          disabled={updateMutation.isPending}
+                          className="text-sm text-gray-700 bg-white border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                        >
+                          <option value="">Unassigned</option>
+                          {orgUsers.map((u) => (
+                            <option key={u.id} value={u.id}>
+                              {u.name || u.email}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     </dd>
                   </div>
                   {currentPolicy.approvedBy && (

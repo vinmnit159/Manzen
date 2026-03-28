@@ -145,6 +145,8 @@ export interface Policy {
   status: string;
   documentUrl: string;
   organizationId: string;
+  ownerId?: string;
+  owner?: { id: string; name: string; email: string };
   approvedBy?: string;
   approvedAt?: string;
   createdAt: string;
