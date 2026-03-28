@@ -1,12 +1,13 @@
 import { useState, useMemo, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Search, X, Upload, CheckCircle2, Loader2 } from 'lucide-react';
+import { Plus, Search, X, Upload, CheckCircle2, Loader2, FileText, ExternalLink } from 'lucide-react';
 import { QK } from '@/lib/queryKeys';
 import { STALE } from '@/lib/queryClient';
 import { testsService } from '@/services/api/tests';
 import { controlsService } from '@/services/api/controls';
 import { evidenceService } from '@/services/api/evidence';
 import { auditsService } from '@/services/api/audits';
+import { policiesService } from '@/services/api/policies';
 import type { Control } from '@/services/api/types';
 import type { AuditRecord } from '@/services/api/audits';
 import { fmtDate } from '@/lib/format-date';
@@ -499,6 +500,63 @@ export function AddFrameworkSection({ testId }: { testId: string }) {
       <button onClick={() => setShowInput(false)} className="text-gray-400 hover:text-gray-600">
         <X className="w-4 h-4" />
       </button>
+    </div>
+  );
+}
+
+// ─── Policy Documents (auto-linked) ─────────────────────────────────────────
+
+export function PolicyDocumentsSection({ controlIds }: { controlIds: string[] }) {
+  const { data: policies, isLoading } = useQuery({
+    queryKey: ['policies', 'by-controls', ...controlIds],
+    queryFn: async () => {
+      const res = await policiesService.getPoliciesByControls(controlIds);
+      return res.data ?? [];
+    },
+    staleTime: STALE.CONTROLS,
+    enabled: controlIds.length > 0,
+  });
+
+  if (controlIds.length === 0) return null;
+  if (isLoading) return <p className="text-xs text-gray-400 animate-pulse mt-2">Loading policy documents...</p>;
+  if (!policies || policies.length === 0) return null;
+
+  const withDocs = policies.filter(p => p.documentUrl);
+  if (withDocs.length === 0) return null;
+
+  return (
+    <div className="mt-3 rounded-lg border border-indigo-100 bg-indigo-50/40 p-3">
+      <div className="flex items-center gap-2 mb-2">
+        <FileText className="w-3.5 h-3.5 text-indigo-600" />
+        <span className="text-xs font-semibold text-indigo-800">
+          Policy Documents ({withDocs.length})
+        </span>
+        <span className="ml-auto text-xs text-indigo-400">Auto-linked from controls</span>
+      </div>
+      <ul className="space-y-1.5">
+        {withDocs.map(p => (
+          <li key={p.id} className="flex items-center justify-between gap-2 rounded-lg bg-white border border-indigo-100 px-3 py-2">
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-gray-800 truncate">
+                {p.name} <span className="text-gray-400 font-normal">v{p.version}</span>
+              </p>
+              <p className="text-xs text-gray-400">
+                {p.status} &middot; Linked to {p.controlIds.length} control{p.controlIds.length === 1 ? '' : 's'}
+              </p>
+            </div>
+            {p.documentUrl && (
+              <a
+                href={p.documentUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 whitespace-nowrap"
+              >
+                <ExternalLink className="w-3 h-3" /> View
+              </a>
+            )}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

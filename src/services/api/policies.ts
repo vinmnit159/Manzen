@@ -144,6 +144,19 @@ export class PoliciesService {
     a.click();
     URL.revokeObjectURL(url);
   }
+
+  /** Get policies linked to given control IDs (for test evidence tab) */
+  async getPoliciesByControls(controlIds: string[]): Promise<ApiResponse<Array<{
+    id: string;
+    name: string;
+    version: string;
+    status: string;
+    documentUrl: string | null;
+    controlIds: string[];
+  }>>> {
+    if (controlIds.length === 0) return { success: true, data: [] } as ApiResponse<[]>;
+    return apiClient.get('/api/policies/by-controls', { controlIds: controlIds.join(',') });
+  }
 }
 
 export const policiesService = new PoliciesService();

@@ -59,6 +59,7 @@ import {
   AttachControlSection,
   AttachAuditSection,
   AddFrameworkSection,
+  PolicyDocumentsSection,
 } from './testDetail/AttachSections';
 import { DocumentUploadModal } from './testDetail/DocumentUploadModal';
 import { RemediationGuide } from './testDetail/RemediationGuide';
@@ -903,6 +904,9 @@ export function TestDetailPanel({
                     onDismiss={() => setShowPassedPrompt(false)}
                   />
                 )}
+                <PolicyDocumentsSection
+                  controlIds={test.controls.map((c) => c.controlId)}
+                />
               </Section>
 
               <Section
