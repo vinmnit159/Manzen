@@ -54,6 +54,8 @@ import {
 } from './testDetail/CreateNotionTaskModal';
 import {
   AttachEvidenceSection,
+  UploadEvidenceSection,
+  MarkAsPassedPrompt,
   AttachControlSection,
   AttachAuditSection,
   AddFrameworkSection,
@@ -384,6 +386,15 @@ export function TestDetailPanel({
 
   // Suppress unused variable warning — isAutomated is available for future use
   void isAutomated;
+
+  // Show "Mark as Passed" prompt after evidence attachment (manual tests only)
+  const [showPassedPrompt, setShowPassedPrompt] = useState(false);
+  const firstControlId = test?.controls?.[0]?.controlId ?? null;
+  const handleEvidenceAttached = () => {
+    if (!isSystemDriven && test?.status !== 'OK') {
+      setShowPassedPrompt(true);
+    }
+  };
 
   // ── Shared header + body content ──
   const header = (
@@ -868,11 +879,28 @@ export function TestDetailPanel({
                   </ul>
                 )}
                 {canEditTest && (
-                  <AttachEvidenceSection
+                  <div className="mt-3 flex flex-wrap items-center gap-3">
+                    <UploadEvidenceSection
+                      testId={testId}
+                      controlId={firstControlId}
+                      onUploaded={handleEvidenceAttached}
+                    />
+                    <span className="text-xs text-gray-300">|</span>
+                    <AttachEvidenceSection
+                      testId={testId}
+                      existingIds={
+                        new Set(test.evidences.map((e) => e.evidenceId))
+                      }
+                      controlIds={test.controls.map((c) => c.controlId)}
+                      onAttached={handleEvidenceAttached}
+                    />
+                  </div>
+                )}
+                {canEditTest && !isSystemDriven && (
+                  <MarkAsPassedPrompt
                     testId={testId}
-                    existingIds={
-                      new Set(test.evidences.map((e) => e.evidenceId))
-                    }
+                    show={showPassedPrompt}
+                    onDismiss={() => setShowPassedPrompt(false)}
                   />
                 )}
               </Section>
