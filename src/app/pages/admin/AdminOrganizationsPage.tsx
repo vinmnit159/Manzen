@@ -256,12 +256,35 @@ function CreateOrgDialog({
     adminEmail: '',
     adminPassword: '',
   });
+  const [selectedFwIds, setSelectedFwIds] = useState<Set<string>>(new Set());
   const [error, setError] = useState('');
 
+  // Fetch all frameworks for the multi-select
+  const { data: fwRes } = useQuery({
+    queryKey: ['admin', 'frameworks'],
+    queryFn: () => adminService.listFrameworks(),
+    enabled: open,
+  });
+  const frameworks = fwRes?.data ?? [];
+
+  const toggleFw = (id: string) => {
+    setSelectedFwIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
   const mutation = useMutation({
-    mutationFn: () => adminService.createOrganization(form),
+    mutationFn: () =>
+      adminService.createOrganization({
+        ...form,
+        frameworkIds: [...selectedFwIds],
+      }),
     onSuccess: () => {
       setForm({ organizationName: '', adminName: '', adminEmail: '', adminPassword: '' });
+      setSelectedFwIds(new Set());
       setError('');
       onCreated();
     },
@@ -272,7 +295,7 @@ function CreateOrgDialog({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent>
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Create Organization</DialogTitle>
         </DialogHeader>
@@ -292,6 +315,34 @@ function CreateOrgDialog({
           <div>
             <label className="text-sm font-medium">Admin Password</label>
             <Input type="password" value={form.adminPassword} onChange={(e) => setForm({ ...form, adminPassword: e.target.value })} />
+          </div>
+          <div>
+            <label className="text-sm font-medium">Allowed Frameworks</label>
+            <p className="text-xs text-gray-500 mb-2">Select which frameworks this organization can activate</p>
+            <div className="border border-gray-200 rounded-lg max-h-40 overflow-y-auto">
+              {frameworks.length === 0 ? (
+                <p className="text-xs text-gray-400 p-3 text-center">Loading frameworks...</p>
+              ) : (
+                frameworks.map((fw: any) => (
+                  <label
+                    key={fw.id}
+                    className="flex items-center gap-2.5 px-3 py-2 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedFwIds.has(fw.id)}
+                      onChange={() => toggleFw(fw.id)}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-gray-800">{fw.name}</span>
+                    {fw.version && <span className="text-xs text-gray-400">{fw.version}</span>}
+                  </label>
+                ))
+              )}
+            </div>
+            {selectedFwIds.size > 0 && (
+              <p className="text-xs text-blue-600 mt-1">{selectedFwIds.size} framework{selectedFwIds.size !== 1 ? 's' : ''} selected</p>
+            )}
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
         </div>

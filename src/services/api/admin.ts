@@ -156,6 +156,7 @@ export interface CreateOrgRequest {
   adminName: string;
   adminEmail: string;
   adminPassword: string;
+  frameworkIds?: string[];
 }
 
 // ── Framework Admin types ─────────────────────────────────────────────────
