@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { controlsService } from '@/services/api/controls';
 import { risksService } from '@/services/api/risks';
+import { testsService, type TestSummary } from '@/services/api/tests';
 import {
   activityLogsService,
   ActivityLogEntry,
@@ -104,14 +105,25 @@ export function HomePage() {
     staleTime: STALE.DASHBOARD,
   });
 
+  const { data: testSummaryRaw, isLoading: loadingTests } = useQuery({
+    queryKey: QK.testSummary(),
+    queryFn: async () => {
+      const res = await testsService.getTestSummary();
+      return ((res as { data?: TestSummary })?.data ?? res) as TestSummary;
+    },
+    staleTime: STALE.DASHBOARD,
+  });
+
   const compliance = complianceRaw ?? null;
   const riskOverview = riskRaw ?? null;
   const recentActivity = activityRaw ?? [];
   const readiness = readinessRaw ?? [];
+  const testSummary = testSummaryRaw ?? null;
 
   const handleRefresh = () => {
     qc.invalidateQueries({ queryKey: QK.complianceStats() });
     qc.invalidateQueries({ queryKey: QK.riskOverview() });
+    qc.invalidateQueries({ queryKey: QK.testSummary() });
     qc.invalidateQueries({ queryKey: QK.activityLog(8) });
     qc.invalidateQueries({ queryKey: ['frameworks', 'readiness-summary'] });
   };
@@ -134,6 +146,12 @@ export function HomePage() {
     : riskOverview
       ? String(riskOverview.open)
       : '—';
+
+  const pendingTasks = loadingTests
+    ? null
+    : testSummary
+      ? String(testSummary.total - testSummary.completed)
+      : '0';
 
   const stats = [
     {
@@ -162,8 +180,8 @@ export function HomePage() {
     },
     {
       label: 'Pending Tasks',
-      value: '23',
-      change: '-5',
+      value: pendingTasks,
+      change: null,
       icon: Clock,
       color: 'text-orange-600',
       path: '/tests',
