@@ -30,7 +30,7 @@ export interface FindingsListResponse extends ApiResponse<ScanFindingDto[]> {
 export const scanFindingsService = {
   listByRisk(riskId: string) {
     return apiClient.get<FindingsListResponse>(
-      `/risk-library/register/${riskId}/findings`,
+      `/api/risk-library/register/${riskId}/findings`,
     );
   },
 
@@ -41,11 +41,11 @@ export const scanFindingsService = {
     if (params?.finding_type_key) qs.set('finding_type_key', params.finding_type_key);
     const query = qs.toString();
     return apiClient.get<ApiResponse<ScanFindingDto[]>>(
-      `/scan-findings${query ? `?${query}` : ''}`,
+      `/api/scan-findings${query ? `?${query}` : ''}`,
     );
   },
 
   getById(id: string) {
-    return apiClient.get<ApiResponse<ScanFindingDto>>(`/scan-findings/${id}`);
+    return apiClient.get<ApiResponse<ScanFindingDto>>(`/api/scan-findings/${id}`);
   },
 };
