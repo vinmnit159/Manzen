@@ -87,6 +87,8 @@ export const QK = {
   frameworkDetail: (slug: string) => ['frameworks', 'detail', slug] as const,
   frameworkCoverage: (slug: string) =>
     ['frameworks', 'coverage', slug] as const,
+  frameworkRequirementView: (slug: string) =>
+    ['frameworks', 'requirement-view', slug] as const,
 
   // MCP
   mcpRoot: () => ['mcp'] as const,

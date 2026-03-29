@@ -193,6 +193,58 @@ export interface FrameworkMappingsDto {
   policies: PolicyMappingDto[];
 }
 
+// ── Requirement detail view (unified single-page endpoint) ───────────────────
+
+export interface RequirementControlDto {
+  controlId: string;
+  controlTitle: string;
+  controlStatus: string;
+  mappingType: string;
+  isoReference: string;
+}
+
+export interface RequirementTestDto {
+  testId: string;
+  testName: string;
+  testStatus: string;
+  dueDate: string | null;
+  completedAt: string | null;
+}
+
+export interface RequirementPolicyDto {
+  policyId: string;
+  policyName: string;
+  policyStatus: string;
+}
+
+export interface RequirementRiskDto {
+  riskId: string;
+  riskTitle: string;
+  riskScore: number | null;
+  riskStatus: string;
+  riskLevel: string | null;
+}
+
+export interface RequirementDetailRow {
+  id: string;
+  organizationId: string;
+  frameworkRequirementId: string;
+  code: string;
+  title: string;
+  domain: string | null;
+  applicabilityStatus: 'applicable' | 'not_applicable';
+  justification: string | null;
+  reviewStatus: 'not_started' | 'in_review' | 'accepted';
+  ownerId: string | null;
+  ownerName: string | null;
+  dueDate: string | null;
+  updatedAt: string;
+  controls: RequirementControlDto[];
+  tests: RequirementTestDto[];
+  policies: RequirementPolicyDto[];
+  risks: RequirementRiskDto[];
+}
+
 export interface FrameworkReadinessDto {
   slug: string;
   name: string;
@@ -273,6 +325,15 @@ class FrameworksService {
     frameworkSlug: string,
   ): Promise<{ success: boolean; data: RequirementStatusDto[] }> {
     return apiClient.get(`/api/org/frameworks/${frameworkSlug}/requirements`);
+  }
+
+  /** GET /api/org/frameworks/:slug/requirement-detail-view — unified requirement data */
+  async getRequirementDetailView(
+    frameworkSlug: string,
+  ): Promise<{ success: boolean; data: RequirementDetailRow[] }> {
+    return apiClient.get(
+      `/api/org/frameworks/${frameworkSlug}/requirement-detail-view`,
+    );
   }
 
   /** GET /api/org/frameworks/:slug/coverage — latest coverage snapshot */
