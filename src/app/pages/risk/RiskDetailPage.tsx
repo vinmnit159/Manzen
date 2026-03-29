@@ -181,6 +181,7 @@ function EditStakeholdersDialog({
       ),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: QK.riskDetail(riskId) });
+      qc.invalidateQueries({ queryKey: ['risk-register'] });
       qc.invalidateQueries({ queryKey: QK.activityLog() });
       onClose();
     },
